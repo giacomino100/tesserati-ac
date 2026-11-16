@@ -18,6 +18,8 @@ secondo il PDF ufficiale delle quote; segnalare i casi che il PDF non prevede.
 
 - Q: Se un nucleo contiene un bambino sotto i 6 anni, cosa succede? → A: l'intero nucleo è
   "non previsto" e la segreteria inserisce a mano la quota di tutto il nucleo.
+- Q: Quando due ACR usano il pacchetto da 25 €, quanto risulta pagato da ciascuno? → A: nessun
+  importo per persona: i due ACR risultano "nel pacchetto" e il nucleo ha una riga unica da 25 €.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -37,16 +39,17 @@ il totale atteso; non richiede interfaccia né archivio dati.
 
 1. **Given** il listino 2026/27 e un tesserato singolo nato nel 1980, **When** si calcola la
    quota, **Then** la fascia è Adulti e il totale è 26,00 €.
-2. **Given** un nucleo di 2 ACR, **When** si calcola, **Then** il totale è 25,00 € con
-   agevolazione "pacchetto 2 ACR".
+2. **Given** un nucleo di 2 ACR, **When** si calcola, **Then** entrambi risultano "nel
+   pacchetto" senza importo personale, il nucleo ha una riga "pacchetto 2 ACR" da 25,00 € e il
+   totale è 25,00 €.
 3. **Given** un nucleo di 1 Adulto + 1 ACR, **When** si calcola, **Then** non c'è agevolazione e
    il totale è 41,00 €.
 4. **Given** un nucleo di 2 Adulti + 1 Giovane, **When** si calcola, **Then** il Giovane (il più
    giovane) paga 18,00 € e il totale è 70,00 €.
-5. **Given** un nucleo di 1 Adulto + 2 ACR, **When** si calcola, **Then** i 2 ACR pagano il
-   pacchetto (25,00 €), l'Adulto 26,00 €, totale 51,00 €.
-6. **Given** un nucleo di 3 ACR, **When** si calcola, **Then** i due ACR più grandi pagano il
-   pacchetto (25,00 €), il più giovane 12,00 €, totale 37,00 €.
+5. **Given** un nucleo di 1 Adulto + 2 ACR, **When** si calcola, **Then** l'Adulto paga 26,00 €,
+   i 2 ACR risultano "nel pacchetto" con una riga pacchetto da 25,00 €, totale 51,00 €.
+6. **Given** un nucleo di 3 ACR, **When** si calcola, **Then** i due ACR più grandi risultano
+   "nel pacchetto" (riga pacchetto da 25,00 €), il più giovane paga 12,00 €, totale 37,00 €.
 7. **Given** ognuno dei 18 casi della tabella "Casistica" del PDF, **When** si calcola, **Then**
    il totale coincide con quello del PDF.
 
@@ -112,8 +115,8 @@ sotto i 6 anni: nessun importo, motivo esplicito.
 
 ### Functional Requirements
 
-- **FR-001**: Il sistema MUST determinare la fascia di ogni componente dall'età = anno
-  associativo − anno di nascita: 6–14 ACR, 15–18 Giovanissimi, 19–29 Giovani, 30 e oltre Adulti.
+- **FR-001**: Il sistema MUST determinare la fascia di ogni componente dall'età = primo anno
+  dell'anno associativo − anno di nascita (per il 2026/27: 2026 − anno di nascita): 6–14 ACR, 15–18 Giovanissimi, 19–29 Giovani, 30 e oltre Adulti.
 - **FR-002**: Il sistema MUST leggere quote piene, quote con sconto del 20% e importo del
   pacchetto 2 ACR dal listino dell'anno associativo; MUST NOT calcolare percentuali né arrotondare.
 - **FR-003**: Il sistema MUST ordinare i componenti del nucleo dal più anziano al più giovane per
@@ -135,10 +138,12 @@ sotto i 6 anni: nessun importo, motivo esplicito.
   MUST restituire per l'intero nucleo l'esito "non previsto dal listino" con il motivo e MUST NOT
   restituire importi per nessun componente.
 - **FR-011**: Per ogni nucleo calcolato il sistema MUST restituire, per ogni componente: fascia,
-  quota piena, agevolazione applicata (nessuna / sconto 20% / gratuito / pacchetto 2 ACR) e
-  importo dovuto; e il totale del nucleo.
+  quota piena, agevolazione applicata (nessuna / sconto 20% / gratuito / nel pacchetto 2 ACR) e
+  importo dovuto; i componenti "nel pacchetto 2 ACR" non hanno importo personale. Se è applicato
+  il pacchetto, il nucleo ha in più una riga "pacchetto 2 ACR" con l'importo del pacchetto e i due
+  componenti che comprende. Infine il totale del nucleo.
 - **FR-012**: Gli importi MUST essere esatti al centesimo e il totale MUST essere uguale alla somma
-  degli importi dei componenti (il pacchetto 2 ACR conta una sola volta).
+  degli importi personali più l'eventuale riga pacchetto.
 - **FR-013**: Il calcolo MUST essere deterministico: stessi componenti, stesso anno e stesso
   listino producono sempre lo stesso risultato.
 
@@ -150,8 +155,10 @@ sotto i 6 anni: nessun importo, motivo esplicito.
   tesserato senza nucleo forma un nucleo da solo.
 - **Listino**: per un anno associativo, quota piena e quota con sconto del 20% per ogni fascia,
   importo del pacchetto 2 ACR, fasce d'età.
-- **Esito del calcolo**: "calcolato" (dettaglio per componente + totale) oppure "non previsto"
-  (motivo, nessun importo).
+- **Esito del calcolo**: "calcolato" (dettaglio per componente, eventuale riga pacchetto 2 ACR,
+  totale) oppure "non previsto" (motivo, nessun importo).
+- **Riga pacchetto 2 ACR**: agevolazione a livello di nucleo; importo (dal listino) e i due
+  componenti ACR inclusi.
 
 ## Success Criteria *(mandatory)*
 
