@@ -11,9 +11,9 @@ Completare le parti con **TODO**.
 | Riconferma | Adesione di un tesserato che aveva un'adesione nell'anno associativo precedente. |
 | Nuova adesione | Adesione di una persona senza adesione nell'anno precedente. **TODO**: chi torna dopo 2+ anni conta come nuovo o riconferma? |
 | Settore (categoria) | Nell'export: `RAGAZZI` (= ACR), `GIOVANI`, `ADULTI`. Determinato dall'età: ≤14 ACR, 15–30 Giovani, ≥31 Adulti. |
-| Fascia d'età | Sottocategoria nell'export: ACR `0/5`, `6/8`, `9/11`, `12/14`; Giovani `15/18` (giovanissimi), `19/25`, `26/30` (tutte con la stessa quota); Adulti `AD`. Età = anno associativo − anno di nascita. |
+| Fascia d'età | Sottocategoria nell'export: ACR `0/5`, `6/8`, `9/11`, `12/14`; Giovani `15/18` (= **Giovanissimi**, quota propria), `19/25`, `26/30` (= Giovani); Adulti `AD`. Le quote seguono le fasce del listino in `regole-quote.md`, non il settore. Età = anno associativo − anno di nascita. |
 | Nucleo (legame) | Gruppo familiare già presente nell'export: colonne `N. Legame` (id) e `Legame` (es. `C3` = coppia, 3 componenti). Vedi `regole-famiglia.md`. |
 | Famiglia | Gruppo di tesserati considerato insieme per il calcolo dello sconto. Definizione precisa in `regole-famiglia.md`. |
 | Quota | Importo dovuto per un'adesione, prima dello sconto. Dipende da categoria e anno (vedi `regole-quote.md`). |
-| Sconto famiglia | Riduzione applicata secondo le regole in `regole-quote.md`. |
+| Pacchetto familiare | Agevolazione per nucleo: pacchetto 2 ACR (25 €), 20% sul più giovane (nuclei da 3), 20% sul 3° + 4° gratis (nuclei da 4). Vedi `regole-quote.md`. |
 | Responsabile | **TODO**: chi usa l'app (vedi `utenti.md`). |
