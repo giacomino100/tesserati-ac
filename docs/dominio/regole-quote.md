@@ -84,7 +84,7 @@ Casi non elencati nella Casistica ma risolti direttamente dal testo del PDF (lis
 | 25 | 2 Adulti + 1 Giovane + 1 ACR | 70,00 | 4 persone: 26 + 26 + 18 + 0 ✅ |
 | 26 | 2 Adulti + 2 ACR | 64,00 | 4 persone: 26 + 26 + 12 + 0 ✅ |
 | 27 | 4 Adulti | 73,00 | 4 persone: 26 + 26 + 21 + 0 ✅ |
-| 28 | 1 Adulto + 1 Giovane (2000) + 1 Giovane (2003) + 1 Giovanissimo | 74,00 | 4 persone: 26 + 22 + 18 + 0 — il 3° è il giovane nato nel 2003 ✅ |
+| 28 | 1 Adulto + 1 Giovane (2000) + 1 Giovane (2003) + 1 Giovanissimo | 66,00 | 4 persone: 26 + 22 + 18 + 0 — il 3° è il giovane nato nel 2003 ✅ |
 | 29 | 2 Adulti + 1 nato nel 1996 | 73,00 | il nato nel 1996 ha 30 anni → Adulto → come il caso 18 ✅ |
 
 ## 4. Casi non previsti dal PDF
