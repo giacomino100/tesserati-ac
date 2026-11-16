@@ -1,16 +1,40 @@
 # Regole su famiglie e identità delle persone
 
+## 0. Cosa dicono i dati (analisi export 2026)
+
+L'export **contiene già i nuclei familiari**:
+
+- `N. Legame` = identificativo del nucleo; tutte le persone con lo stesso numero sono della stessa famiglia.
+- `Legame` = lettera + **numero di componenti tesserati del nucleo** (verificato: il numero coincide sempre).
+  - `C…` → nel nucleo c'è una **coppia** (due `CG`): C2, C3, C4, C6
+  - `N…` → nucleo **senza coppia** (un genitore, solo fratelli, ecc.): N2, N3
+- `Ruolo` all'interno del nucleo (ipotesi da confermare):
+  - `CG` = coniuge / genitore
+  - `F` = figlio/a
+  - `FS` = fratello/sorella (es. nuclei di soli fratelli, genitori non tesserati)
+  - `A` = altro (es. nonno/a)
+- Nel reale: 43 nuclei (28 da 2, 12 da 3, 2 da 4, 1 da 6), **20 nuclei sparsi su più file**,
+  58 tesserati senza legame. → **15 nuclei con 3+ componenti** a cui si applica lo sconto.
+- **Indirizzo e cognome NON identificano la famiglia**: 12 nuclei su 43 hanno indirizzi scritti in modo diverso,
+  26 su 43 hanno cognomi diversi (es. la madre mantiene il proprio).
+
 ## 1. Cos'è una famiglia
-- Definizione: **TODO** (es. persone conviventi nello stesso nucleo? genitori + figli anche se non conviventi?)
-- Negli Excel attuali c'è un'informazione che identifica la famiglia (codice famiglia, indirizzo, nome capofamiglia)? **TODO**
-- Una persona può stare in due famiglie (es. genitori separati)? **TODO**
-- Chi decide il raggruppamento: l'app propone e un responsabile conferma? **TODO**
+- Proposta: **famiglia = nucleo con lo stesso `N. Legame`**; chi non ha `N. Legame` è una famiglia da 1.
+- Il `N. Legame` resta lo stesso da un anno all'altro? **TODO** (servirebbe l'export dell'anno precedente per verificarlo)
+- Quando si aggiunge un nuovo tesserato (es. un figlio che si iscrive per la prima volta), chi lo collega al nucleo? L'app permette di farlo a mano? **TODO**
+- Il `N. Legame` viene creato dal sistema nazionale o dalla parrocchia? **TODO**
+- Una persona può stare in due nuclei (es. genitori separati)? Nei dati no. **TODO** confermare.
 
 ## 2. Riconoscere la stessa persona tra un anno e l'altro
-- Negli Excel c'è il **codice fiscale**? È sempre compilato? **TODO**
-- Se manca: usiamo nome + cognome + data di nascita? **TODO**
-- Cosa fare nei casi dubbi (es. "Maria Rossi" vs "Rossi Maria", date diverse di un giorno): segnalare per revisione manuale? **TODO**
+- Il codice fiscale è compilato solo nel 27% dei casi (1 su 89 in ACR): **non può essere la chiave**.
+- Proposta: chiave = **cognome + nome + data di nascita**, normalizzati (maiuscolo, senza spazi in più, senza accenti).
+  Nell'export 2026 non ci sono duplicati con questa chiave.
+- Se il codice fiscale è presente in entrambi gli anni, prevale sulla chiave sopra.
+- Casi dubbi (stessa data di nascita e cognome, nome simile): segnalare per revisione manuale. **TODO** confermare.
 
 ## 3. Cambio di categoria
-- Un tesserato che per età passa da ACR a Giovani (o da Giovani ad Adulti) viene spostato automaticamente? **TODO**
-- Lo spostamento può essere forzato a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO**
+- La fascia dipende **solo dall'anno di nascita**: età = anno associativo − anno di nascita
+  (verificato sull'export 2026: es. `15/18` = nati 2008–2011).
+- Settore: età ≤ 14 → RAGAZZI (ACR) · 15–30 → GIOVANI · ≥ 31 → ADULTI.
+- Alla riconferma l'app ricalcola settore e fascia in automatico? **TODO** (proposta: sì)
+- Si può forzare a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO**

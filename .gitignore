@@ -1,0 +1,9 @@
+# Dati reali dei tesserati: MAI nel repository
+dati-reali/
+*.reale.xlsx
+
+node_modules/
+dist/
+.angular/
+.firebase/
+*-debug.log
