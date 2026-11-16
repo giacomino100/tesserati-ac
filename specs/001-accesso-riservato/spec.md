@@ -13,6 +13,14 @@ modifica alcun dato.
 **Regole di riferimento**: `docs/dominio/utenti.md` (un solo ruolo, accesso con account Google,
 elenco di email autorizzate); constitution, principio III (riservatezza dei dati dei tesserati).
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Per quanto tempo un utente resta entrato sullo stesso dispositivo senza rifare l'accesso? → A: 7 giorni dall'ultimo accesso con Google, poi si rifà l'accesso.
+- Q: Un tentativo di accesso da parte di chi non è in elenco deve lasciare una traccia? → A: No, nessuna traccia: il tentativo non salva nulla.
+- Q: Un account Google di lavoro o scuola (non @gmail.com) con email in elenco può entrare? → A: Sì: vale qualunque account Google la cui email, verificata, è in elenco.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Accesso di un utente autorizzato (Priority: P1)
@@ -33,8 +41,9 @@ compaiano pagina iniziale, nome e pulsante "Esci"; non servono altre funzionalit
    di accesso con il pulsante "Accedi con Google" e nessun dato dei tesserati.
 2. **Given** una persona con email nell'elenco autorizzato, **When** accede con il proprio account
    Google, **Then** entra nella pagina iniziale e vede il proprio nome e il pulsante "Esci".
-3. **Given** una persona già entrata, **When** ricarica la pagina o riapre l'app poco dopo,
-   **Then** resta autenticata senza dover accedere di nuovo.
+3. **Given** una persona entrata da meno di 7 giorni, **When** ricarica la pagina o riapre
+   l'app, **Then** resta autenticata senza dover accedere di nuovo; **When** invece sono
+   passati più di 7 giorni dall'ultimo accesso con Google, **Then** deve accedere di nuovo.
 4. **Given** una persona entrata, **When** sceglie "Esci", **Then** torna alla pagina di accesso e
    per rientrare deve accedere di nuovo.
 5. **Given** un utente autorizzato, **When** usa l'app da un telefono, **Then** accesso, pagina
@@ -87,7 +96,8 @@ direttamente ai dati senza passare dalla schermata.
 
 - **FR-001**: Il sistema MUST mostrare a chi non è autenticato solo la pagina di accesso, senza
   alcun dato dei tesserati.
-- **FR-002**: Il sistema MUST permettere l'accesso con un account Google.
+- **FR-002**: Il sistema MUST permettere l'accesso con un account Google di qualunque tipo
+  (personale, di lavoro o di scuola): conta solo che l'email, verificata, sia in elenco.
 - **FR-003**: Il sistema MUST consentire l'ingresso solo agli indirizzi email presenti
   nell'elenco delle email autorizzate; il confronto non distingue maiuscole e minuscole.
 - **FR-004**: Il sistema MUST rifiutare l'accesso, con il messaggio "Accesso non autorizzato",
@@ -101,15 +111,18 @@ direttamente ai dati senza passare dalla schermata.
 - **FR-007**: Il sistema MUST mostrare all'utente entrato la pagina iniziale con il proprio nome
   e un pulsante "Esci".
 - **FR-008**: Il sistema MUST permettere di uscire e MUST richiedere un nuovo accesso per rientrare.
-- **FR-009**: Il sistema MUST mantenere l'accesso tra un caricamento di pagina e l'altro finché
-  la persona non esce o perde l'autorizzazione.
+- **FR-009**: Il sistema MUST mantenere l'accesso tra un caricamento di pagina e l'altro per
+  7 giorni dall'ultimo accesso con Google, a meno che la persona esca prima o perda
+  l'autorizzazione; trascorsi i 7 giorni MUST richiedere un nuovo accesso con Google.
 - **FR-010**: Le schermate di accesso, accesso negato e pagina iniziale MUST essere utilizzabili
   su PC e su telefono.
 - **FR-011**: L'interfaccia MUST essere interamente in italiano, con messaggi d'errore
   comprensibili per chi non è esperto (accesso annullato, mancanza di connessione, accesso non
   autorizzato).
 - **FR-012**: Il sistema MUST NOT salvare né mostrare dati dell'utente diversi da nome ed email
-  forniti dall'account Google, e MUST NOT registrare nei log dati personali.
+  forniti dall'account Google, e MUST NOT registrare nei log dati personali. In particolare, un
+  tentativo di accesso da parte di chi non è in elenco MUST NOT lasciare alcuna traccia
+  (nemmeno l'email o la data del tentativo).
 - **FR-013**: L'elenco delle email autorizzate MUST essere gestito fuori dall'app (nessuna
   schermata di gestione in questa specifica) e MUST NOT essere modificabile da chi usa l'app.
 
@@ -119,8 +132,8 @@ direttamente ai dati senza passare dalla schermata.
   solo ruolo (può fare tutto ciò che l'app offre).
 - **Elenco delle email autorizzate**: insieme degli indirizzi email che possono entrare; è l'unica
   fonte di autorizzazione.
-- **Sessione di accesso**: stato di una persona entrata, valido finché non esce o non perde
-  l'autorizzazione.
+- **Sessione di accesso**: stato di una persona entrata, valido 7 giorni dall'ultimo accesso con
+  Google, o finché non esce o non perde l'autorizzazione.
 
 ## Success Criteria *(mandatory)*
 
