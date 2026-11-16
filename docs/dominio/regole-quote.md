@@ -16,6 +16,7 @@ I casi che il PDF non prevede non vengono calcolati: l'app li **segnala** (vedi 
 | ACR | 6–14 | 15,00 | 12,00 |
 
 - La quota scontata è **quella scritta nella colonna "Percentuale del 20%"** del PDF: l'app non calcola il 20%, legge il valore dal listino.
+- ✅ **Età = anno associativo − anno di nascita** (es. 2026/27: nato nel 1996 → 30 anni → Adulto).
 - La fascia segue le età del PDF. **Attenzione**: l'export mette i trentenni nella fascia `26/30` (GIOVANI), il PDF li considera Adulti → l'app ricalcola la fascia dall'età e non usa la colonna `Fasce d'età` dell'export.
 - Il listino è legato all'anno associativo: ogni anno si carica il nuovo PDF/listino.
 
@@ -34,14 +35,14 @@ i componenti si ordinano per data di nascita. Vale anche per i nuclei di soli fr
 | 2 persone, entrambe ACR | 25 € in tutto |
 | 2 persone, altri casi | quote piene |
 | 3 persone | 20% sul più giovane; se nel nucleo ci sono 2 ACR si applica la "scontistica dei 2 ACR" come nella tabella Casistica (§3) |
-| 4 persone | 20% sul 3° componente, il 4° non paga |
+| 4 persone | ordinando dal più anziano al più giovane: il 3° (secondo più giovane) paga la quota −20%, il 4° (il più giovane) non paga ✅ — anche se nel nucleo ci sono 2 ACR ✅ |
 | 5 o più persone | **non previsto dal PDF** → §4 |
 
-### Dubbi di lettura del PDF (non nuove regole)
+### Chiarimenti sulla lettura del PDF ✅
 
-1. **Nucleo da 4: chi sono il "3°" e il "4°"?** Lettura proposta: ordinando dal più anziano al più giovane, il 3° è il secondo più giovane e il 4° è il più giovane (non paga). **TODO** confermare.
-2. **Nucleo da 4 con 2 ACR**: il PDF non cita il pacchetto ACR per i nuclei da 4, quindi si applica solo la regola dei 4. **TODO** confermare.
-3. **Età**: si calcola come anno associativo − anno di nascita (come fa l'export)? **TODO** confermare.
+1. **Nucleo da 4**: ordinando dal più anziano al più giovane, il 3° è il secondo più giovane (−20%) e il 4° è il più giovane (non paga).
+2. **Nucleo da 4 con 2 ACR**: si applica la regola dei 4, non il pacchetto ACR.
+3. **Età**: anno associativo − anno di nascita (non conta il giorno di nascita).
 
 ## 3. Esempi (diventeranno i test automatici)
 
@@ -80,9 +81,11 @@ Casi non elencati nella Casistica ma risolti direttamente dal testo del PDF (lis
 | 22 | 1 Adulto + 1 ACR | 41,00 | nessun pacchetto |
 | 23 | 1 Adulto + 1 Giovanissimo + 1 ACR | 54,00 | 3 persone: 26 + 16 + 12 |
 | 24 | 2 Giovanissimi + 1 ACR | 44,00 | 3 persone: 16 + 16 + 12 |
-| 25 | 2 Adulti + 1 Giovane + 1 ACR | 70,00 | 4 persone: 26 + 26 + 18 + 0 (dubbio 1) |
-| 26 | 2 Adulti + 2 ACR | 64,00 | 4 persone: 26 + 26 + 12 + 0 (dubbi 1 e 2) |
-| 27 | 4 Adulti | 73,00 | 4 persone: 26 + 26 + 21 + 0 (dubbio 1) |
+| 25 | 2 Adulti + 1 Giovane + 1 ACR | 70,00 | 4 persone: 26 + 26 + 18 + 0 ✅ |
+| 26 | 2 Adulti + 2 ACR | 64,00 | 4 persone: 26 + 26 + 12 + 0 ✅ |
+| 27 | 4 Adulti | 73,00 | 4 persone: 26 + 26 + 21 + 0 ✅ |
+| 28 | 1 Adulto + 1 Giovane (2000) + 1 Giovane (2003) + 1 Giovanissimo | 74,00 | 4 persone: 26 + 22 + 18 + 0 — il 3° è il giovane nato nel 2003 ✅ |
+| 29 | 2 Adulti + 1 nato nel 1996 | 73,00 | il nato nel 1996 ha 30 anni → Adulto → come il caso 18 ✅ |
 
 ## 4. Casi non previsti dal PDF
 
@@ -93,4 +96,4 @@ L'app **non inventa la quota**: segnala il nucleo come "non previsto dal listino
 | Nuclei da 5 o più persone | 1 nucleo da 6 |
 | Bambini sotto i 6 anni (fascia `0/5` nell'export) | 1 bambino |
 
-**TODO** Cosa deve fare l'app in questi casi? Proposta: mostra l'avviso e la segreteria inserisce a mano la quota concordata, con una nota.
+✅ L'app mostra l'avviso e la segreteria **inserisce a mano la quota** del nucleo, con una **nota obbligatoria** che ne spiega il motivo.

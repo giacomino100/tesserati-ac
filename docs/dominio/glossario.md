@@ -11,7 +11,8 @@ Completare le parti con **TODO**.
 | Riconferma | Adesione di un tesserato che aveva un'adesione nell'anno associativo precedente. |
 | Nuova adesione | Adesione di una persona senza adesione nell'anno precedente. **TODO**: chi torna dopo 2+ anni conta come nuovo o riconferma? |
 | Settore (categoria) | Nell'export: `RAGAZZI` (= ACR), `GIOVANI`, `ADULTI`. Determinato dall'età: ≤14 ACR, 15–30 Giovani, ≥31 Adulti. |
-| Fascia d'età | Sottocategoria nell'export: ACR `0/5`, `6/8`, `9/11`, `12/14`; Giovani `15/18` (= **Giovanissimi**, quota propria), `19/25`, `26/30` (= Giovani); Adulti `AD`. Le quote seguono le fasce del listino in `regole-quote.md`, non il settore. Età = anno associativo − anno di nascita. |
+| Fascia (per le quote) | Secondo il PDF: ACR 6–14, Giovanissimi 15–18, Giovani 19–29, Adulti 30+. Età = anno associativo − anno di nascita. |
+| Fascia d'età (export) | Sottocategoria nell'export, **non usata per le quote**: ACR `0/5`, `6/8`, `9/11`, `12/14`; Giovani `15/18` (= **Giovanissimi**, quota propria), `19/25`, `26/30` (= Giovani); Adulti `AD`. Le quote seguono le fasce del listino in `regole-quote.md`, non il settore. Età = anno associativo − anno di nascita. |
 | Nucleo (legame) | Gruppo familiare già presente nell'export: colonne `N. Legame` (id) e `Legame` (es. `C3` = coppia, 3 componenti). Vedi `regole-famiglia.md`. |
 | Famiglia | Gruppo di tesserati considerato insieme per il calcolo dello sconto. Definizione precisa in `regole-famiglia.md`. |
 | Quota | Importo dovuto per un'adesione, prima dello sconto. Dipende da categoria e anno (vedi `regole-quote.md`). |

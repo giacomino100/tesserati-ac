@@ -34,8 +34,8 @@ L'export **contiene già i nuclei familiari**:
 - Casi dubbi (stessa data di nascita e cognome, nome simile): segnalare per revisione manuale. **TODO** confermare.
 
 ## 3. Cambio di categoria
-- La fascia dipende **solo dall'anno di nascita**: età = anno associativo − anno di nascita
-  (verificato sull'export 2026: es. `15/18` = nati 2008–2011).
-- Settore: età ≤ 14 → RAGAZZI (ACR) · 15–30 → GIOVANI · ≥ 31 → ADULTI.
+- ✅ La fascia dipende **solo dall'anno di nascita**: età = anno associativo − anno di nascita.
+- ✅ Fasce secondo il PDF delle quote: ≤ 5 non previsto · 6–14 ACR · 15–18 Giovanissimi · 19–29 Giovani · ≥ 30 Adulti.
+  (Differenza con l'export: l'export mette i trentenni nei GIOVANI, il PDF negli Adulti → vale il PDF.)
 - Alla riconferma l'app ricalcola settore e fascia in automatico? **TODO** (proposta: sì)
 - Si può forzare a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO**
