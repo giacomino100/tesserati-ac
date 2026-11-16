@@ -29,6 +29,11 @@ Versioni verificate sul registro npm il 2026-11-17.
 - **Limiti noti**: (a) Google/Firebase possono mantenere log tecnici propri, fuori dal controllo dell'app; (b) se il browser viene chiuso tra l'accesso e la cancellazione, l'account resta fino a una pulizia manuale dalla console. Da dichiarare all'utente e da rivedere con l'informativa privacy.
 - **Alternative scartate**: lasciare l'account (viola la chiarificazione); blocking functions (Blaze, principio V).
 
+## R4b – Progetto degli emulatori
+
+- **Decisione**: emulatori e test usano sempre il progetto `demo-tesseramento` (il prefisso `demo-` garantisce che non possano toccare la produzione). In sviluppo `firebase.ts` sostituisce `projectId` con `demo-tesseramento`; ogni script di emulatore passa `--project demo-tesseramento` e `--config ../firebase.json` quando gira da `firebase/`. L'ID `tesseramento-ac` è usato solo dalla build di produzione e da `firebase deploy`.
+- **Motivazione**: gli emulatori separano i dati per progetto; con ID diversi app e test vedrebbero elenchi diversi, e un ID reale potrebbe far pensare a un accesso alla produzione.
+
 ## R5 – Durata della sessione: 7 giorni dall'ultimo accesso Google
 
 - **Decisione**: doppio controllo.

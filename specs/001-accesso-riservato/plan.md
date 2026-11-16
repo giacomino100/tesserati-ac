@@ -80,11 +80,14 @@ apps/web/                          # app Angular (nuovo workspace)
 │   └── app/
 │       ├── app.ts / app.config.ts / app.routes.ts
 │       ├── core/
-│       │   ├── firebase.ts            # init SDK + collegamento agli emulatori in sviluppo
+│       │   ├── firebase.ts            # init SDK; in sviluppo usa il progetto `demo-tesseramento` e gli emulatori
 │       │   ├── firebase.config.ts     # configurazione web (spostata da config/)
 │       │   ├── session.ts             # funzioni pure: sessione scaduta? email normalizzata
-│       │   ├── auth.service.ts        # stato (signals), accesso, uscita, controllo elenco
-│       │   └── auth.guard.ts          # guardia delle rotte
+│       │   ├── auth-backend.ts        # interfaccia AuthBackend + token (permette un backend finto nei test)
+│       │   ├── firebase-auth-backend.ts  # implementazione con l'SDK Firebase
+│       │   ├── firebase-auth-backend.emulator.spec.ts  # integrazione sull'emulatore (R4)
+│       │   ├── auth.service.ts        # stato (signals), accesso, uscita, controllo e riverifica elenco
+│       │   └── auth.guard.ts          # guardia delle rotte (riverifica l'autorizzazione a ogni navigazione)
 │       └── pages/
 │           ├── login/                 # "Accedi con Google"
 │           ├── denied/                # "Accesso non autorizzato"

@@ -38,7 +38,8 @@ rotta richiesta (edge case della specifica).
   7 giorni; altrimenti si esce (R5).
 - Dopo l'accesso: se l'email non è verificata o il documento in `allowedEmails` non esiste, si
   cancella l'account Firebase appena creato, si esce e si mostra "Accesso non autorizzato" (R4).
-- Un utente entrato la cui email viene tolta dall'elenco: al successivo accesso ai dati o al
-  ricaricamento vede "Accesso non autorizzato".
+- Un utente entrato la cui email viene tolta dall'elenco: la guardia riverifica l'autorizzazione
+  a ogni cambio di pagina e quando la scheda torna in primo piano; al ricaricamento o al primo
+  accesso ai dati successivo vede comunque "Accesso non autorizzato".
 - Nessun dato personale (nome, email) nei log né nei messaggi di errore tecnici (FR-012).
 - Nessuna larghezza fissa: usabile a 360 px senza scorrimento orizzontale (SC-004).

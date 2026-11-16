@@ -121,8 +121,9 @@ direttamente ai dati senza passare dalla schermata.
   autorizzato).
 - **FR-012**: Il sistema MUST NOT salvare né mostrare dati dell'utente diversi da nome ed email
   forniti dall'account Google, e MUST NOT registrare nei log dati personali. In particolare, un
-  tentativo di accesso da parte di chi non è in elenco MUST NOT lasciare alcuna traccia
-  (nemmeno l'email o la data del tentativo).
+  tentativo di accesso da parte di chi non è in elenco MUST NOT lasciare alcuna traccia nei dati
+  e negli account del progetto (nemmeno l'email o la data del tentativo), con i soli limiti
+  indicati nelle Assumptions.
 - **FR-013**: L'elenco delle email autorizzate MUST essere gestito fuori dall'app (nessuna
   schermata di gestione in questa specifica) e MUST NOT essere modificabile da chi usa l'app.
 
@@ -162,3 +163,10 @@ direttamente ai dati senza passare dalla schermata.
 - Si usano la configurazione del progetto già disponibile e un solo progetto in produzione;
   sviluppo e test usano un ambiente locale con soli dati finti (constitution).
 - Accesso con email e password, inviti via email e funzioni a pagamento sono fuori ambito.
+- Limiti noti di "nessuna traccia" (FR-012): il fornitore del servizio di accesso (Google/Firebase)
+  può conservare log tecnici propri, fuori dal controllo dell'app; e se la persona chiude il
+  browser a metà dell'accesso negato, il suo account può restare finché non viene eliminato a
+  mano. Entrambi i punti vanno ripresi nell'informativa privacy.
+- Se l'email viene tolta dall'elenco mentre la persona è già dentro, l'app lo rileva al cambio di
+  pagina o al ritorno sulla scheda (non solo al ricaricamento); i dati restano comunque negati
+  alla richiesta successiva.

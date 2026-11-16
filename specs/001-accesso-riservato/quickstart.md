@@ -25,13 +25,14 @@
 | 2 | `npm run typecheck` | nessun errore `strict` in tutti i workspace | qualità |
 | 3 | `npm test -w web` | test di `session.ts`, `AuthService` e componenti passano | FR-001…FR-011 |
 | 4 | `npm run test:rules` (avvia l'emulatore ed esegue `firebase/tests/rules.test.ts`) | garanzie A1…A8 di [contracts/firestore-access.md](./contracts/firestore-access.md) passano | SC-002, SC-003 |
-| 5 | stesso comando, caso "account non in elenco": sull'emulatore Auth, dopo il rifiuto l'account risulta cancellato | nessuna traccia dell'email in Auth | FR-012, R4 |
+| 5 | `npm run test:integration -w web` (avvia emulatori Auth e Firestore): account non in elenco → dopo il rifiuto l'account risulta cancellato dall'emulatore Auth; account in elenco → entra | nessuna traccia dell'email in Auth | FR-012, R4 |
 | 6 | `npm test -w @tesseramento/fees` | invariato (126 test) | nessuna regressione |
 
 ## Verifiche manuali (emulatore Auth + app in locale)
 
 Avvio: `npm run emulators` e, in un altro terminale, `npm start -w web` (l'app si collega
-automaticamente agli emulatori in sviluppo).
+automaticamente agli emulatori in sviluppo, progetto `demo-tesseramento`). Annotare i tempi
+misurati in M2 (< 30 s) e M4 (< 5 s) per SC-001 e SC-005.
 
 | # | Scenario | Atteso |
 |---|---|---|
@@ -39,7 +40,7 @@ automaticamente agli emulatori in sviluppo).
 | M2 | Accedere con `autorizzato@example.org` (account finto dell'emulatore) | pagina iniziale con nome e "Esci"; ricaricando si resta dentro |
 | M3 | Premere "Esci" | torna all'accesso; per rientrare serve un nuovo accesso |
 | M4 | Accedere con `estraneo@example.org` | "Accesso non autorizzato" entro 5 s; nessun dato; account cancellato dall'emulatore Auth |
-| M5 | Con M2 attivo, cancellare il documento da `allowedEmails` (UI dell'emulatore) e ricaricare | "Accesso non autorizzato" |
+| M5 | Con M2 attivo, cancellare il documento da `allowedEmails` (UI dell'emulatore), poi cambiare pagina o tornare sulla scheda (senza ricaricare) | "Accesso non autorizzato" |
 | M6 | Aprire la pagina da telefono (o strumenti sviluppatore a 360 px) | nessuno scorrimento orizzontale, tutto utilizzabile |
 | M7 | Accesso con Google reale sul progetto di produzione (dopo i passi manuali) con la propria email in elenco | come M2 |
 
