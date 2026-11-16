@@ -47,7 +47,7 @@ description: "Task list for feature 002 – Calcolo quota famiglia"
 - [ ] T008 [P] Write failing tests `packages/fees/tests/age-band.test.ts` for `bandFor(birthDate, schedule)` with `SCHEDULE_2026_27` (FR-001, age = 2026 − birth year, day/month ignored): 2021-01-01 → undefined (age 5); 2020-12-31 → acr (6); 2012-01-01 → acr (14); 2011-06-15 → giovanissimi (15); 2008-12-31 → giovanissimi (18); 2007-01-01 → giovani (19); 1997-12-31 → giovani (29); 1996-12-31 → adulti (30); 1940-05-05 → adulti
 - [ ] T009 Implement `packages/fees/src/age-band.ts`: `ageFor(birthDate, associationYear)` = associationYear − year of birthDate; `bandFor(birthDate, schedule)` returns the band whose `[minAge, maxAge]` contains the age, `undefined` below `schedule.minAge`; no use of current date (makes T008 pass)
 - [ ] T010 [P] Write failing tests `packages/fees/tests/order.test.ts` and implement `packages/fees/src/order.ts` `orderMembers(members)` (FR-003): ascending `birthDate` (oldest first), ties by `lastName`, then `firstName`, then `id`; returns a new array and never mutates the input
-- [ ] T011 [P] Write failing tests `packages/fees/tests/validate.test.ts` and implement `packages/fees/src/validate.ts` `validateInput(input)` returning the list of errors: `scheduleYearMismatch` when `input.associationYear !== schedule.associationYear`; `invalidBirthDate` (with `memberId`) when not `YYYY-MM-DD` or not a real calendar date (e.g. `2015-02-30`); `birthDateAfterYear` (with `memberId`) when birthDate > `<associationYear>-12-31`; `duplicateMemberId` (with `memberId`) for repeated ids
+- [ ] T011 [P] Write failing tests `packages/fees/tests/validate.test.ts` and implement `packages/fees/src/validate.ts` `validateInput(input)` returning the list of errors: `scheduleYearMismatch` when `input.associationYear !== schedule.associationYear`; `invalidBirthDate` (with `memberId`) when not `YYYY-MM-DD`, not a real calendar date (e.g. `2015-02-30`), or age above `MAX_PLAUSIBLE_AGE = 110` (exported constant in `validate.ts`; test: 1916-01-01 → age 110 valid, 1915-12-31 → age 111 invalid); `birthDateAfterYear` (with `memberId`) when birthDate > `<associationYear>-12-31`; `duplicateMemberId` (with `memberId`) for repeated ids
 - [ ] T012 Create `packages/fees/src/index.ts` exporting only the contract surface (`contracts/fees-api.md`): all types, `SCHEDULE_2026_27`, `bandFor`, and `calculateHouseholdFee` from `packages/fees/src/household-fee.ts`, which for now is a stub throwing `Error('not implemented')`
 - [ ] T013 Create `packages/fees/tests/fixtures/examples.ts`: the 29 cases of `docs/dominio/regole-quote.md` §3.1 (cases 1–18) and §3.2 (cases 19–29), each `{ caseNumber, description, members, expectedTotalCents }` with the description copied from the document. Use fake members with distinct birth dates in 2026/27 bands: Adulti born 1960–1990, Giovani 1998–2006, Giovanissimi 2008–2011, ACR 2012–2020; case 28 uses Giovani born 2000 and 2003; case 29 uses a member born 1996 (30 → adulti). Totals in cents (e.g. 70,00 → 7000)
 - [ ] T014 Write `packages/fees/tests/examples-sync.test.ts`: read `docs/dominio/regole-quote.md` (path resolved from the test file), parse the rows of the two tables in §3 (`| <n> | <nucleo> | <totale> | …`, totale like `70,00`), and assert the set of case numbers is exactly 1–29 and each total equals `expectedTotalCents` in the fixture (research R8)
@@ -124,6 +124,7 @@ description: "Task list for feature 002 – Calcolo quota famiglia"
 - [ ] T026 [P] Write `packages/fees/README.md` (Italian, short): purpose, link to `contracts/fees-api.md` and `docs/dominio/regole-quote.md`, how to run tests, rule "le quote si cambiano nel listino, non nel codice"
 - [ ] T027 Run every check of `specs/002-calcolo-quote-famiglia/quickstart.md`, including the manual regression (change case 18 total in `docs/dominio/regole-quote.md` → `examples-sync` fails → restore)
 - [ ] T028 Update `docs/roadmap.md`: 002 status → ✅ fatto
+- [ ] T029 Open the pull request for branch `002-calcolo-quote-famiglia` with a table "principio → come è rispettato" for constitution principles I–V and the quality gates (tests green, `strict` typecheck clean, roadmap updated), as required by the constitution "Flusso di sviluppo e controlli di qualità"
 
 ---
 
@@ -136,7 +137,7 @@ description: "Task list for feature 002 – Calcolo quota famiglia"
 - **US1 (Phase 3)**: depends on Foundational
 - **US2 (Phase 4)**: depends on Foundational; edits the same file as US1 (`household-fee.ts`) → run after US1
 - **US3 (Phase 5)**: depends on Foundational; edits `household-fee.ts` → run after US2
-- **Polish (Phase 6)**: after all stories
+- **Polish (Phase 6)**: after all stories; T029 (pull request) is the last task, after T025–T028
 
 ### Within Each Phase
 
@@ -176,7 +177,7 @@ Task: "edge cases in packages/fees/tests/edge-cases.test.ts"
 
 1. + US2 → the 2 real nuclei da 4 calculated (examples 25–28)
 2. + US3 → real nucleus da 6 and child under 6 flagged instead of provisionally rejected
-3. Polish → quickstart validated, roadmap updated
+3. Polish → quickstart validated, roadmap updated, pull request opened
 
 ---
 

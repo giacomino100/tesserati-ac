@@ -44,7 +44,7 @@ Importi sempre in **centesimi interi**.
 |---|---|---|
 | `id` | testo | univoco nel nucleo |
 | `lastName`, `firstName` | testo | usati solo per l'ordine stabile a parità di data |
-| `birthDate` | `YYYY-MM-DD` | data valida, non successiva al 31/12 dell'anno associativo |
+| `birthDate` | `YYYY-MM-DD` | data valida, non successiva al 31/12 dell'anno associativo, età ≤ 110 (`MAX_PLAUSIBLE_AGE`) |
 
 ## HouseholdFeeInput
 
@@ -84,7 +84,7 @@ Unione su `status`:
 ### `invalidInput`
 | Campo | Tipo | Note |
 |---|---|---|
-| `errors` | lista di `{ code, memberId? }` | `code`: `'scheduleYearMismatch'` · `'invalidBirthDate'` · `'birthDateAfterYear'` · `'duplicateMemberId'` |
+| `errors` | lista di `{ code, memberId? }` | `code`: `'scheduleYearMismatch'` (listino di un altro anno) · `'invalidBirthDate'` (formato o data inesistente, oppure età > 110) · `'birthDateAfterYear'` · `'duplicateMemberId'` |
 
 ## Regole di calcolo (da spec FR-004…FR-010)
 

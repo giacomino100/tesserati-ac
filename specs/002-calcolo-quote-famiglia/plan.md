@@ -87,7 +87,7 @@ packages/
     │   ├── schedules/
     │   │   └── 2026-27.ts        # SCHEDULE_2026_27 dal PDF
     │   ├── age-band.ts           # età e fascia (FR-001)
-    │   ├── validate.ts           # controlli di input → invalidInput
+    │   ├── validate.ts           # controlli di input → invalidInput (età massima 110)
     │   ├── order.ts              # ordinamento stabile (FR-003)
     │   └── household-fee.ts      # regole FR-004…FR-012
     └── tests/
@@ -97,6 +97,10 @@ packages/
         ├── examples.test.ts          # SC-001
         ├── examples-sync.test.ts     # fixture ↔ regole-quote.md
         ├── age-band.test.ts          # confini di fascia
+        ├── order.test.ts             # ordine stabile (FR-003)
+        ├── validate.test.ts          # input non valido, età massima 110
+        ├── us1-details.test.ts       # scenari di accettazione US1
+        ├── us2-details.test.ts       # scenari di accettazione US2
         ├── not-covered.test.ts       # SC-002, US3
         ├── edge-cases.test.ts        # nucleo vuoto, gemelli, ordine, input non valido
         └── sample-households.test.ts # SC-003
