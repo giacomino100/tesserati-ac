@@ -1,98 +1,96 @@
 # Regole delle quote
 
-Fonte ufficiale: [`fonti/quote-tesseramento-2026-27.pdf`](fonti/quote-tesseramento-2026-27.pdf)
+**Unica fonte: [`fonti/quote-tesseramento-2026-27.pdf`](fonti/quote-tesseramento-2026-27.pdf)** ✅
 (AC Don Bosco – Parrocchia San Gioacchino, quote associative 2026/27).
-Legenda: ✅ confermato · 🔶 dedotto dal PDF, da confermare · **TODO** da decidere.
 
-## 1. Listino 2026/27
+L'app applica **solo** quello che è scritto nel PDF: non introduce regole, sconti o arrotondamenti propri.
+I casi che il PDF non prevede non vengono calcolati: l'app li **segnala** (vedi §4).
 
-| Fascia | Età (PDF) | Fasce nell'export | Quota (€) | Quota −20% (€) |
-|---|---|---|---|---|
-| Adulti | 30+ (nel PDF "30/25", probabile refuso) | `AD` | 26,00 | 21,00 |
-| Giovani | 19–29 | `19/25`, `26/30` | 22,00 | 18,00 |
-| Giovanissimi | 15–18 | `15/18` | 16,00 | 13,00 |
-| ACR | 6–14 | `6/8`, `9/11`, `12/14` | 15,00 | 12,00 |
+## 1. Listino 2026/27 (dal PDF)
 
-- ⚠️ **Giovani e Giovanissimi hanno quote diverse** (22 € e 16 €): nel PDF sono due fasce distinte,
-  mentre nell'export stanno entrambe nel settore `GIOVANI`. La fascia si ricava dalla colonna `Fasce d'età`.
-- 🔶 Lo sconto del 20% si **arrotonda all'euro più vicino** (26 → 20,80 → **21**; 22 → 17,60 → **18**; 16 → 12,80 → **13**; 15 → **12**).
-- **TODO** Un trentenne è Giovane o Adulto? Il PDF dice Giovani fino a 29 anni, l'export mette i nati nel 1996 (30 anni) nella fascia `26/30` del settore GIOVANI.
-- **TODO** I bambini sotto i 6 anni (fascia `0/5` nell'export, 1 caso reale) quanto pagano?
-- **TODO** Il listino cambia ogni anno? (Proposta: sì, l'app lo gestisce come configurazione per anno.)
+| Fascia | Età | Quota (€) | Quota con sconto 20% (€) |
+|---|---|---|---|
+| Adulti | 30 e oltre (nel PDF "30/25", probabile refuso) | 26,00 | 21,00 |
+| Giovani | 19–29 | 22,00 | 18,00 |
+| Giovanissimi | 15–18 | 16,00 | 13,00 |
+| ACR | 6–14 | 15,00 | 12,00 |
 
-## 2. Pacchetti familiari
+- La quota scontata è **quella scritta nella colonna "Percentuale del 20%"** del PDF: l'app non calcola il 20%, legge il valore dal listino.
+- La fascia segue le età del PDF. **Attenzione**: l'export mette i trentenni nella fascia `26/30` (GIOVANI), il PDF li considera Adulti → l'app ricalcola la fascia dall'età e non usa la colonna `Fasce d'età` dell'export.
+- Il listino è legato all'anno associativo: ogni anno si carica il nuovo PDF/listino.
 
-Testo del PDF:
+## 2. Pacchetti familiari (testo del PDF)
+
 > - NUCLEI 2 PERSONE ACR: 25 €
-> - NUCLEI 3 PERSONE: si applica lo sconto del 20% sulla tessera del più giovane.
-> - NUCLEI 4 PERSONE: si applica lo sconto del 20% sulla tessera del 3° componente più giovane e il 4° non paga.
+> - NUCLEI 3 PERSONE: si applica lo sconto del 20 % sulla tessera del più giovane.
+> - NUCLEI 4 PERSONE: si applica lo sconto del 20 % sulla tessera del 3° componente più giovane e il 4° non paga.
 
-### Regola completa (ipotesi verificata sulla tabella "Casistica")
+Il **nucleo** è l'insieme dei tesserati dell'anno con lo stesso `N. Legame` (vedi `regole-famiglia.md`);
+i componenti si ordinano per data di nascita. Vale anche per i nuclei di soli fratelli ✅.
 
-1. **Nucleo** = tesserati dell'anno con lo stesso `N. Legame` (vedi `regole-famiglia.md`).
-   Chi non ha `N. Legame` paga la quota piena.
-2. I componenti si ordinano **dal più anziano al più giovane** (data di nascita) ✅.
-3. Agevolazioni possibili:
-   - **Pacchetto 2 ACR**: due ACR dello stesso nucleo pagano **25 €** in tutto (invece di 30).
-   - **Nucleo da 3**: il più giovane paga la quota −20%.
-   - **Nucleo da 4**: il 3° componente paga la quota −20% e il 4° (il più giovane) **non paga**.
-4. 🔶 **Ogni persona riceve al massimo un'agevolazione** e si applica la **combinazione più conveniente** per la famiglia.
-   Esempi: 1 adulto + 2 ACR = 26 + 25 = **51** (il pacchetto ACR conviene più del 20% sul più giovane);
-   3 ACR = pacchetto sui due più grandi (25) + 20% sul più piccolo (12) = **37**.
-5. ✅ Vale anche per i nuclei di soli fratelli (es. `N3` = 3 fratelli).
+| Nucleo | Cosa si applica |
+|---|---|
+| 1 persona (nessun `N. Legame`) | quota piena |
+| 2 persone, entrambe ACR | 25 € in tutto |
+| 2 persone, altri casi | quote piene |
+| 3 persone | 20% sul più giovane; se nel nucleo ci sono 2 ACR si applica la "scontistica dei 2 ACR" come nella tabella Casistica (§3) |
+| 4 persone | 20% sul 3° componente, il 4° non paga |
+| 5 o più persone | **non previsto dal PDF** → §4 |
 
-> Verifica: con questa regola **tutti i 18 casi della tabella "Casistica" del PDF danno il totale atteso**.
+### Dubbi di lettura del PDF (non nuove regole)
 
-### Domande ancora aperte
-
-1. **Nuclei da 5 o più** (nell'export c'è un nucleo reale da 6): cosa si applica? **TODO**
-2. **Nucleo da 4 con 2 ACR**: il pacchetto ACR si può combinare con la regola dei 4? Con la regola "la combinazione più conveniente", 2 adulti + 2 ACR = 26 + 26 + 12 + 0 = **64**. È corretto? **TODO**
-3. **"3° componente più giovane"** = il secondo più giovane (contando dal più anziano: 1°, 2°, **3°**, 4°)? 🔶
-4. **4 ACR** nello stesso nucleo: si applica la regola dei 4 oppure due pacchetti da 25? Con la regola "la combinazione più conveniente" vince la regola dei 4: 15 + 15 + 12 + 0 = **42** contro 50. **TODO**
-5. **Gemelli** (stessa data di nascita): chi è "il più giovane"? Se hanno la stessa quota l'importo non cambia; serve solo una regola per cosa mostrare. **TODO**
-6. **Contano solo i tesserati di quest'anno**: chi non rinnova esce dal nucleo per il calcolo? **TODO** (proposta: sì)
-7. **Chi si iscrive dopo** che il nucleo ha già pagato: si ricalcola? Chi riceve la differenza? **TODO**
-8. **Altri sconti o esenzioni** (educatori, sacerdoti, difficoltà economiche)? **TODO**
+1. **Nucleo da 4: chi sono il "3°" e il "4°"?** Lettura proposta: ordinando dal più anziano al più giovane, il 3° è il secondo più giovane e il 4° è il più giovane (non paga). **TODO** confermare.
+2. **Nucleo da 4 con 2 ACR**: il PDF non cita il pacchetto ACR per i nuclei da 4, quindi si applica solo la regola dei 4. **TODO** confermare.
+3. **Età**: si calcola come anno associativo − anno di nascita (come fa l'export)? **TODO** confermare.
 
 ## 3. Esempi (diventeranno i test automatici)
 
-Quote: A = Adulto 26, G = Giovane 22, Gm = Giovanissimo 16, R = ACR 15.
+### 3.1 Tabella "Casistica" del PDF ✅
 
-### 3.1 Casi ufficiali (tabella "Casistica" del PDF) ✅
-
-| # | Nucleo | Totale (€) | Come si ottiene |
+| # | Nucleo | Totale (€) | Note del PDF |
 |---|---|---|---|
-| 1 | 2 A + 1 G | 70,00 | 26 + 26 + 18 |
-| 2 | 2 A + 1 Gm | 65,00 | 26 + 26 + 13 |
-| 3 | 2 A + 1 R | 64,00 | 26 + 26 + 12 |
-| 4 | 1 A + 2 G | 66,00 | 26 + 22 + 18 |
-| 5 | 1 A + 2 Gm | 55,00 | 26 + 16 + 13 |
-| 6 | 1 A + 2 R | 51,00 | 26 + 25 (pacchetto ACR) |
-| 7 | 1 A + 1 G + 1 R | 60,00 | 26 + 22 + 12 |
-| 8 | 1 A + 1 G + 1 Gm | 61,00 | 26 + 22 + 13 |
-| 9 | 2 G + 1 R | 56,00 | 22 + 22 + 12 |
-| 10 | 1 G + 2 R | 47,00 | 22 + 25 (pacchetto ACR) |
-| 11 | 2 G + 1 Gm | 57,00 | 22 + 22 + 13 |
-| 12 | 1 G + 2 Gm | 51,00 | 22 + 16 + 13 |
-| 13 | 1 G + 1 Gm + 1 R | 50,00 | 22 + 16 + 12 |
-| 14 | 1 Gm + 2 R | 41,00 | 16 + 25 (pacchetto ACR) |
-| 15 | 3 G | 62,00 | 22 + 22 + 18 |
-| 16 | 3 Gm | 45,00 | 16 + 16 + 13 |
-| 17 | 3 R | 37,00 | 25 (pacchetto) + 12 |
-| 18 | 3 A | 73,00 | 26 + 26 + 21 |
+| 1 | 2 Adulti + 1 Giovane | 70,00 | |
+| 2 | 2 Adulti + 1 Giovanissimo | 65,00 | |
+| 3 | 2 Adulti + 1 ACR | 64,00 | |
+| 4 | 1 Adulto + 2 Giovani | 66,00 | |
+| 5 | 1 Adulto + 2 Giovanissimi | 55,00 | |
+| 6 | 1 Adulto + 2 ACR | 51,00 | scontistica dei 2 ACR |
+| 7 | 1 Adulto + 1 Giovane + 1 ACR | 60,00 | |
+| 8 | 1 Adulto + 1 Giovane + 1 Giovanissimo | 61,00 | |
+| 9 | 2 Giovani + 1 ACR | 56,00 | |
+| 10 | 1 Giovane + 2 ACR | 47,00 | scontistica dei 2 ACR |
+| 11 | 2 Giovani + 1 Giovanissimo | 57,00 | |
+| 12 | 1 Giovane + 2 Giovanissimi | 51,00 | |
+| 13 | 1 Giovane + 1 Giovanissimo + 1 ACR | 50,00 | |
+| 14 | 1 Giovanissimo + 2 ACR | 41,00 | scontistica dei 2 ACR |
+| 15 | 3 Giovani | 62,00 | |
+| 16 | 3 Giovanissimi | 45,00 | |
+| 17 | 3 ACR | 37,00 | scontistica dei 2 ACR |
+| 18 | 3 Adulti | 73,00 | |
 
-### 3.2 Casi derivati dalla regola, da confermare 🔶
+### 3.2 Applicazione diretta delle regole del PDF
 
-| # | Nucleo | Totale proposto (€) | Come si ottiene |
+Casi non elencati nella Casistica ma risolti direttamente dal testo del PDF (listino e pacchetti).
+
+| # | Nucleo | Totale (€) | Regola del PDF |
 |---|---|---|---|
-| 19 | 1 A | 26,00 | nessun nucleo |
-| 20 | 2 A | 52,00 | nessuna agevolazione |
-| 21 | 2 R | 25,00 | pacchetto ACR |
-| 22 | 1 A + 1 R | 41,00 | nessuna agevolazione |
-| 23 | 2 A + 1 G + 1 R | 70,00 | 26 + 26 + 18 (3° −20%) + 0 (4° gratis) |
-| 24 | 2 A + 2 R | 64,00 | 26 + 26 + 12 + 0 — vedi domanda 2 |
-| 25 | 4 A | 73,00 | 26 + 26 + 21 + 0 |
-| 26 | 4 R | 42,00 | 15 + 15 + 12 + 0 — vedi domanda 4 |
-| 27 | 2 A + 1 R, un adulto non rinnova | 41,00 | resta 1 A + 1 R — vedi domanda 6 |
-| 28 | nucleo da 6 (2 A + 3 G/Gm + 1 R) | **TODO** | vedi domanda 1 |
-| 29 | gemelli (2 A + 2 R nati lo stesso giorno) | 64,00 | come il 24; **TODO** chi è il "4°" |
+| 19 | 1 Adulto | 26,00 | listino |
+| 20 | 2 Adulti | 52,00 | nessun pacchetto per 2 persone non ACR |
+| 21 | 2 ACR | 25,00 | nuclei 2 persone ACR |
+| 22 | 1 Adulto + 1 ACR | 41,00 | nessun pacchetto |
+| 23 | 1 Adulto + 1 Giovanissimo + 1 ACR | 54,00 | 3 persone: 26 + 16 + 12 |
+| 24 | 2 Giovanissimi + 1 ACR | 44,00 | 3 persone: 16 + 16 + 12 |
+| 25 | 2 Adulti + 1 Giovane + 1 ACR | 70,00 | 4 persone: 26 + 26 + 18 + 0 (dubbio 1) |
+| 26 | 2 Adulti + 2 ACR | 64,00 | 4 persone: 26 + 26 + 12 + 0 (dubbi 1 e 2) |
+| 27 | 4 Adulti | 73,00 | 4 persone: 26 + 26 + 21 + 0 (dubbio 1) |
+
+## 4. Casi non previsti dal PDF
+
+L'app **non inventa la quota**: segnala il nucleo come "non previsto dal listino".
+
+| Caso | Nei dati reali 2026 |
+|---|---|
+| Nuclei da 5 o più persone | 1 nucleo da 6 |
+| Bambini sotto i 6 anni (fascia `0/5` nell'export) | 1 bambino |
+
+**TODO** Cosa deve fare l'app in questi casi? Proposta: mostra l'avviso e la segreteria inserisce a mano la quota concordata, con una nota.
