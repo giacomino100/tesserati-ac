@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-16
 
-**Status**: Draft
+**Status**: Approved
 
 **Input**: Brief `docs/brief/002-calcolo-quota-famiglia.md` — dati i componenti di un nucleo con
 un'adesione nell'anno e il listino dell'anno, determinare fascia, quota, agevolazione e totale
@@ -106,10 +106,11 @@ sotto i 6 anni: nessun importo, motivo esplicito.
   attribuita alla stessa persona.
 - **Confine di fascia**: età calcolata come anno associativo − anno di nascita, ignorando giorno e
   mese (es. nato il 31/12/1996 → 30 anni nel 2026/27 → Adulto).
-- **Listino dell'anno mancante**: il calcolo non avviene e viene segnalato l'errore "listino non
-  disponibile per l'anno".
-- **Componente oltre l'età massima plausibile** o data di nascita futura: dato non valido,
-  segnalato come errore di input (non come "non previsto").
+- **Listino di un anno diverso** da quello delle adesioni: il calcolo non avviene e viene
+  segnalato un errore di input. Trovare il listino giusto (o accorgersi che manca) è compito di
+  chi chiama il calcolo (specifica 003).
+- **Età oltre 110 anni** (anno associativo − anno di nascita > 110) o data di nascita successiva
+  all'anno associativo: dato non valido, segnalato come errore di input (non come "non previsto").
 
 ## Requirements *(mandatory)*
 
