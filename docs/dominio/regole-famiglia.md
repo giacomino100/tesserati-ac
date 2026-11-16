@@ -8,13 +8,14 @@ L'export **contiene già i nuclei familiari**:
 - `Legame` = lettera + **numero di componenti tesserati del nucleo** (verificato: il numero coincide sempre).
   - `C…` → nel nucleo c'è una **coppia** (due `CG`): C2, C3, C4, C6
   - `N…` → nucleo **senza coppia** (un genitore, solo fratelli, ecc.): N2, N3
-- `Ruolo` all'interno del nucleo (ipotesi da confermare):
+- `Ruolo` all'interno del nucleo — **non usato dall'app** ✅ (solo informativo; ipotesi sul significato):
   - `CG` = coniuge / genitore
   - `F` = figlio/a
   - `FS` = fratello/sorella (es. nuclei di soli fratelli, genitori non tesserati)
   - `A` = altro (es. nonno/a)
 - Nel reale: 43 nuclei (28 da 2, 12 da 3, 2 da 4, 1 da 6), **20 nuclei sparsi su più file**,
-  58 tesserati senza legame. → **15 nuclei con 3+ componenti** a cui si applica lo sconto.
+  58 tesserati senza legame. → **15 nuclei con 3+ componenti** a cui si applica lo sconto
+  (✅ confermato: vale anche per i nuclei di soli fratelli).
 - **Indirizzo e cognome NON identificano la famiglia**: 12 nuclei su 43 hanno indirizzi scritti in modo diverso,
   26 su 43 hanno cognomi diversi (es. la madre mantiene il proprio).
 

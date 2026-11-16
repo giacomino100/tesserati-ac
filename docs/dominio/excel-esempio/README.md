@@ -29,17 +29,17 @@ dell'export reale (analizzato il 16/11/2026: 89 righe ACR, 15 Giovani, 60 Adulti
 | 10 | Cellulare | | 4% | contatto | |
 | 11 | Indirizzo | `VIA ROMA 10` | 100% | anagrafica | scritto in modi diversi anche nella stessa famiglia |
 | 12–14 | CAP, Città, Prov. | `90047`, `PARTINICO`, `PA` | 100% | anagrafica | CAP è testo |
-| 15 | Frazione | | 0% | ignorare | |
+| 15 | Frazione | | 0% | **escluso** | non importato |
 | 16 | Settore | `RAGAZZI` / `GIOVANI` / `ADULTI` | 100% | **categoria** | ACR = `RAGAZZI` |
 | 17 | Fasce d'età | `6/8`, `15/18`, `AD` | 100% | **fascia (quota?)** | vedi glossario |
 | 18 | Legame | `C3`, `N2` | 65% | **famiglia** | lettera + n. componenti; vuoto = nessun legame |
 | 19 | N. Legame | `284787` | 65% | **famiglia** | id del nucleo; vuoto = singolo |
-| 20 | Ruolo | `CG`, `F`, `FS`, `A` | 65% | famiglia | vedi `regole-famiglia.md` |
-| 21 | SR | `SR` | 18% | **TODO: significato?** | |
-| 22 | LM | | 0% | ignorare | |
+| 20 | Ruolo | `CG`, `F`, `FS`, `A` | 65% | non usato ✅ | informativo; la famiglia si ricava da `N. Legame` |
+| 21 | SR | `SR` | 18% | **escluso** ✅ | non importato |
+| 22 | LM | | 0% | **escluso** | non importato |
 | 23 | Pagato | `Sì` | 100% | stato pagamento? | sempre `Sì` nell'export |
-| 24–28 | A, B, C, D, E | `A`…`E` | 100% | ignorare? | **TODO**: sempre uguali, cosa sono? |
-| 29 | Incarico | `21` | 10% | **TODO** | codice numerico |
+| 24–28 | A, B, C, D, E | `A`…`E` | 100% | **escluso** ✅ | non importato |
+| 29 | Incarico | `21` | 10% | **escluso** ✅ | non importato |
 | 30 | Professione | `07` | 26% | anagrafica | codice numerico, testo con zero iniziale |
 | 31 | Stato Civile | `1`, `2`, `3` | 45% | anagrafica | codice numerico |
 | 32–33 | MLAC, MSAC | `0` | 38% | ignorare? | adesione ai movimenti (lavoratori / studenti)? |

@@ -1,6 +1,6 @@
 # Regole delle quote
 
-## 1. Listino (anno 2026)
+## 1. Listino (anno associativo 2026/27, nell'export "Anno 2026")
 
 La quota cambia per settore o anche per fascia d'età? Compilare la tabella al livello giusto
 (se la quota è la stessa per tutto il settore, ripeterla).
@@ -11,9 +11,7 @@ La quota cambia per settore o anche per fascia d'età? Compilare la tabella al l
 | ACR (RAGAZZI) | 6/8 | 2018–2020 | **TODO** |
 | ACR (RAGAZZI) | 9/11 | 2015–2017 | **TODO** |
 | ACR (RAGAZZI) | 12/14 | 2012–2014 | **TODO** |
-| GIOVANI | 15/18 (giovanissimi) | 2008–2011 | **TODO** |
-| GIOVANI | 19/25 | 2001–2007 | **TODO** |
-| GIOVANI | 26/30 | 1996–2000 | **TODO** |
+| GIOVANI | 15/18 (giovanissimi), 19/25, 26/30 — **stessa quota** ✅ | 1996–2011 | **TODO** |
 | ADULTI | AD | ≤ 1995 | **TODO** |
 
 - Esistono quote diverse per ruolo (es. coppia, educatori, sacerdoti)? **TODO**
@@ -39,7 +37,7 @@ Regola come ce l'hanno comunicata:
 6. Lo sconto si arrotonda? (es. al centesimo, all'euro, per difetto?)
    - Risposta: **TODO**
 7. Vale anche per nuclei **senza genitori tesserati** (es. 3 fratelli, `Legame` = `N3`)?
-   - Risposta: **TODO**
+   - Risposta: ✅ **Sì**, lo sconto vale anche per i nuclei di soli fratelli.
 8. Ci sono altri sconti o esenzioni (es. educatori, sacerdoti, casi di difficoltà economica)? Si cumulano?
    - Risposta: **TODO**
 
