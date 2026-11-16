@@ -94,6 +94,6 @@ L'app **non inventa la quota**: segnala il nucleo come "non previsto dal listino
 | Caso | Nei dati reali 2026 |
 |---|---|
 | Nuclei da 5 o più persone | 1 nucleo da 6 |
-| Bambini sotto i 6 anni (fascia `0/5` nell'export) | 1 bambino |
+| Nucleo con almeno un bambino sotto i 6 anni (fascia `0/5` nell'export): **tutto il nucleo** è non previsto ✅ | 1 bambino |
 
 ✅ L'app mostra l'avviso e la segreteria **inserisce a mano la quota** del nucleo, con una **nota obbligatoria** che ne spiega il motivo.

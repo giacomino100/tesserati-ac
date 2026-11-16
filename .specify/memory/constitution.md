@@ -38,7 +38,7 @@ Motivazione: è la parte più delicata e l'unica che produce soldi da chiedere a
 - Le Firestore Security Rules MUST negare tutto per impostazione predefinita e MUST essere
   coperte da test sull'emulatore Firebase.
 - Dati reali (export, nomi, codici fiscali) MUST NOT entrare nel repository, nei test, nei
-  log o nell'ambiente di sviluppo; si usano solo i dati finti di `docs/dominio/excel-esempio/`.
+  log o nello sviluppo locale; si usano solo i dati finti di `docs/dominio/excel-esempio/`.
 - Si importano solo le colonne necessarie: quelle marcate come escluse in
   `docs/dominio/excel-esempio/README.md` MUST NOT essere salvate.
 
@@ -74,8 +74,9 @@ Motivazione: progetto parrocchiale mantenuto da volontari; ciò che non serve è
 - **Excel**: lettura lato client con SheetJS, con anteprima prima del salvataggio.
 - **Test**: Vitest per logica e componenti; Firebase Emulator Suite per Security Rules e
   accesso ai dati.
-- **Ambienti**: due progetti Firebase separati, `dev` e `prod`; i dati reali esistono solo in
-  `prod`.
+- **Ambienti**: un solo progetto Firebase (produzione), che contiene i dati reali. Sviluppo e
+  test usano la Firebase Emulator Suite in locale con i soli dati finti; nessuna modifica a
+  Security Rules o struttura dati va pubblicata senza aver passato i test sull'emulatore.
 - **Lingua**: interfaccia utente in italiano; codice, identificatori e messaggi di commit in
   inglese; documentazione di dominio e specifiche in italiano.
 
@@ -100,4 +101,4 @@ Motivazione: progetto parrocchiale mantenuto da volontari; ciò che non serve è
 - Verifica: il "Constitution Check" di `/speckit-plan` e `/speckit-analyze` MUST risultare
   senza violazioni non giustificate prima di `/speckit-implement`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-16 | **Last Amended**: 2026-11-16
+**Version**: 1.1.0 | **Ratified**: 2026-11-16 | **Last Amended**: 2026-11-16

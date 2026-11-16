@@ -22,7 +22,7 @@ Le voci marcate **(proposta)** sono suggerimenti: confermare o cambiare prima di
 
 ## Convenzioni
 - Interfaccia in **italiano**; codice, nomi di variabili e commit in **inglese** **(proposta)**
-- Due progetti Firebase: `dev` e `prod` **(proposta)**
+- Un solo progetto Firebase (produzione) ✅; sviluppo e test sull'emulatore Firebase in locale con dati finti
 - Un branch e una PR per ogni specifica.
 
 ## Principi (per la constitution)

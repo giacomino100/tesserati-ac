@@ -12,6 +12,13 @@ secondo il PDF ufficiale delle quote; segnalare i casi che il PDF non prevede.
 
 **Regole di riferimento**: `docs/dominio/regole-quote.md` (unica fonte: PDF quote 2026/27).
 
+## Clarifications
+
+### Session 2026-11-16
+
+- Q: Se un nucleo contiene un bambino sotto i 6 anni, cosa succede? → A: l'intero nucleo è
+  "non previsto" e la segreteria inserisce a mano la quota di tutto il nucleo.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Quota di un nucleo fino a 3 persone (Priority: P1)
@@ -83,9 +90,8 @@ sotto i 6 anni: nessun importo, motivo esplicito.
 1. **Given** un nucleo di 6 tesserati, **When** si calcola, **Then** l'esito è "non previsto"
    con motivo "nucleo con più di 4 componenti" e nessun importo.
 2. **Given** un nucleo che contiene un bambino nato nel 2022 (4 anni nel 2026/27), **When** si
-   calcola, **Then** l'esito è "non previsto" con motivo "componente sotto i 6 anni"
-   [NEEDS CLARIFICATION: l'intero nucleo è "non previsto", oppure si esclude il bambino e si
-   calcola il resto del nucleo?].
+   calcola, **Then** l'**intero nucleo** è "non previsto" con motivo "componente sotto i 6 anni"
+   e nessun importo per alcun componente.
 
 ---
 
@@ -125,8 +131,9 @@ sotto i 6 anni: nessun importo, motivo esplicito.
 - **FR-009**: Nucleo di 4 persone: il terzo componente (secondo più giovane) paga la quota con
   sconto del 20%, il quarto (il più giovane) paga 0,00 €, gli altri la quota piena; il pacchetto
   2 ACR non si applica.
-- **FR-010**: Nucleo di 5 o più persone, o con un componente sotto i 6 anni: il sistema MUST
-  restituire l'esito "non previsto dal listino" con il motivo e MUST NOT restituire importi.
+- **FR-010**: Nucleo di 5 o più persone, o con almeno un componente sotto i 6 anni: il sistema
+  MUST restituire per l'intero nucleo l'esito "non previsto dal listino" con il motivo e MUST NOT
+  restituire importi per nessun componente.
 - **FR-011**: Per ogni nucleo calcolato il sistema MUST restituire, per ogni componente: fascia,
   quota piena, agevolazione applicata (nessuna / sconto 20% / gratuito / pacchetto 2 ACR) e
   importo dovuto; e il totale del nucleo.

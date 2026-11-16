@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- 1 marker aperto (User Story 3, scenario 2): nucleo con componente sotto i 6 anni.
+- Marker risolto il 2026-11-16: nucleo con componente sotto i 6 anni → intero nucleo "non previsto".
 - FR-004…FR-009 applicati alla lettera riproducono 18/18 casi della Casistica del PDF e gli 11 casi derivati.
 - Correzione durante la stesura: caso 28 di `regole-quote.md` era 74 €, corretto in 66 € (26 + 22 + 18 + 0).
