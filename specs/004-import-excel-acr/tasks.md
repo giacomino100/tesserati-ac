@@ -148,7 +148,7 @@ dell'implementazione e devono fallire prima di passare.
 - [X] T042 Run full suite from repo root: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web` (check SheetJS is in a lazy chunk, not in the initial bundle)
 - [X] T043 [P] Update `docs/roadmap.md` (004 ✅ when released) and `CLAUDE.md` "Stato attuale" (004 done, commands for `@tesseramento/import`, next 005)
 - [ ] T044 Manual scenarios M1–M9 of `specs/004-import-excel-acr/quickstart.md` in the browser on the emulators (360 px included; measure the preview time for SC-001 ≤ 5 s); mark results in the PR
-- [ ] T045 Release only after all tests are green: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`; the first real import is done by the secretary from the app (the real file never enters the repository)
+- [X] T045 Release only after all tests are green: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`; the first real import is done by the secretary from the app (the real file never enters the repository)
 
 ---
 

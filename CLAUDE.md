@@ -21,7 +21,7 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   Schermate `/listini`, listini in Firestore `feeSchedules`.
 - Test delle regole (`npm run test:rules`) e di integrazione (`npm run test:integration -w web`) ora girano: JDK 21 installato
   (se `java` non è nel PATH, impostare `JAVA_HOME`).
-- **004 – Import Excel ACR**: implementata sul branch `004-import-excel-acr`, non ancora rilasciata.
+- **004 – Import Excel ACR**: rilasciata il 2026-11-17 (regole e hosting in produzione; nessun dato importato: il primo import reale lo fa la segreteria dall'app).
   Pacchetto puro `packages/import` (lettura righe, pulizia, identità), schermate `/importa` e `/tesserati`,
   collezioni Firestore `importBatches` (`{anno}-ACR`), `persons`, `adhesions` (`{anno}_{personId}`).
   SheetJS 0.20.3 installato dal CDN ufficiale (non da npm). Il file finto ACR ha 15 righe (l'export reale 89).
