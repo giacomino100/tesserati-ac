@@ -913,3 +913,179 @@ describe('I16 – elenchi non validi', () => {
     await assertFails(commitAll(user(LISTED), docs));
   });
 });
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 007 – famiglie (contracts/firestore-families.md, J1–J11). Solo ID inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+type Op = [path: string, data: Record<string, unknown> | null];
+
+/** Scrittura atomica: `null` = cancellazione. */
+function applyOps(db: Db, ops: Op[]) {
+  const batch = writeBatch(db);
+  for (const [path, data] of ops) {
+    if (data === null) batch.delete(doc(db, path));
+    else batch.set(doc(db, path), data);
+  }
+  return batch.commit();
+}
+
+function familyDoc(memberIds: string[], over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    associationYear: 2026,
+    memberIds,
+    origin: 'legame',
+    bondId: '900002',
+    confirmedAt: serverTimestamp(),
+    confirmedBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+function membership(personId: string, familyId: string, over: Record<string, unknown> = {}) {
+  return { associationYear: 2026, personId, familyId, ...over };
+}
+
+/** Famiglia confermata con le sue appartenenze, come la scrive l'app. */
+function familyWithMembers(id: string, memberIds: string[], over: Record<string, unknown> = {}): Op[] {
+  return [
+    [`families/${id}`, familyDoc(memberIds, over)],
+    ...memberIds.map((p): Op => [`familyMemberships/2026_${p}`, membership(p, id)]),
+  ];
+}
+
+async function seedFamily(id: string, memberIds: string[], over: Record<string, unknown> = {}) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, `families/${id}`), { ...familyDoc(memberIds, over), confirmedAt: Timestamp.now() });
+    for (const p of memberIds) await setDoc(doc(db, `familyMemberships/2026_${p}`), membership(p, id));
+  });
+}
+
+async function countFamilyDocs(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const name of ['families', 'familyMemberships']) {
+      out[name] = (await getDocs(collection(ctx.firestore(), name))).size;
+    }
+  });
+  return out;
+}
+
+describe('J1/J2 – famiglie: accesso', () => {
+  beforeEach(() => seedFamily('F1', ['a', 'b']));
+
+  it('non autenticato, non in elenco, non verificato: nulla', async () => {
+    for (const db of [guest(), user(STRANGER), user(LISTED, { verified: false })]) {
+      await assertFails(getDoc(doc(db, 'families/F1')));
+      await assertFails(getDocs(collection(db, 'families')));
+      await assertFails(getDoc(doc(db, 'familyMemberships/2026_a')));
+      await assertFails(getDocs(collection(db, 'familyMemberships')));
+      await assertFails(applyOps(db, familyWithMembers('F2', ['c', 'd'])));
+      await assertFails(deleteDoc(doc(db, 'families/F1')));
+    }
+  });
+
+  it('utente autorizzato: lettura', async () => {
+    const db = user(LISTED);
+    await assertSucceeds(getDoc(doc(db, 'families/F1')));
+    await assertSucceeds(getDocs(collection(db, 'families')));
+    await assertSucceeds(getDoc(doc(db, 'familyMemberships/2026_a')));
+    await assertSucceeds(getDocs(collection(db, 'familyMemberships')));
+  });
+});
+
+describe('J3–J6 – conferma di una famiglia', () => {
+  it('famiglia da 3 con le sue appartenenze: consentito', async () => {
+    await assertSucceeds(applyOps(user(LISTED), familyWithMembers('F1', ['a', 'b', 'c'])));
+    expect(await countFamilyDocs()).toEqual({ families: 1, familyMemberships: 3 });
+  });
+
+  it('famiglia creata a mano senza N. Legame: consentito', async () => {
+    await assertSucceeds(applyOps(user(LISTED), familyWithMembers('F1', ['a', 'b'], { origin: 'manuale', bondId: undefined })));
+  });
+
+  const invalid: Record<string, Op[]> = {
+    'un solo componente': familyWithMembers('F1', ['a']),
+    '21 componenti': familyWithMembers('F1', Array.from({ length: 21 }, (_, i) => `p${i}`)),
+    'campo in più': [['families/F1', { ...familyDoc(['a', 'b']), note: 'x' }], ['familyMemberships/2026_a', membership('a', 'F1')], ['familyMemberships/2026_b', membership('b', 'F1')]],
+    'origine sconosciuta': familyWithMembers('F1', ['a', 'b'], { origin: 'altro' }),
+    'anno come testo': [['families/F1', familyDoc(['a', 'b'], { associationYear: '2026' })]],
+    'componenti non lista': [['families/F1', familyDoc(['a', 'b'], { memberIds: 'a,b' })]],
+    'email di un altro': familyWithMembers('F1', ['a', 'b'], { confirmedBy: 'altro@example.org' }),
+    'data scelta dal client': familyWithMembers('F1', ['a', 'b'], { confirmedAt: Timestamp.fromDate(new Date('2026-01-01')) }),
+  };
+  for (const [name, ops] of Object.entries(invalid)) {
+    it(`${name}: negato`, async () => {
+      await assertFails(applyOps(user(LISTED), ops));
+      expect(await countFamilyDocs()).toEqual({ families: 0, familyMemberships: 0 });
+    });
+  }
+});
+
+describe('J7/J8 – appartenenze', () => {
+  beforeEach(() => seedFamily('A', ['a', 'b', 'c']));
+
+  it('appartenenza per una persona non nella famiglia o con ID incoerente: negato', async () => {
+    const db = user(LISTED);
+    await assertFails(setDoc(doc(db, 'familyMemberships/2026_z'), membership('z', 'A')));
+    await assertFails(setDoc(doc(db, 'familyMemberships/2026_x'), membership('a', 'A')));
+    await assertFails(setDoc(doc(db, 'familyMemberships/2027_a'), membership('a', 'A', { associationYear: 2027 })));
+  });
+
+  it('spostare una persona verso una famiglia che non la contiene: negato', async () => {
+    await seedFamily('B', ['d', 'e']);
+    await assertFails(setDoc(doc(user(LISTED), 'familyMemberships/2026_a'), membership('a', 'B')));
+  });
+
+  it('spostare da A a B in una sola scrittura: consentito', async () => {
+    await seedFamily('B', ['d', 'e']);
+    await assertSucceeds(
+      applyOps(user(LISTED), [
+        ['families/A', familyDoc(['b', 'c'])],
+        ['families/B', familyDoc(['d', 'e', 'a'], { bondId: undefined, origin: 'manuale' })],
+        ['familyMemberships/2026_a', membership('a', 'B')],
+      ]),
+    );
+  });
+});
+
+describe('J9/J10 – correzione e scioglimento', () => {
+  beforeEach(() => seedFamily('A', ['a', 'b', 'c']));
+
+  it('togliere un componente: consentito; cancellare l’appartenenza di chi resta: negato', async () => {
+    const db = user(LISTED);
+    await assertFails(deleteDoc(doc(db, 'familyMemberships/2026_a')));
+    await assertSucceeds(
+      applyOps(db, [
+        ['families/A', familyDoc(['b', 'c'])],
+        ['familyMemberships/2026_a', null],
+      ]),
+    );
+    expect(await countFamilyDocs()).toEqual({ families: 1, familyMemberships: 2 });
+  });
+
+  it('sciogliere: famiglia e appartenenze insieme', async () => {
+    await assertSucceeds(
+      applyOps(user(LISTED), [
+        ['families/A', null],
+        ['familyMemberships/2026_a', null],
+        ['familyMemberships/2026_b', null],
+        ['familyMemberships/2026_c', null],
+      ]),
+    );
+    expect(await countFamilyDocs()).toEqual({ families: 0, familyMemberships: 0 });
+  });
+
+  it('cambiare l’anno di una famiglia: negato', async () => {
+    await assertFails(setDoc(doc(user(LISTED), 'families/A'), familyDoc(['a', 'b', 'c'], { associationYear: 2027 })));
+  });
+});
+
+describe('J11 – un gruppo di "Conferma tutte"', () => {
+  it('8 famiglie da 2 con 16 appartenenze in una sola scrittura: consentito', async () => {
+    const ops = Array.from({ length: 8 }, (_, i) => familyWithMembers(`F${i}`, [`a${i}`, `b${i}`])).flat();
+    await assertSucceeds(applyOps(user(LISTED), ops));
+    expect(await countFamilyDocs()).toEqual({ families: 8, familyMemberships: 16 });
+  });
+});

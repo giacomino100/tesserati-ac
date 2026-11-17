@@ -33,12 +33,17 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   (solo hosting: regole invariate). Anteprima con possibili doppioni da decidere ("Stessa persona" /
   "Persona diversa", regole in `regole-famiglia.md` §2), persone riconosciute dal codice fiscale, righe saltate con
   nome (solo a schermo), avvisi età/settore dal listino. `@tesseramento/import` ora dipende da `@tesseramento/fees`.
-- Poi: **007 – Famiglie** (roadmap in `docs/roadmap.md`).
+- **007 – Famiglie**: implementata sul branch `007-famiglie`, non ancora rilasciata (regole + hosting). Pagina
+  `/famiglie`: famiglie suggerite dal `N. Legame`, conferma (anche "Conferma tutte" a gruppi di 8 per il limite di
+  letture delle regole), correzioni, famiglie a mano, scioglimento. Pacchetto puro `packages/families`. Firestore:
+  `families/{id}` + `familyMemberships/{anno}_{personId}` (l'appartenenza è la fonte di verità: una famiglia per persona
+  per anno).
+- Poi: **008 – Riconferma adesione** (roadmap in `docs/roadmap.md`; da rivedere l'ordine 008–012).
 
 ## Comandi
 
 - App in locale: `npm run emulators` (emulatori Auth/Firestore) e `npm start` (usa il progetto `demo-tesseramento`).
-- Test: `npm test` (tutti i workspace; in `firebase` solo il test di seed, senza emulatore); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`; import: `npm test -w @tesseramento/import`.
+- Test: `npm test` (tutti i workspace; in `firebase` solo il test di seed, senza emulatore); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`; import: `npm test -w @tesseramento/import`; famiglie: `npm test -w @tesseramento/families`.
 - Controllo tipi: `npm run typecheck`. Test regole: `npm run test:rules` (richiede JDK).
 - Rilascio: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac` solo dopo test verdi.
 - Elenco email autorizzate: collezione Firestore `allowedEmails`, ID documento = email in minuscolo.

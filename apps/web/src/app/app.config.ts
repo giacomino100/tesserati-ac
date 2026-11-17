@@ -9,6 +9,8 @@ import { IMPORT_BACKEND } from './importa/import-backend';
 import { FirestoreImportBackend } from './importa/firestore-import-backend';
 import { FirestoreScheduleUsage, SCHEDULE_USAGE } from './listini/schedule-usage';
 import { MEMBERS_BACKEND } from './tesserati/members-backend';
+import { FAMILIES_BACKEND } from './famiglie/families-backend';
+import { FirestoreFamiliesBackend } from './famiglie/firestore-families-backend';
 import { FirestoreMembersBackend } from './tesserati/firestore-members-backend';
 
 export const appConfig: ApplicationConfig = {
@@ -19,6 +21,7 @@ export const appConfig: ApplicationConfig = {
     { provide: FEE_SCHEDULE_BACKEND, useFactory: () => new FirestoreFeeScheduleBackend() },
     { provide: IMPORT_BACKEND, useFactory: () => new FirestoreImportBackend() },
     { provide: MEMBERS_BACKEND, useFactory: () => new FirestoreMembersBackend() },
+    { provide: FAMILIES_BACKEND, useFactory: () => new FirestoreFamiliesBackend() },
     { provide: SCHEDULE_USAGE, useFactory: () => new FirestoreScheduleUsage() },
   ],
 };

@@ -10,7 +10,7 @@
 | `FamilyWarning` | `{ kind: 'sizeMismatch', expected, found }` \| `{ kind: 'bondMismatch', bonds: string[] }` \| `{ kind: 'inconsistent', personIds }` (in `memberIds` ma senza appartenenza verso la famiglia) |
 | `SuggestedFamily` | `bondId`, `members: YearMember[]` (esclusi quelli già in famiglie confermate), `bond?`, `warnings: FamilyWarning[]`, `confirmable` (≥ 2 componenti), `elsewhere: { member, familyId }[]` (stesso `N. Legame` ma già in un'altra famiglia confermata) |
 | `ProposedAddition` | `familyId`, `member: YearMember` (stesso `N. Legame` di una famiglia confermata, ma fuori da ogni famiglia) |
-| `YearFamilies` (esito di `suggestFamilies`) | `confirmed: ConfirmedFamily[]`, `suggested: SuggestedFamily[]`, `additions: ProposedAddition[]`, `withoutFamily: YearMember[]` |
+| `YearFamilies` (esito di `suggestFamilies`) | `confirmed: ConfirmedFamilyView[]` (famiglia + componenti effettivi + avvisi), `suggested: SuggestedFamily[]`, `additions: ProposedAddition[]`, `withoutFamily: YearMember[]` |
 | `FamilyIssue` (esito di `validateFamily`) | `{ kind: 'tooFew' }` \| `{ kind: 'notInYear', personId }` \| `{ kind: 'inOtherFamily', personId, familyId }` |
 
 ## In Firestore

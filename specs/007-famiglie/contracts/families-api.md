@@ -5,7 +5,7 @@ Pacchetto senza dipendenze di runtime; nessun accesso a rete, browser, data corr
 ```ts
 export function parseBond(bond: string | undefined): Bond | undefined;
 
-/** Famiglie dell'anno: confermate, suggerite dal N. Legame, aggiunte proposte, senza famiglia. */
+/** Famiglie dell'anno: confermate (con componenti effettivi e avvisi), suggerite dal N. Legame, aggiunte proposte, senza famiglia. */
 export function suggestFamilies(
   members: readonly YearMember[],
   confirmed: readonly ConfirmedFamily[],
@@ -16,7 +16,7 @@ export function suggestFamilies(
 export function validateFamily(
   memberIds: readonly string[],
   members: readonly YearMember[],
-  confirmed: readonly ConfirmedFamily[],
+  memberships: ReadonlyMap<string, string>,   // personId → familyId (fonte di verità)
   familyId?: string,   // la famiglia che si sta modificando (le sue appartenenze non contano come "altra famiglia")
 ): FamilyIssue[];
 ```

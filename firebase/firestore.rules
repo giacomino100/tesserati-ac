@@ -220,6 +220,56 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ---- Famiglie per anno (specifica 007, contracts/firestore-families.md) ----
+
+    function familyPath(id) {
+      return /databases/$(database)/documents/families/$(id);
+    }
+
+    // Famiglia confermata: almeno 2 componenti (al massimo 20), origine, chi e quando.
+    function validFamily(d) {
+      return d.keys().hasOnly(['associationYear', 'memberIds', 'origin', 'bondId', 'confirmedAt', 'confirmedBy'])
+        && d.keys().hasAll(['associationYear', 'memberIds', 'origin', 'confirmedAt', 'confirmedBy'])
+        && d.associationYear is int
+        && d.memberIds is list
+        && d.memberIds.size() >= 2
+        && d.memberIds.size() <= 20
+        && d.origin in ['legame', 'manuale']
+        && optionalText(d, 'bondId')
+        && d.confirmedAt == request.time
+        && d.confirmedBy == ownEmail();
+    }
+
+    match /families/{familyId} {
+      allow get, list: if isAllowed();
+      allow create: if isAllowed() && validFamily(request.resource.data);
+      allow update: if isAllowed()
+        && validFamily(request.resource.data)
+        && request.resource.data.associationYear == resource.data.associationYear;
+      // Scioglimento: l'app cancella nella stessa scrittura anche le appartenenze.
+      allow delete: if isAllowed();
+    }
+
+    // Appartenenza: ID "{anno}_{personId}" = una sola famiglia per persona per anno. È la fonte di verità
+    // (research R8): punta a una famiglia che, dopo la scrittura, esiste, è dello stesso anno e contiene la persona.
+    match /familyMemberships/{membershipId} {
+      allow get, list: if isAllowed();
+      allow create, update: if isAllowed()
+        && request.resource.data.keys().hasOnly(['associationYear', 'personId', 'familyId'])
+        && request.resource.data.keys().hasAll(['associationYear', 'personId', 'familyId'])
+        && request.resource.data.associationYear is int
+        && isNonEmptyString(request.resource.data.personId)
+        && isNonEmptyString(request.resource.data.familyId)
+        && membershipId == string(request.resource.data.associationYear) + '_' + request.resource.data.personId
+        && existsAfter(familyPath(request.resource.data.familyId))
+        && getAfter(familyPath(request.resource.data.familyId)).data.associationYear == request.resource.data.associationYear
+        && getAfter(familyPath(request.resource.data.familyId)).data.memberIds.hasAny([request.resource.data.personId]);
+      // Si cancella solo se la persona non è più nella famiglia (o la famiglia è sciolta).
+      allow delete: if isAllowed()
+        && (!existsAfter(familyPath(resource.data.familyId))
+            || !getAfter(familyPath(resource.data.familyId)).data.memberIds.hasAny([resource.data.personId]));
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

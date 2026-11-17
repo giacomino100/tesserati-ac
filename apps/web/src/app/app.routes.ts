@@ -47,5 +47,11 @@ export const routes: Routes = [
     canActivate: [requireState('allowed')],
     loadComponent: () => import('./tesserati/pages/members/members-page').then((m) => m.MembersPage),
   },
+  {
+    path: 'famiglie',
+    canActivate: [requireState('allowed')],
+    canDeactivate: [unsavedChangesGuard],
+    loadComponent: () => import('./famiglie/pages/families/families-page').then((m) => m.FamiliesPage),
+  },
   { path: '**', redirectTo: '' },
 ];

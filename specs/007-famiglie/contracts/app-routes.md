@@ -27,10 +27,10 @@ La home ottiene la voce **"Famiglie"**.
 | Avviso numero | "Il Legame C3 indica 3 componenti, ne sono stati trovati 1." |
 | Avviso Legame diversi | "I componenti hanno Legame diversi: C3, C4." |
 | Meno di 2 | "Una famiglia ha almeno 2 componenti." |
-| Già in un'altra famiglia | "VERDI SOFIA è già nella famiglia di VERDI PAOLO: toglila prima da lì." |
+| Già in un'altra famiglia | "VERDI SOFIA è già nella famiglia di VERDI PAOLO: prima togli questa persona da quella famiglia." (testo neutro: l'app non conosce il genere) |
 | Conferma tutte con famiglie da 1 | "Confermate 8 famiglie; 1 famiglia con un solo componente non confermata." |
 | Conferma tutte interrotta | "Confermate 16 famiglie su 45. Impossibile salvare le altre: controlla la connessione e riprova." |
-| Famiglia incoerente | "Dati incoerenti per VERDI SOFIA: è indicata anche in un'altra famiglia. Correggi e riconferma." |
+| Famiglia incoerente | "Dati incoerenti per VERDI SOFIA: presente anche in un'altra famiglia. Correggi e riconferma." |
 | Sciogli | dialogo "Tutti i componenti resteranno senza famiglia." con "Sciogli" / "Annulla" |
 | Dati cambiati (altro utente) | "Le famiglie sono state modificate da qualcun altro. La pagina è stata aggiornata." |
 | Errore di rete | "Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla." |
