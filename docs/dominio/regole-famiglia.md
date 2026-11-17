@@ -30,8 +30,13 @@ L'export **contiene già i nuclei familiari**:
 - Il codice fiscale è compilato solo nel 27% dei casi (1 su 89 in ACR): **non può essere la chiave**.
 - Proposta: chiave = **cognome + nome + data di nascita**, normalizzati (maiuscolo, senza spazi in più, senza accenti).
   Nell'export 2026 non ci sono duplicati con questa chiave.
-- Se il codice fiscale è presente in entrambi gli anni, prevale sulla chiave sopra.
-- Casi dubbi (stessa data di nascita e cognome, nome simile): segnalare per revisione manuale. **TODO** confermare.
+- ✅ Se il codice fiscale è presente in entrambi gli anni, prevale sulla chiave sopra: stessa persona anche se nome o
+  data sono scritti diversamente (l'anagrafica salvata non cambia; l'import lo segnala). Confermato il 2026-11-17.
+- ✅ Casi dubbi da far decidere a mano a chi importa ("Stessa persona" / "Persona diversa", nessuna scelta
+  predefinita), confermato il 2026-11-17 (specifica 006). Una riga senza corrispondenza esatta è un caso dubbio se:
+  - stessa data di nascita e stesso cognome, e il nome differisce di al massimo 2 lettere o uno contiene l'altro
+    (es. "MARIA" / "MARIA GRAZIA");
+  - oppure stesso cognome e nome, e la data di nascita differisce per una sola cifra o per giorno e mese scambiati.
 
 ## 3. Cambio di categoria
 - ✅ La fascia dipende **solo dall'anno di nascita**: età = anno associativo − anno di nascita.
