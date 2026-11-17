@@ -25,7 +25,8 @@ L'export **contiene già i nuclei familiari**:
   una famiglia a mano). Chi non ha `N. Legame` né una famiglia confermata è un nucleo da 1. Le famiglie valgono per
   un anno associativo. Confermato il 2026-11-17 (specifica 007).
 - Il `N. Legame` resta lo stesso da un anno all'altro? **TODO** (servirebbe l'export dell'anno precedente per verificarlo)
-- Quando si aggiunge un nuovo tesserato (es. un figlio che si iscrive per la prima volta), chi lo collega al nucleo? L'app permette di farlo a mano? **TODO**
+- ✅ Un nuovo tesserato (es. un figlio che si iscrive per la prima volta) entra senza famiglia: lo collega al nucleo **a
+  mano la segreteria**, in "Famiglie" con "Correggi" sulla famiglia confermata. Confermato il 2026-11-17 (specifica 009).
 - Il `N. Legame` viene creato dal sistema nazionale o dalla parrocchia? **TODO**
 - ✅ Una persona sta in **al massimo una famiglia per anno** (genitori separati: non gestito per ora, nei dati non
   succede; servirà una specifica dedicata). Confermato il 2026-11-17 (specifica 007).
