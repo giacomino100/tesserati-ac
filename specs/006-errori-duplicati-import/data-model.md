@@ -23,7 +23,8 @@ Base: data model della [004](../004-import-excel-acr/data-model.md) e della [005
 
 - **YearContext** + `feeSchedule?: FeeSchedule`, `archive: ArchivedPerson[]` (al posto della sola mappa
   `persons`, che si ricava).
-- **AgeWarning** = `{ row: ImportRow, age, kind: 'belowMinimumAge' | 'sectorMismatch', expectedSector? }`.
+- **AgeWarning** (in `@tesseramento/import`) = `{ row: ImportRow, age, kind: 'belowMinimumAge' | 'sectorMismatch',
+  expectedSector? }`.
 - **ImportSummary** + `byTaxCode`, `confirmedSame`, `warnings`.
 
 ## Regole di decisione per riga (ordine)

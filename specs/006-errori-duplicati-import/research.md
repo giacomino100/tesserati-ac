@@ -3,11 +3,11 @@
 ## R1. Somiglianza dei nomi
 
 - **Decision**: distanza di Levenshtein (inserimenti, cancellazioni, sostituzioni) sul nome normalizzato come nella
-  chiave di identità (maiuscolo, senza accenti, spazi singoli); simile se distanza ≤ 2 **oppure** uno è contenuto
-  nell'altro come sequenza di parole intere all'inizio o in fondo ("MARIA" in "MARIA GRAZIA", "GRAZIA" in "MARIA
-  GRAZIA"). Nomi identici non sono "simili" (sarebbero corrispondenza esatta).
+  chiave di identità (maiuscolo, senza accenti, spazi singoli); simile se distanza ≤ 2 **oppure** le parole di uno
+  compaiono, intere e consecutive, in qualsiasi posizione dell'altro ("MARIA" in "MARIA GRAZIA", "GRAZIA" in "MARIA
+  GRAZIA", "ANNA" in "MARIA ANNA LUISA"). Nomi identici non sono "simili" (sarebbero corrispondenza esatta).
 - **Rationale**: `regole-famiglia.md` §2 ("al massimo 2 lettere", "uno contiene l'altro"); le parole intere evitano
-  che "ANNA" sia "contenuta" in "GIOVANNA".
+  che "ANNA" sia "contenuta" in "GIOVANNA" (regola precisata in `regole-famiglia.md` §2 il 2026-11-17).
 - **Alternatives considered**: Jaro-Winkler o soundex (soglie meno spiegabili alla segreteria); librerie esterne
   (vietate senza necessità, principio V).
 
@@ -49,7 +49,8 @@
 
 ## R7. Avvisi età/settore
 
-- **Decision**: in `apps/web/src/app/importa/age-warnings.ts`: età con `ageFor` del pacchetto `fees`; sotto
+- **Decision**: in `packages/import/src/age-warnings.ts` (pacchetto puro, con `@tesseramento/fees` come dipendenza,
+  anch'esso puro), così si prova sul file ACR vero: età con `ageFor` del pacchetto `fees`; sotto
   `schedule.minAge` → `belowMinimumAge`; altrimenti fascia con `bandForAge` e gruppo atteso
   `acr → RAGAZZI`, `giovanissimi | giovani → GIOVANI`, `adulti → ADULTI`; settore dell'export diverso →
   `sectorMismatch` con età e settore atteso. `ageFor` e `bandForAge` diventano esportazioni di `@tesseramento/fees`.

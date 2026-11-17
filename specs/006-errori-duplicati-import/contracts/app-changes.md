@@ -7,7 +7,7 @@ Base: contratti della [004](../../004-import-excel-acr/contracts/app-routes.md) 
 
 | Sezione | Contenuto |
 |---|---|
-| **Possibili doppioni (N da decidere)** | per ogni caso: "Riga 7: ROSSI MARIA GRAZIA, 12/03/1965" e, per ogni candidato, "ROSSI MARIA, 12/03/1965 · ACR 2025/26" con pulsante "Stessa persona"; in fondo "Persona diversa". La scelta fatta è evidenziata e si può cambiare |
+| **Possibili doppioni (N da decidere)** | per ogni caso: "Riga 7: ROSSI MARIA GRAZIA, 12/03/1965" e, per ogni candidato, "ROSSI MARIA, 12/03/1965 · ACR 2025/26" con pulsante "Stessa persona" (se la sua adesione è dell'anno in import: "(già importata quest'anno)", e scelta la riga passa alle righe saltate); in fondo "Persona diversa". La scelta fatta è evidenziata e si può cambiare |
 | **Riconosciute dal codice fiscale** | "Riga 9: NERI ANA → NERI ANNA, 05/11/1982 (stesso codice fiscale)" — solo quando nome o data differiscono |
 | **Avvisi** | "Riga 14 (GATTI MIA): 4 anni, sotto l'età minima di 6 anni del listino" · "Riga 3 (PROVA ALFA): 30 anni: per il listino è Adulti, nell'export è GIOVANI" |
 | **Righe saltate** | "Riga 7 (PROVA ALFA): manca la data di nascita" (senza nome se mancano cognome e nome) |

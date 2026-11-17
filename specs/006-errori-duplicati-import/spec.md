@@ -112,7 +112,7 @@ comunque con i dati dell'export.
 
 - **FR-001**: Prima del salvataggio il sistema MUST cercare, per ogni riga senza corrispondenza esatta né per codice
   fiscale, le persone in archivio simili secondo `regole-famiglia.md` §2: stessa data di nascita e stesso cognome con
-  nome che differisce di al massimo 2 lettere o contenuto nell'altro; oppure stesso cognome e nome con data che
+  nome che differisce di al massimo 2 lettere o contenuto nell'altro come parola intera; oppure stesso cognome e nome con data che
   differisce per una sola cifra o per giorno e mese scambiati (confronto su testi normalizzati).
 - **FR-002**: L'anteprima MUST mostrare ogni possibile doppione con i dati della riga e della persona già presente
   (cognome, nome, data di nascita, ultimo elenco e anno) e le scelte "Stessa persona" (per ogni candidato) e

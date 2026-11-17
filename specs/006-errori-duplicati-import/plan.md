@@ -72,6 +72,7 @@ specs/006-errori-duplicati-import/
 ```text
 packages/import/src/
 ├── similarity.ts      # NUOVO: editDistance, namesSimilar, datesSimilar, findCandidates
+├── age-warnings.ts    # NUOVO: avvisi età/settore dal listino (usa ageFor/bandForAge di @tesseramento/fees)
 ├── parse-sheet.ts     # righe saltate con cognome/nome; doppione per codice fiscale nello stesso file
 ├── plan-import.ts     # archivio completo, codice fiscale, possibili doppioni, scelte dell'utente
 └── types.ts           # ArchivedPerson, DuplicateDecision, PossibleDuplicate, TaxCodeMatch
@@ -81,14 +82,14 @@ packages/fees/src/index.ts   # + export ageFor, bandForAge (additivo)
 apps/web/src/app/importa/
 ├── import-backend.ts           # YearContext: archive (persone + ultima adesione), feeSchedule
 ├── firestore-import-backend.ts # legge tutte le adesioni per l'ultima di ogni persona e il listino
-├── age-warnings.ts             # NUOVO: avvisi età/settore dal listino (puro, usa @tesseramento/fees)
 ├── import.service.ts           # scelte sui doppioni, avvisi, riepilogo esteso
 ├── messages.ts                 # testi nuovi
 └── pages/import/import-page.ts # sezioni Doppioni, Codice fiscale, Avvisi
 ```
 
-**Structure Decision**: tutta la logica di identità resta nel pacchetto puro (`@tesseramento/import`); gli avvisi
-d'età vivono nell'app perché uniscono righe dell'import e listino, ma usano solo funzioni pure dei due pacchetti.
+**Structure Decision**: tutta la logica di identità e gli avvisi d'età stanno nel pacchetto puro
+(`@tesseramento/import`), che ora dipende da `@tesseramento/fees` (anch'esso puro) per età e fasce del listino:
+così gli avvisi si provano sul file ACR finto vero. L'app li mostra soltanto.
 
 ## Complexity Tracking
 

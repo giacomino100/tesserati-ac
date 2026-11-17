@@ -35,7 +35,8 @@ L'export **contiene già i nuclei familiari**:
 - ✅ Casi dubbi da far decidere a mano a chi importa ("Stessa persona" / "Persona diversa", nessuna scelta
   predefinita), confermato il 2026-11-17 (specifica 006). Una riga senza corrispondenza esatta è un caso dubbio se:
   - stessa data di nascita e stesso cognome, e il nome differisce di al massimo 2 lettere o uno contiene l'altro
-    (es. "MARIA" / "MARIA GRAZIA");
+    come **parola intera, in qualsiasi posizione** (es. "MARIA" / "MARIA GRAZIA", "ANNA" / "MARIA ANNA LUISA";
+    non "ANNA" / "GIOVANNA") — precisato il 2026-11-17;
   - oppure stesso cognome e nome, e la data di nascita differisce per una sola cifra o per giorno e mese scambiati.
 
 ## 3. Cambio di categoria
