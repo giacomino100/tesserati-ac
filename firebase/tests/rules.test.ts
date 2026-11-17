@@ -803,3 +803,25 @@ describe('I11 – chi e quando', () => {
     await assertFails(commitAll(user(LISTED), docs));
   });
 });
+
+describe('I5 – riimporto dello stesso anno', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs(EXISTING);
+  });
+
+  it('secondo import del 2026: negato e nulla cambia', async () => {
+    const docs = fullImport(2026, 2);
+    await assertFails(commitAll(user(LISTED), docs));
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 1, adhesions: 1 });
+  });
+});
+
+describe('I6 – anno senza listino', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('import del 2030 senza feeSchedules/2030: negato', async () => {
+    await assertFails(commitAll(user(LISTED), fullImport(2030, 1)));
+    expect(await countImportDocs()).toEqual({ importBatches: 0, persons: 0, adhesions: 0 });
+  });
+});

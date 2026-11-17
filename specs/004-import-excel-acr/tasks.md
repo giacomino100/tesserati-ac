@@ -126,16 +126,16 @@ dell'implementazione e devono fallire prima di passare.
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [ ] T033 [P] [US3] Extend `packages/import/tests/parse-sheet.test.ts` and `packages/import/tests/sample-files.test.ts` (P2, P4–P7, P10): Giovani and Adulti sample files → `notAcr`; missing/renamed `Data Nascita` → `missingColumns` `['Data Nascita']` (several missing → all listed in header order of `REQUIRED_COLUMNS`); other sheet name → `sheetNotFound`; header only → `noRows`; `Anno 2026` + `Anno 2027` → `mixedYears`; `2026` / empty year → `invalidYear`; all rows invalid → `allRowsSkipped` with the skipped list
-- [ ] T034 [P] [US3] Extend `firebase/tests/rules.test.ts` (I5, I6): second import of 2026 (batch already exists) → denied and nothing changes; import of 2030 without `feeSchedules/2030` → denied
-- [ ] T035 [P] [US3] Extend `apps/web/src/app/importa/firestore-import-backend.emulator.test.ts`: `yearStatus(2026)` before/after import; `commit` on an imported year → `AlreadyImportedError`, on a year without fee schedule → `NoFeeScheduleError`, and document counts unchanged
-- [ ] T036 [P] [US3] Extend `apps/web/src/app/importa/import.service.spec.ts` and `apps/web/src/app/importa/pages/import/import-page.spec.ts`: each `ParsedImport` error, `UnreadableFileError`, `yearStatus` → `hasFeeSchedule: false` (message with link to `/listini`) and `alreadyImported: true` → state `rejected` with the exact message of `contracts/app-routes.md`, button "Scegli un altro file", no `commit`; `AlreadyImportedError`/`NoFeeScheduleError` raised at commit time → same messages
+- [X] T033 [P] [US3] Extend `packages/import/tests/parse-sheet.test.ts` and `packages/import/tests/sample-files.test.ts` (P2, P4–P7, P10): Giovani and Adulti sample files → `notAcr`; missing/renamed `Data Nascita` → `missingColumns` `['Data Nascita']` (several missing → all listed in header order of `REQUIRED_COLUMNS`); other sheet name → `sheetNotFound`; header only → `noRows`; `Anno 2026` + `Anno 2027` → `mixedYears`; `2026` / empty year → `invalidYear`; all rows invalid → `allRowsSkipped` with the skipped list
+- [X] T034 [P] [US3] Extend `firebase/tests/rules.test.ts` (I5, I6): second import of 2026 (batch already exists) → denied and nothing changes; import of 2030 without `feeSchedules/2030` → denied
+- [X] T035 [P] [US3] Extend `apps/web/src/app/importa/firestore-import-backend.emulator.test.ts`: `yearStatus(2026)` before/after import; `commit` on an imported year → `AlreadyImportedError`, on a year without fee schedule → `NoFeeScheduleError`, and document counts unchanged
+- [X] T036 [P] [US3] Extend `apps/web/src/app/importa/import.service.spec.ts` and `apps/web/src/app/importa/pages/import/import-page.spec.ts`: each `ParsedImport` error, `UnreadableFileError`, `yearStatus` → `hasFeeSchedule: false` (message with link to `/listini`) and `alreadyImported: true` → state `rejected` with the exact message of `contracts/app-routes.md`, button "Scegli un altro file", no `commit`; `AlreadyImportedError`/`NoFeeScheduleError` raised at commit time → same messages
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Complete file-level errors in `packages/import/src/parse-sheet.ts` (sheet, columns, no rows, year, mixed years, `notAcr` when no row has `sector === 'RAGAZZI'`, all skipped) until T033 passes
-- [ ] T038 [US3] In `import.service.ts` call `backend.yearStatus(year)` after parsing and before showing the preview; map every error to the `rejected` state with the messages of `contracts/app-routes.md` (constants in `apps/web/src/app/importa/messages.ts`); `import-page.ts` shows the message, link "Listini" for the missing fee schedule, and "Scegli un altro file" — until T036 passes
-- [ ] T039 [US3] Implement `yearStatus` in `apps/web/src/app/importa/firestore-import-backend.ts` (`getDoc` of `feeSchedules/{year}` and `importBatches/{year}-ACR`) until T035 passes; re-run `npm run test:rules` for T034
+- [X] T037 [US3] Complete file-level errors in `packages/import/src/parse-sheet.ts` (sheet, columns, no rows, year, mixed years, `notAcr` when no row has `sector === 'RAGAZZI'`, all skipped) until T033 passes
+- [X] T038 [US3] In `import.service.ts` call `backend.yearStatus(year)` after parsing and before showing the preview; map every error to the `rejected` state with the messages of `contracts/app-routes.md` (constants in `apps/web/src/app/importa/messages.ts`); `import-page.ts` shows the message, link "Listini" for the missing fee schedule, and "Scegli un altro file" — until T036 passes
+- [X] T039 [US3] Implement `yearStatus` in `apps/web/src/app/importa/firestore-import-backend.ts` (`getDoc` of `feeSchedules/{year}` and `importBatches/{year}-ACR`) until T035 passes; re-run `npm run test:rules` for T034
 
 **Checkpoint**: tutte le storie funzionano insieme; tutti i test verdi
 
@@ -143,10 +143,10 @@ dell'implementazione e devono fallire prima di passare.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T040 [P] Write `packages/import/README.md` (Italian: purpose, public API, research decisions R3–R6, how to run tests)
-- [ ] T041 [P] Privacy check (SC-006): search `apps/web/src/app/importa` and `packages/import/src` for `console.` and for logging of rows; confirm no network request carries the file (only Firestore writes of the allowed fields); document the result in the PR
-- [ ] T042 Run full suite from repo root: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web` (check SheetJS is in a lazy chunk, not in the initial bundle)
-- [ ] T043 [P] Update `docs/roadmap.md` (004 ✅ when released) and `CLAUDE.md` "Stato attuale" (004 done, commands for `@tesseramento/import`, next 005)
+- [X] T040 [P] Write `packages/import/README.md` (Italian: purpose, public API, research decisions R3–R6, how to run tests)
+- [X] T041 [P] Privacy check (SC-006): search `apps/web/src/app/importa` and `packages/import/src` for `console.` and for logging of rows; confirm no network request carries the file (only Firestore writes of the allowed fields); document the result in the PR
+- [X] T042 Run full suite from repo root: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web` (check SheetJS is in a lazy chunk, not in the initial bundle)
+- [X] T043 [P] Update `docs/roadmap.md` (004 ✅ when released) and `CLAUDE.md` "Stato attuale" (004 done, commands for `@tesseramento/import`, next 005)
 - [ ] T044 Manual scenarios M1–M9 of `specs/004-import-excel-acr/quickstart.md` in the browser on the emulators (360 px included; measure the preview time for SC-001 ≤ 5 s); mark results in the PR
 - [ ] T045 Release only after all tests are green: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`; the first real import is done by the secretary from the app (the real file never enters the repository)
 

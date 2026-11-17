@@ -144,3 +144,25 @@ describe('ImportPage – salvataggio (US2)', () => {
     expect(page.hasUnsavedChanges()).toBe(false);
   });
 });
+
+describe('ImportPage – rifiuti (US3)', () => {
+  it('mostra il messaggio e "Scegli un altro file", che riporta alla scelta', async () => {
+    const reader = new FakeReader(sheetInput([fakeRow(1, { Settore: 'ADULTI' })]));
+    const { fixture, el } = await renderImport(reader);
+    await chooseFile(fixture);
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('Il file non sembra l\'elenco ACR');
+    expect(el.querySelector('table')).toBeNull();
+    button(el, 'Scegli un altro file')!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('input[type="file"]')).not.toBeNull();
+  });
+
+  it('anno senza listino: collegamento ai Listini', async () => {
+    const backend = new FakeImportBackend();
+    backend.feeScheduleYears.clear();
+    const { fixture, el } = await renderImport(new FakeReader(), backend);
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
+    expect(el.querySelector('a[href="/listini"]')?.textContent).toContain('Listini');
+  });
+});

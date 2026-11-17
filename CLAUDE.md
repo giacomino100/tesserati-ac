@@ -21,12 +21,16 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   Schermate `/listini`, listini in Firestore `feeSchedules`.
 - Test delle regole (`npm run test:rules`) e di integrazione (`npm run test:integration -w web`) ora girano: JDK 21 installato
   (se `java` non è nel PATH, impostare `JAVA_HOME`).
-- Prossima: **004 – Import Excel ACR** (roadmap in `docs/roadmap.md`).
+- **004 – Import Excel ACR**: implementata sul branch `004-import-excel-acr`, non ancora rilasciata.
+  Pacchetto puro `packages/import` (lettura righe, pulizia, identità), schermate `/importa` e `/tesserati`,
+  collezioni Firestore `importBatches` (`{anno}-ACR`), `persons`, `adhesions` (`{anno}_{personId}`).
+  SheetJS 0.20.3 installato dal CDN ufficiale (non da npm). Il file finto ACR ha 15 righe (l'export reale 89).
+- Poi: **005 – Import Giovani e Adulti** (roadmap in `docs/roadmap.md`).
 
 ## Comandi
 
 - App in locale: `npm run emulators` (emulatori Auth/Firestore) e `npm start` (usa il progetto `demo-tesseramento`).
-- Test: `npm test` (tutti i workspace; in `firebase` solo il test di seed, senza emulatore); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`.
+- Test: `npm test` (tutti i workspace; in `firebase` solo il test di seed, senza emulatore); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`; import: `npm test -w @tesseramento/import`.
 - Controllo tipi: `npm run typecheck`. Test regole: `npm run test:rules` (richiede JDK).
 - Rilascio: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac` solo dopo test verdi.
 - Elenco email autorizzate: collezione Firestore `allowedEmails`, ID documento = email in minuscolo.

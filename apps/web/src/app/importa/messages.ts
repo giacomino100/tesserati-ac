@@ -11,6 +11,7 @@ export const IMPORT_MESSAGES = {
   notAcr: 'Il file non sembra l\'elenco ACR: nessuna riga ha il settore RAGAZZI.',
   allRowsSkipped: 'Nessuna riga valida da importare.',
   saveFailed: 'Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.',
+  yearCheckFailed: "Impossibile verificare l'anno associativo. Controlla la connessione e riprova.",
 } as const;
 
 export function missingColumnsMessage(columns: readonly RequiredColumn[] | readonly string[]): string {

@@ -5,6 +5,8 @@ import { identityKey } from './identity';
 import type { ImportRow, ParsedImport, SheetInput, SkippedRow } from './types';
 
 const TAX_CODE = /^[A-Z0-9]{16}$/;
+/** Settore dell'ACR nell'export. */
+const ACR_SECTOR = 'RAGAZZI';
 
 function isBlankRow(row: readonly unknown[]): boolean {
   return row.every((cell) => cleanText(cell) === undefined);
@@ -73,8 +75,15 @@ export function parseAdhesionSheet(input: SheetInput): ParsedImport {
   if (dataRows.length === 0) return { ok: false, error: { kind: 'noRows' } };
 
   const years = new Set(dataRows.map(({ cells }) => parseAssociationYear(cells[index['Anno Associativo']])));
-  const [associationYear] = [...years];
-  if (associationYear === undefined || years.size !== 1) return { ok: false, error: { kind: 'invalidYear' } };
+  if (years.has(undefined)) return { ok: false, error: { kind: 'invalidYear' } };
+  if (years.size !== 1) return { ok: false, error: { kind: 'mixedYears' } };
+  const [associationYear] = [...years] as [number];
+
+  // Le righe di altri settori si importano (FR-012), ma un file senza nessuna riga RAGAZZI non è
+  // l'elenco ACR: si rifiuta per non usare per sbaglio l'import ACR dell'anno.
+  if (!dataRows.some(({ cells }) => cleanText(cells[index['Settore']])?.toUpperCase() === ACR_SECTOR)) {
+    return { ok: false, error: { kind: 'notAcr' } };
+  }
 
   const rows: ImportRow[] = [];
   const skipped: SkippedRow[] = [];
@@ -94,5 +103,6 @@ export function parseAdhesionSheet(input: SheetInput): ParsedImport {
     rows.push(result);
   }
 
+  if (rows.length === 0) return { ok: false, error: { kind: 'allRowsSkipped', skipped } };
   return { ok: true, associationYear, rows, skipped, totalRows: dataRows.length };
 }

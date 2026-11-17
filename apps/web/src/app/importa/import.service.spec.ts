@@ -122,3 +122,95 @@ describe('ImportService – salvataggio (US2)', () => {
     expect(backend.commits).toHaveLength(1);
   });
 });
+
+describe('ImportService – rifiuti (US3)', () => {
+  async function rejectedWith(reader: FakeReader, backend = new FakeImportBackend()) {
+    const { service } = setupImport(reader, backend);
+    await service.chooseFile(fakeFile());
+    const state = service.state();
+    expect(state.kind).toBe('rejected');
+    expect(backend.commits).toEqual([]);
+    return { service, message: state.kind === 'rejected' ? state.message : '' };
+  }
+
+  it('file non leggibile', async () => {
+    const { message } = await rejectedWith(new FakeReader(new Error('zip rotto')));
+    expect(message).toBe('Il file non è un Excel valido.');
+  });
+
+  it('foglio mancante', async () => {
+    const { message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1)], { sheetNames: ['Foglio1'] })));
+    expect(message).toBe('Nel file manca il foglio ElencoAdesioniExcel.');
+  });
+
+  it('colonne mancanti', async () => {
+    const input = sheetInput([fakeRow(1)]);
+    const rows = input.rows.map((r) => [...r]);
+    rows[0] = rows[0]!.map((h) => (h === 'Data Nascita' || h === 'Settore' ? 'Altro' : h));
+    const { message } = await rejectedWith(new FakeReader({ ...input, rows }));
+    expect(message).toBe('Nel file mancano le colonne: Data Nascita, Settore.');
+  });
+
+  it('nessuna riga', async () => {
+    const { message } = await rejectedWith(new FakeReader(sheetInput([])));
+    expect(message).toBe('Il file non contiene righe da importare.');
+  });
+
+  it('anno non valido o misto', async () => {
+    const expected =
+      'Non riesco a leggere l\'anno associativo: la colonna Anno Associativo deve contenere "Anno 2026" uguale in tutte le righe.';
+    expect((await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { 'Anno Associativo': '2026' })])))).message).toBe(expected);
+    TestBed.resetTestingModule();
+    expect(
+      (await rejectedWith(new FakeReader(sheetInput([fakeRow(1), fakeRow(2, { 'Anno Associativo': 'Anno 2027' })])))).message,
+    ).toBe(expected);
+  });
+
+  it('non è l’elenco ACR', async () => {
+    const { message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { Settore: 'GIOVANI' })])));
+    expect(message).toBe('Il file non sembra l\'elenco ACR: nessuna riga ha il settore RAGAZZI.');
+  });
+
+  it('tutte le righe saltate: messaggio ed elenco', async () => {
+    const { service, message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { Nome: null })])));
+    expect(message).toBe('Nessuna riga valida da importare.');
+    expect(service.skippedMessages()).toEqual(['Riga 2: manca il nome']);
+  });
+
+  it('anno senza listino: messaggio con il collegamento ai Listini', async () => {
+    const backend = new FakeImportBackend();
+    backend.feeScheduleYears.clear();
+    const { service, message } = await rejectedWith(new FakeReader(), backend);
+    expect(message).toBe('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
+    expect(service.showListiniLink()).toBe(true);
+  });
+
+  it('anno già importato', async () => {
+    const backend = new FakeImportBackend();
+    backend.importedYears.add(2026);
+    const { service, message } = await rejectedWith(new FakeReader(), backend);
+    expect(message).toBe('L\'elenco ACR del 2026/27 è già stato importato.');
+    expect(service.showListiniLink()).toBe(false);
+  });
+
+  it('anno importato da qualcun altro tra anteprima e conferma: rifiutato al salvataggio', async () => {
+    const backend = new FakeImportBackend();
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    backend.importedYears.add(2026);
+    await service.confirm();
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe('L\'elenco ACR del 2026/27 è già stato importato.');
+    expect(backend.commits).toEqual([]);
+  });
+
+  it('listino cancellato tra anteprima e conferma: rifiutato al salvataggio', async () => {
+    const backend = new FakeImportBackend();
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    backend.feeScheduleYears.clear();
+    await service.confirm();
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
+  });
+});

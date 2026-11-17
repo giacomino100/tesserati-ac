@@ -31,7 +31,12 @@ import { ImportService } from '../../import.service';
         @case ('rejected') {
           <p role="alert">{{ message() }}</p>
           <ng-container [ngTemplateOutlet]="skippedList" />
-          <button mat-flat-button type="button" (click)="service.cancel()">Scegli un altro file</button>
+          <div class="actions">
+            <button mat-flat-button type="button" (click)="service.cancel()">Scegli un altro file</button>
+            @if (service.showListiniLink()) {
+              <a mat-stroked-button routerLink="/listini">Listini</a>
+            }
+          </div>
         }
         @case ('done') {
           @if (service.summary(); as s) {

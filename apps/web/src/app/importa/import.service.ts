@@ -8,8 +8,14 @@ import {
   type SkippedRow,
 } from '@tesseramento/import';
 import { AuthService } from '../core/auth.service';
-import { IMPORT_BACKEND } from './import-backend';
-import { fileErrorMessage, IMPORT_MESSAGES, skippedMessage } from './messages';
+import { AlreadyImportedError, IMPORT_BACKEND, NoFeeScheduleError } from './import-backend';
+import {
+  alreadyImportedMessage,
+  fileErrorMessage,
+  IMPORT_MESSAGES,
+  noFeeScheduleMessage,
+  skippedMessage,
+} from './messages';
 import { WORKBOOK_READER } from './workbook-reader';
 
 const PREVIEW_ROWS = 10;
@@ -25,7 +31,13 @@ export interface ImportSummary {
 export type ImportState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'reading' }
-  | { readonly kind: 'rejected'; readonly message: string; readonly skipped: readonly SkippedRow[] }
+  | {
+      readonly kind: 'rejected';
+      readonly message: string;
+      readonly skipped: readonly SkippedRow[];
+      /** Manca il listino dell'anno: la pagina mostra il collegamento ai Listini. */
+      readonly showListiniLink: boolean;
+    }
   | { readonly kind: 'preview'; readonly parsed: ParsedImportOk }
   | { readonly kind: 'saving'; readonly parsed: ParsedImportOk }
   | { readonly kind: 'saveFailed'; readonly parsed: ParsedImportOk; readonly message: string }
@@ -69,6 +81,11 @@ export class ImportService {
     return skipped.map(skippedMessage);
   });
 
+  readonly showListiniLink = computed(() => {
+    const state = this.state();
+    return state.kind === 'rejected' && state.showListiniLink;
+  });
+
   readonly summary = computed(() => {
     const state = this.state();
     return state.kind === 'done' ? state.summary : undefined;
@@ -87,6 +104,21 @@ export class ImportService {
     }
     if (!parsed.ok) {
       this.reject(fileErrorMessage(parsed.error), parsed.error.kind === 'allRowsSkipped' ? parsed.error.skipped : []);
+      return;
+    }
+    let status;
+    try {
+      status = await this.backend.yearStatus(parsed.associationYear);
+    } catch {
+      this.reject(IMPORT_MESSAGES.yearCheckFailed);
+      return;
+    }
+    if (!status.hasFeeSchedule) {
+      this.reject(noFeeScheduleMessage(parsed.associationYear), [], true);
+      return;
+    }
+    if (status.alreadyImported) {
+      this.reject(alreadyImportedMessage(parsed.associationYear));
       return;
     }
     this.state.set({ kind: 'preview', parsed });
@@ -114,8 +146,11 @@ export class ImportService {
           reusedPersons: plan.reusedPersons.length,
         },
       });
-    } catch {
-      this.state.set({ kind: 'saveFailed', parsed, message: IMPORT_MESSAGES.saveFailed });
+    } catch (error) {
+      // Controlli ripetuti nella transazione: qualcun altro può aver importato l'anno o tolto il listino.
+      if (error instanceof AlreadyImportedError) this.reject(alreadyImportedMessage(parsed.associationYear));
+      else if (error instanceof NoFeeScheduleError) this.reject(noFeeScheduleMessage(parsed.associationYear), [], true);
+      else this.state.set({ kind: 'saveFailed', parsed, message: IMPORT_MESSAGES.saveFailed });
     }
   }
 
@@ -125,7 +160,7 @@ export class ImportService {
     this.state.set({ kind: 'idle' });
   }
 
-  private reject(message: string, skipped: readonly SkippedRow[] = []): void {
-    this.state.set({ kind: 'rejected', message, skipped });
+  private reject(message: string, skipped: readonly SkippedRow[] = [], showListiniLink = false): void {
+    this.state.set({ kind: 'rejected', message, skipped, showListiniLink });
   }
 }
