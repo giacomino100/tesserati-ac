@@ -51,7 +51,7 @@ description: "Task list for feature 013 – Tesserati semplificati"
 - [X] T010 [P] Update READMEs (`packages/families/README.md`) and `CLAUDE.md`, `docs/roadmap.md` (013 🚧/✅)
 - [X] T011 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web`
 - [ ] T012 Manual scenarios M1–M6 of `specs/013-tesserati-semplificati/quickstart.md`
-- [ ] T013 Release only with all tests green and the user's OK; then, only with the user's explicit OK, set `admin: true` on the user's `allowedEmails` document from the console
+- [X] T013 Release only with all tests green and the user's OK; then, only with the user's explicit OK, set `admin: true` on the user's `allowedEmails` document from the console
 
 ## Dependencies
 
