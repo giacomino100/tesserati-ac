@@ -15,6 +15,12 @@ con la colonna `Settore`); `docs/dominio/glossario.md` (settore, fascia d'età d
 `docs/dominio/regole-famiglia.md` §0 e §2; specifica 004 (comportamento dell'import); constitution, principi III
 e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Se in un file due settori hanno lo stesso numero di righe, l'import deve rifiutare il file o chiedere all'utente di quale elenco si tratta? → A: l'anteprima chiede all'utente di scegliere l'elenco tra i settori in parità; non si può confermare finché non ha scelto.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Importare l'elenco Giovani o Adulti (Priority: P1)
@@ -42,6 +48,9 @@ Giovani", 2026/27, 8 righe; alla conferma risultano 8 adesioni Giovani del 2026 
    l'import è rifiutato con il messaggio "L'elenco Giovani del 2026/27 è già stato importato." e nulla cambia.
 5. **Given** il file ACR finto, **When** viene caricato, **Then** il comportamento è quello della specifica 004 e
    l'anteprima mostra "Elenco ACR".
+6. **Given** un file con 5 righe `GIOVANI` e 5 righe `ADULTI`, **When** viene caricato, **Then** l'anteprima chiede
+   "Di quale elenco si tratta?" con le scelte "Giovani" e "Adulti", e "Importa" resta disattivato finché l'utente
+   non sceglie.
 
 ---
 
@@ -90,9 +99,10 @@ Adulti 14".
 
 ### Edge Cases
 
-- Nessun settore prevalente (stesso numero di righe per due settori) o settore prevalente sconosciuto (né
-  `RAGAZZI`, né `GIOVANI`, né `ADULTI`): file rifiutato con il messaggio "Non riesco a capire di quale elenco si
-  tratta".
+- Parità tra due o tre settori noti (stesso numero di righe): l'anteprima chiede di scegliere l'elenco tra quelli in
+  parità; senza scelta non si importa.
+- Settore più frequente sconosciuto (né `RAGAZZI`, né `GIOVANI`, né `ADULTI`), anche in parità con uno noto: file
+  rifiutato con il messaggio "Non riesco a capire di quale elenco si tratta".
 - Righe di un altro settore dentro un elenco (es. un `ADULTI` nel file Giovani): importate con il loro settore, come
   in 004; l'elenco resta quello del settore prevalente.
 - Persona già con un'adesione nello stesso anno da un altro elenco: riga saltata ed elencata (motivo con l'elenco
@@ -111,8 +121,9 @@ Adulti 14".
 - **FR-001**: Dalla schermata "Importa Excel" gli utenti autorizzati MUST poter caricare l'elenco ACR, Giovani o
   Adulti.
 - **FR-002**: Il sistema MUST riconoscere l'elenco dal settore più frequente tra le righe del file (`RAGAZZI` →
-  ACR, `GIOVANI` → Giovani, `ADULTI` → Adulti) e MUST rifiutare il file se non c'è un settore più frequente o se
-  non è uno di questi tre.
+  ACR, `GIOVANI` → Giovani, `ADULTI` → Adulti); se due o tre di questi settori sono in parità, l'anteprima MUST
+  chiedere all'utente di scegliere tra loro e MUST NOT permettere l'import senza scelta; se tra i più frequenti c'è
+  un settore sconosciuto, il file MUST essere rifiutato.
 - **FR-003**: L'anteprima e il riepilogo MUST indicare l'elenco riconosciuto, oltre a quanto previsto dalla 004
   (anno, righe, prime righe, righe saltate).
 - **FR-004**: Ogni elenco MUST potersi importare una sola volta per anno associativo: riimportare lo stesso elenco

@@ -32,4 +32,4 @@
 ## Notes
 
 - Le quattro decisioni del brief sono recepite in FR-002, FR-006, FR-008 e FR-010.
-- Da valutare in `/speckit-clarify`: messaggio quando il settore prevalente è in parità.
+- Chiarito il 2026-11-17: in parità l'utente sceglie l'elenco in anteprima.
