@@ -13,6 +13,14 @@ autorizzati impostano il listino di un anno associativo (quote piene e scontate 
 **Regole di riferimento**: `docs/dominio/regole-quote.md` (listino 2026/27, fonte unica: il PDF);
 specifica 002 (forma del listino letta dal calcolo); constitution, principi II, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Per quali anni associativi si può creare un nuovo listino? → A: solo l'anno immediatamente successivo al più recente già esistente (oggi: 2027); non si saltano anni.
+- Q: Se due persone modificano lo stesso listino quasi insieme, cosa succede quando la seconda salva? → A: compare l'avviso "Il listino è stato modificato da qualcun altro" e la persona sceglie se sovrascrivere o annullare e ricaricare.
+- Q: L'app deve ricordare chi ha modificato per ultimo un listino e quando? → A: sì, si salvano e si mostrano data e email di chi ha fatto l'ultima modifica (solo l'ultima, nessuno storico).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vedere i listini degli anni (Priority: P1)
@@ -38,7 +46,7 @@ importo coincida con la tabella di `regole-quote.md` §1; non serve altro.
    pacchetto 2 ACR 25,00 €.
 3. **Given** il listino 2026/27, **When** lo apre, **Then** vede anche le fasce d'età (6–14, 15–18,
    19–29, 30 e oltre), l'età minima 6 e il massimo di 4 componenti per nucleo, mostrati come regole
-   del PDF non modificabili da questa schermata.
+   del PDF non modificabili da questa schermata, e data ed email dell'ultima modifica.
 4. **Given** una persona non autenticata o non autorizzata, **When** prova ad aprire i listini,
    **Then** non vede nulla e nessun listino viene letto.
 
@@ -64,13 +72,14 @@ si riapre; il 2026/27 resta identico.
 2. **Given** il modulo del nuovo listino, **When** l'utente cambia la quota Adulti da 26,00 a
    27,00 € e salva, **Then** il listino 2027 mostra 27,00 € e il listino 2026/27 mostra ancora 26,00 €.
 3. **Given** un anno che ha già un listino, **When** si prova a crearne un altro per lo stesso
-   anno, **Then** l'app lo impedisce e propone di aprire quello esistente.
+   anno (anche con una richiesta diretta, senza passare dalla schermata), **Then** l'operazione
+   viene rifiutata e il listino esistente resta invariato.
 4. **Given** il listino salvato, **When** il calcolo della quota famiglia lo legge, **Then**
    ottiene le stesse quote in centesimi interi che l'utente ha inserito, senza arrotondamenti
    propri (nessuna quota o percentuale resta nel codice).
-5. **Given** l'anno 2027 e l'anno precedente più recente 2026/27, **When** si crea il listino
-   2028 senza che esista il 2027, **Then** la copia parte dal listino dell'anno più recente
-   esistente prima di quello indicato.
+5. **Given** che l'anno più recente con listino è il 2026/27, **When** l'utente apre "Nuovo
+   listino", **Then** l'anno proposto è il 2027 e non può sceglierne un altro; **And** se esiste già
+   il 2027, l'anno proposto diventa il 2028, e così via.
 
 ---
 
@@ -105,11 +114,13 @@ valore; l'avviso si verifica quando esisteranno adesioni (vedi Assumptions).
   messaggio chiaro accanto al campo, senza salvare.
 - Quota scontata maggiore della quota piena: rifiutata.
 - Pacchetto 2 ACR non positivo: rifiutato.
-- Anno associativo non valido (non un anno di quattro cifre, o minore di 2026): rifiutato.
+- Anno diverso da quello successivo al più recente (anno saltato, già esistente o inventato): non
+  selezionabile; se arriva comunque una richiesta con un anno diverso, viene rifiutata senza salvare.
 - L'utente chiude la pagina con modifiche non salvate: si perdono e l'app lo segnala prima di uscire
   se ci sono modifiche in sospeso.
-- Due utenti modificano lo stesso listino quasi insieme: vale l'ultimo salvataggio; l'app avvisa se
-  il listino è cambiato dopo che l'utente l'ha aperto.
+- Due utenti modificano lo stesso listino quasi insieme: alla seconda persona che salva compare
+  l'avviso "Il listino è stato modificato da qualcun altro" e può scegliere di sovrascrivere o di
+  annullare e ricaricare il listino aggiornato; senza scelta esplicita nulla viene sovrascritto.
 - Nessun listino precedente (primo avvio): il listino 2026/27 è già presente con le quote del PDF.
 - Mancanza di connessione al salvataggio: messaggio comprensibile; nulla viene salvato a metà.
 
@@ -124,14 +135,15 @@ valore; l'avviso si verifica quando esisteranno adesioni (vedi Assumptions).
 - **FR-003**: Ogni listino MUST riportare, per le fasce ACR, Giovanissimi, Giovani e Adulti, la
   quota piena e la quota con sconto del 20%, la quota del pacchetto 2 ACR, le fasce d'età, l'età
   minima e il massimo di componenti del nucleo.
-- **FR-004**: Il sistema MUST permettere di creare il listino di un nuovo anno associativo
-  partendo da una copia del listino dell'anno più recente precedente a quello indicato.
+- **FR-004**: Il sistema MUST permettere di creare il listino del solo anno associativo
+  immediatamente successivo al più recente già esistente, partendo da una copia di quel listino;
+  non si possono saltare anni né scegliere un anno diverso.
 - **FR-005**: Il sistema MUST permettere di modificare, in un listino, solo le quote in euro (piena
   e con sconto per fascia, pacchetto 2 ACR); fasce d'età, età minima e massimo del nucleo sono
   copiati e non modificabili da questa schermata.
 - **FR-006**: Il sistema MUST validare i valori prima di salvare: quote presenti, positive, con al
   massimo due decimali; quota scontata non maggiore di quella piena; pacchetto 2 ACR positivo; anno
-  di quattro cifre non inferiore a 2026; un solo listino per anno. In caso di errore MUST indicare
+  uguale a quello successivo al più recente esistente (FR-004); un solo listino per anno. In caso di errore MUST indicare
   quale campo e perché, senza salvare nulla.
 - **FR-007**: Il sistema MUST salvare le quote in centesimi interi, senza arrotondamenti oltre quelli
   scritti dall'utente, e mostrarle in euro con due decimali.
@@ -147,9 +159,14 @@ valore; l'avviso si verifica quando esisteranno adesioni (vedi Assumptions).
 - **FR-013**: Solo gli utenti autorizzati MUST poter leggere e scrivere i listini, indipendentemente
   dall'interfaccia usata (constitution, principio III); chi non è autorizzato non ottiene alcun
   dato.
-- **FR-014**: Il sistema MUST avvisare chi sta per lasciare la pagina con modifiche non salvate e,
-  al salvataggio, avvisare se il listino è cambiato dopo l'apertura da parte di un altro utente.
+- **FR-014**: Il sistema MUST avvisare chi sta per lasciare la pagina con modifiche non salvate.
+  Se al salvataggio il listino risulta cambiato dopo l'apertura da parte di un altro utente, MUST
+  mostrare l'avviso "Il listino è stato modificato da qualcun altro" e lasciare scegliere se
+  sovrascrivere o annullare e ricaricare; MUST NOT sovrascrivere senza questa scelta esplicita.
 - **FR-015**: L'interfaccia MUST essere in italiano e utilizzabile su PC e su telefono.
+- **FR-016**: Per ogni listino il sistema MUST salvare e mostrare data e email di chi ha fatto
+  l'ultima modifica (o la creazione), senza conservare uno storico delle modifiche precedenti, e
+  MUST NOT salvare altri dati dell'utente (specifica 001, FR-012).
 
 ### Key Entities
 
@@ -158,6 +175,7 @@ valore; l'avviso si verifica quando esisteranno adesioni (vedi Assumptions).
   regole fissate dal PDF.
 - **Quota di fascia**: per ogni fascia (ACR, Giovanissimi, Giovani, Adulti) la quota piena e la
   quota con sconto del 20% scritta nel PDF, in centesimi interi, più le età comprese nella fascia.
+- **Ultima modifica**: data e email di chi ha creato o modificato per ultimo il listino; solo l'ultima, senza storico.
 - **Regole del listino**: età minima (sotto la quale un componente non è previsto), numero massimo
   di componenti del nucleo, quota del pacchetto 2 ACR.
 
