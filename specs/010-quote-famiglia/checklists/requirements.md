@@ -35,4 +35,4 @@
   con la roadmap rivista.
 - Valori attesi sui dati finti calcolati con `calculateHouseholdFee` e il listino 2026/27: 17 nuclei per 565,00 €,
   2 non previsti.
-- Da valutare in `/speckit-clarify`: quota manuale ammessa anche a 0,00 € (FR-006 dice "maggiore o uguale a zero").
+- Chiarito il 2026-11-17: quota manuale 0,00 € ammessa con nota e conferma in più.

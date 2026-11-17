@@ -16,6 +16,13 @@ del nucleo con nota obbligatoria, anche per date di nascita incoerenti — aggio
 `docs/dominio/regole-famiglia.md` §1 (nucleo = famiglia confermata; chi non ne ha è un nucleo da 1); specifiche 002,
 003, 007; constitution, principi I, II, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: La quota manuale di un nucleo non previsto può essere anche 0,00 €, oppure deve essere maggiore di zero? → A: ammesso 0,00 €, con la nota obbligatoria e una conferma in più ("Il nucleo non paga nulla: confermi?").
+- Q: Il ricalcolo e il nuovo salvataggio delle quote da ricalcolare si fanno su tutto l'anno o nucleo per nucleo? → A: entrambi: "Aggiorna questa quota" su ogni nucleo da ricalcolare e "Aggiorna tutte" per l'anno.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vedere le quote dell'anno (Priority: P1)
@@ -65,6 +72,8 @@ il nucleo risulta "quota manuale" e il totale dell'anno sale di 15,00 €; senza
    la nota, la data e l'email di chi l'ha inserita.
 3. **Given** un importo senza nota, o un importo non valido (es. "abc", -5, più di due decimali), **When** si prova a
    salvare, **Then** compare l'errore accanto al campo e nulla viene salvato.
+4. **Given** l'importo 0,00 € con una nota, **When** si salva, **Then** compare "Il nucleo non paga nulla: confermi?";
+   solo confermando la quota manuale viene salvata.
 
 ---
 
@@ -72,13 +81,14 @@ il nucleo risulta "quota manuale" e il totale dell'anno sale di 15,00 €; senza
 
 L'utente salva le quote dell'anno ("Salva le quote dell'anno"): vengono conservate così come sono, con data ed email.
 Se dopo cambiano il listino, le famiglie o i tesserati dell'anno, la pagina mostra "Quote da ricalcolare" con i nuclei
-interessati; il ricalcolo si fa solo premendo "Ricalcola". Le quote manuali restano finché qualcuno non le cambia.
+interessati; l'aggiornamento si fa solo su richiesta, nucleo per nucleo ("Aggiorna questa quota") o per tutti ("Aggiorna
+tutte"). Le quote manuali restano finché qualcuno non le cambia.
 
 **Why this priority**: le quote comunicate alle famiglie non devono cambiare da sole (constitution IV; promessa della
 003); il ricalcolo è una scelta consapevole.
 
 **Independent Test**: salvare le quote 2026, poi cambiare la quota Adulti del listino 2026: la pagina mostra "Quote da
-ricalcolare" e i totali salvati restano quelli di prima; dopo "Ricalcola" e "Salva" i totali sono quelli nuovi.
+ricalcolare" e i totali salvati restano quelli di prima; dopo "Aggiorna tutte" i totali sono quelli nuovi.
 
 **Acceptance Scenarios**:
 
@@ -86,10 +96,12 @@ ricalcolare" e i totali salvati restano quelli di prima; dopo "Ricalcola" e "Sal
    con data ed email e la pagina le mostra come salvate.
 2. **Given** quote salvate e poi una famiglia corretta in "Famiglie", **When** si apre "Quote", **Then** compare "Quote
    da ricalcolare: 1 nucleo è cambiato" e il nucleo mostra sia la quota salvata sia quella che risulterebbe ora.
-3. **Given** quote salvate e un listino modificato, **When** si preme "Ricalcola" e poi "Salva le quote dell'anno",
-   **Then** le quote salvate diventano quelle nuove.
-4. **Given** una quota manuale salvata, **When** si ricalcola l'anno, **Then** la quota manuale resta (con la sua nota)
+3. **Given** quote salvate e un listino modificato, **When** si preme "Aggiorna tutte", **Then** le quote salvate di
+   tutti i nuclei da ricalcolare diventano quelle nuove.
+4. **Given** una quota manuale salvata, **When** si preme "Aggiorna tutte", **Then** la quota manuale resta (con la sua nota)
    finché il nucleo non cambia composizione; se cambia, il nucleo torna da decidere.
+5. **Given** due nuclei da ricalcolare, **When** si preme "Aggiorna questa quota" su uno solo, **Then** solo quello
+   cambia; l'altro resta con la quota salvata e l'avviso.
 
 ---
 
@@ -117,12 +129,14 @@ ricalcolare" e i totali salvati restano quelli di prima; dopo "Ricalcola" e "Sal
 - **FR-005**: I nuclei non previsti dal PDF (più di 4 persone, componente sotto l'età minima, data di nascita
   incoerente) MUST essere segnalati con il motivo e MUST NOT ricevere una quota calcolata.
 - **FR-006**: Per un nucleo non previsto MUST potersi inserire un solo importo del nucleo (euro, al massimo due
-  decimali, maggiore o uguale a zero) con una nota obbligatoria; si salvano data ed email di chi la inserisce.
+  decimali, maggiore o uguale a zero) con una nota obbligatoria; con 0,00 € MUST chiedere una conferma in più ("Il
+  nucleo non paga nulla: confermi?"); si salvano data ed email di chi la inserisce.
 - **FR-007**: Le quote dell'anno MUST potersi salvare ("Salva le quote dell'anno") per nucleo: componenti, righe del
   calcolo o quota manuale con nota, totale, data ed email.
 - **FR-008**: Le quote salvate MUST NOT cambiare da sole: se il calcolo attuale di un nucleo è diverso da quello salvato
   (listino, componenti o tesserati cambiati), la pagina MUST indicarlo ("Quote da ricalcolare") mostrando entrambi i
-  valori; il ricalcolo e il nuovo salvataggio si fanno solo su richiesta.
+  valori; l'aggiornamento si fa solo su richiesta, per un nucleo ("Aggiorna questa quota") o per tutti quelli da
+  ricalcolare dell'anno ("Aggiorna tutte").
 - **FR-009**: Una quota manuale MUST restare valida finché il nucleo ha gli stessi componenti; se la composizione
   cambia, il nucleo torna da decidere.
 - **FR-010**: Solo gli utenti autorizzati MUST poter leggere e scrivere le quote; le regole di sicurezza MUST
@@ -146,7 +160,7 @@ ricalcolare" e i totali salvati restano quelli di prima; dopo "Ricalcola" e "Sal
 - **SC-002**: Con i dati finti del 2026: 19 nuclei, 565,00 € calcolati, 2 non previsti — 100% dei nuclei con una quota
   o una segnalazione.
 - **SC-003**: Dopo il salvataggio, cambiare listino, famiglie o tesserati non cambia nessuna quota salvata (0 nuclei
-  modificati senza "Ricalcola").
+  modificati senza "Aggiorna questa quota" o "Aggiorna tutte").
 - **SC-004**: 0 quote manuali salvate senza nota.
 - **SC-005**: La pagina di un anno con ~165 tesserati mostra le quote in meno di 3 secondi.
 - **SC-006**: Gli utenti non autorizzati non riescono mai a leggere o scrivere le quote (test delle regole).
