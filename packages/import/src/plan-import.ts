@@ -24,7 +24,7 @@ export function acrImportId(year: number): string {
  * 3. persone simili → possibile doppione: senza scelta resta in attesa, poi "Stessa persona" o "Persona diversa";
  * 4. altrimenti → persona nuova.
  * Una persona esistente con un'adesione nell'anno → riga saltata `alreadyInYear` (`alreadyRenewed` se l'adesione è
- * una riconferma, specifica 008); due righe sulla stessa
+ * una riconferma, specifica 008; `alreadyAdded` se inserita a mano, specifica 009); due righe sulla stessa
  * persona → la seconda `duplicate`. L'anagrafica salvata non cambia mai.
  */
 export function planImport(
@@ -33,7 +33,7 @@ export function planImport(
   archive: readonly ArchivedPerson[],
   adhesionsOfYear: ReadonlyMap<string, AdhesionList> = new Map(),
   decisions: ReadonlyMap<number, DuplicateDecision> = new Map(),
-  renewedIds: ReadonlySet<string> = new Set(),
+  manualIds: ReadonlyMap<string, 'riconferma' | 'nuovo'> = new Map(),
 ): ImportPlan {
   const byKey = new Map(archive.map((p) => [p.identityKey, p]));
   const byTaxCode = new Map<string, ArchivedPerson>();
@@ -54,8 +54,9 @@ export function planImport(
   const reuse = (row: ImportRow, personId: string): void => {
     const fromList = adhesionsOfYear.get(personId);
     const firstRow = rowOfPerson.get(personId);
-    if (renewedIds.has(personId)) {
-      extraSkipped.push({ rowNumber: row.rowNumber, reason: 'alreadyRenewed', ...names(row) });
+    const manual = manualIds.get(personId);
+    if (manual) {
+      extraSkipped.push({ rowNumber: row.rowNumber, reason: manual === 'riconferma' ? 'alreadyRenewed' : 'alreadyAdded', ...names(row) });
     } else if (fromList !== undefined) {
       extraSkipped.push({ rowNumber: row.rowNumber, reason: 'alreadyInYear', fromList, ...names(row) });
     } else if (firstRow !== undefined) {

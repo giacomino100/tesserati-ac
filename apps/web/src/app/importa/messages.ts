@@ -73,6 +73,7 @@ export function skippedMessage(row: SkippedRow, year?: number): string {
       year === undefined ? '' : ` del ${labelFor(year)}`
     }`,
     alreadyRenewed: "già presente nell'anno (riconferma)",
+    alreadyAdded: "già presente nell'anno (inserita a mano)",
   }[row.reason];
   const name = [row.lastName, row.firstName].filter(Boolean).join(' ');
   return name ? `Riga ${row.rowNumber} (${name}): ${reason}` : `Riga ${row.rowNumber}: ${reason}`;

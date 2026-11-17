@@ -115,3 +115,25 @@ describe('MembersPage (FR-019)', () => {
     expect(el.textContent).not.toMatch(/Modifica|Elimina|Cancella/);
   });
 });
+
+describe('MembersPage – nuovo tesserato (009)', () => {
+  it('"Nuovo tesserato" apre il modulo per l’anno mostrato', async () => {
+    const { NEW_MEMBER_BACKEND } = await import('../../../nuovo-tesserato/new-member-backend');
+    const { newMemberFixture } = await import('../../../nuovo-tesserato/testing');
+    const { AuthService } = await import('../../../core/auth.service');
+    const { signal } = await import('@angular/core');
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: NEW_MEMBER_BACKEND, useValue: newMemberFixture() },
+        { provide: AuthService, useValue: { user: signal({ email: 'segreteria@example.org' }) } },
+      ],
+    });
+    const { fixture, el } = await render(new FakeMembers({ 2026: [member('ROSSI', 'MARIO')] }));
+    const open = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Nuovo tesserato')!;
+    open.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="new-member"]')?.textContent).toContain('Nuovo tesserato nel 2026/27');
+  });
+});

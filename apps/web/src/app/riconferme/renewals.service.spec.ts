@@ -19,7 +19,7 @@ describe('RenewalsService – chi può rinnovare (US1)', () => {
   it("propone l'anno dopo l'ultimo con tesserati e mostra gruppi, righe e avvisi", async () => {
     const { service } = setup();
     await service.load();
-    expect(service.years()).toEqual([2027]);
+    expect(service.years()).toEqual([2027, 2026]);
     expect(service.year()).toBe(2027);
     expect(service.summary()).toBe('Da decidere: 7 · Già iscritti nel 2027/28: 0');
     const [group] = service.view().groups;
@@ -46,6 +46,9 @@ describe('RenewalsService – chi può rinnovare (US1)', () => {
     expect(service.canRenew()).toBe(false);
     await service.load(2030);
     expect(service.year()).toBe(2027);
+    await service.load(2026);
+    expect(service.year()).toBe(2026);
+    expect(service.noPrevious()).toBe('Nessun tesserato nel 2025/26 da riconfermare.');
 
     const empty = renewalsFixture();
     empty.members.clear();
@@ -144,6 +147,32 @@ describe('RenewalsService – riconferma (US2)', () => {
     service.toggle('moretti');
     expect(service.canRenew()).toBe(true);
     backend.schedules.set(2027, schedule2027());
+  });
+});
+
+describe('RenewalsService – nuovi tesserati (009)', () => {
+  it('sezione "Nuovi tesserati" con annullamento', async () => {
+    const backend = renewalsFixture();
+    backend.members.set(2027, [
+      { personId: 'bianco', lastName: 'BIANCO', firstName: 'LUCA', birthDate: '2019-05-10', list: 'ACR', origin: 'nuovo' },
+      { personId: 'nero', lastName: 'NERO', firstName: 'ALFA', birthDate: '1990-01-01', list: 'ADULTI', origin: 'nuovo' },
+    ]);
+    backend.links.set('2027_nero', 'fam-1');
+    const { service } = setup(backend);
+    await service.load(2027);
+    expect(service.newTitle()).toBe('Nuovi tesserati del 2027/28');
+    expect(service.newMembers().map((n) => [service.newText(n), n.undoable])).toEqual([
+      ['BIANCO LUCA · ACR', true],
+      ['NERO ALFA · Adulti', false],
+    ]);
+    expect(service.newBlockedText(service.newMembers()[1]!)).toBe('Prima togli questa persona dalla famiglia del 2027/28.');
+    expect(service.summary()).toBe('Da decidere: 7 · Già iscritti nel 2027/28: 0');
+
+    await service.startUndo('bianco');
+    expect(service.undoing()).toEqual({ personId: 'bianco', kind: 'nuovo', question: "Annullare l'iscrizione di BIANCO LUCA?", feeWarning: '' });
+    await service.confirmUndo();
+    expect(service.message()).toBe('Iscrizione annullata.');
+    expect(service.newMembers()).toHaveLength(1);
   });
 });
 

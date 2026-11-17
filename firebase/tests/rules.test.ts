@@ -1347,3 +1347,142 @@ describe('L10 – elenco delle riconferme', () => {
     await assertFails(q(user(STRANGER)));
   });
 });
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 009 – nuovo tesserato (contracts/firestore-new-member.md, M1–M7). Solo nomi inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+function manualPerson(over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    lastName: 'BIANCO',
+    firstName: 'LUCA',
+    birthDate: '2019-05-10',
+    identityKey: 'BIANCO|LUCA|2019-05-10',
+    sex: 'M',
+    createdInYear: 2026,
+    createdAt: serverTimestamp(),
+    createdBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+function newAdhesion(personId: string, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    personId,
+    associationYear: 2026,
+    origin: 'nuovo',
+    list: 'ACR',
+    sector: 'RAGAZZI',
+    addedAt: serverTimestamp(),
+    addedBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+const newMember = (id = 'm1', person: Record<string, unknown> = {}, adhesion: Record<string, unknown> = {}): Docs => ({
+  [`persons/${id}`]: manualPerson(person),
+  [`adhesions/2026_${id}`]: newAdhesion(id, adhesion),
+});
+
+async function countDocs(name: string): Promise<number> {
+  let n = 0;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    n = (await getDocs(collection(ctx.firestore(), name))).size;
+  });
+  return n;
+}
+
+describe('M1 – persona nuova con la sua adesione', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('autorizzato: consentito; altri: negato', async () => {
+    for (const db of [guest(), user(STRANGER), user(LISTED, { verified: false })]) {
+      await assertFails(commitAll(db, newMember('x')));
+    }
+    await assertSucceeds(commitAll(user(LISTED), newMember('m1')));
+    await assertSucceeds(commitAll(user(LISTED), newMember('m2', { sex: undefined, taxCode: 'BNCLCU19E10G348X' })));
+  });
+});
+
+describe('M2/M4/M5 – forma e vincoli', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('M2 – persona manuale senza la sua adesione: negata', async () => {
+    await assertFails(setDoc(doc(user(LISTED), 'persons/m1'), manualPerson()));
+    await assertFails(commitAll(user(LISTED), { 'persons/m1': manualPerson(), 'adhesions/2026_altro': newAdhesion('altro') }));
+  });
+
+  it('M4 – senza listino dell’anno: negata', async () => {
+    await assertFails(
+      commitAll(user(LISTED), {
+        'persons/m1': manualPerson({ createdInYear: 2030 }),
+        'adhesions/2030_m1': newAdhesion('m1', { associationYear: 2030 }),
+      }),
+    );
+  });
+
+  it('M4 – seconda adesione nello stesso anno: negata', async () => {
+    await seedDocs({ 'adhesions/2026_p1': adhesionFor('p1') });
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2026_p1'), newAdhesion('p1')));
+  });
+
+  const invalid: Record<string, Docs> = {
+    'campo in più nella persona': newMember('m1', { address: 'VIA ROMA 1' }),
+    'campo in più nell’adesione': newMember('m1', {}, { bondId: '900001' }),
+    'settore incoerente': newMember('m1', {}, { sector: 'ADULTI' }),
+    'adesione di un altro utente': newMember('m1', {}, { addedBy: 'altro@example.org' }),
+    'persona creata da un altro': newMember('m1', { createdBy: 'altro@example.org' }),
+    'data non del server': newMember('m1', {}, { addedAt: Timestamp.now() }),
+    'persona con segno di import': newMember('m1', { createdInImport: '2026-ACR' }),
+    'codice fiscale non valido': newMember('m1', { taxCode: 'ABC' }),
+    'origine diversa': newMember('m1', {}, { origin: 'manuale' }),
+  };
+  for (const [name, docs] of Object.entries(invalid)) {
+    it(`M5 – ${name}: negato`, async () => {
+      await assertFails(commitAll(user(LISTED), docs));
+    });
+  }
+});
+
+describe('M3 – persona già in archivio', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs({ 'persons/p1': personFor(1, 2024), 'adhesions/2024_p1': adhesionFor('p1', 2024) });
+  });
+
+  it('senza adesione l’anno prima: solo l’adesione, consentita', async () => {
+    await assertSucceeds(setDoc(doc(user(LISTED), 'adhesions/2026_p1'), newAdhesion('p1')));
+  });
+
+  it('con adesione l’anno prima: negata (va riconfermata)', async () => {
+    await seedDocs({ 'adhesions/2025_p1': adhesionFor('p1', 2025) });
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2026_p1'), newAdhesion('p1')));
+  });
+
+  it('persona inesistente: negata', async () => {
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2026_nessuno'), newAdhesion('nessuno')));
+  });
+});
+
+describe('M6/M7 – annullare e cercare', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await assertSucceeds(commitAll(user(LISTED), { ...newMember('m1'), ...newMember('m2') }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'familyMemberships/2026_m2'), { associationYear: 2026, personId: 'm2', familyId: 'F' });
+    });
+  });
+
+  it('M6 – adesione "nuovo" senza famiglia: cancellabile; con famiglia: no; la persona resta', async () => {
+    await assertSucceeds(deleteDoc(doc(user(LISTED), 'adhesions/2026_m1')));
+    await assertFails(deleteDoc(doc(user(LISTED), 'adhesions/2026_m2')));
+    await assertFails(deleteDoc(doc(user(LISTED), 'persons/m1')));
+    expect(await countDocs('persons')).toBe(2);
+  });
+
+  it('M7 – query per origine: consentita a chi è autorizzato', async () => {
+    const q = (db: Db) => getDocs(query(collection(db, 'adhesions'), where('origin', 'in', ['riconferma', 'nuovo'])));
+    expect((await assertSucceeds(q(user(LISTED)))).size).toBe(2);
+    await assertFails(q(user(STRANGER)));
+  });
+});

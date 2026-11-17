@@ -17,7 +17,7 @@ Solo dati finti. Prerequisiti come le specifiche precedenti (JDK 21 per regole e
 2. **M1** Tesserati 2026/27 → "Nuovo tesserato": BIANCO LUCA 10/05/2019 → "7 anni · ACR" →
    Iscrivi → 38 tesserati.
 3. **M2** Di nuovo BIANCO LUCA nello stesso anno → "Ha già un'adesione nel 2026/27.".
-4. **M3** ROSSI MARIO 21/03/1965 → possibile doppione; "Stessa persona" → "Ha già un'adesione nel 2026/27.".
+4. **M3** ROSSI MARIO 13/03/1965 → possibile doppione; "Stessa persona" → "Ha già un'adesione nel 2026/27.".
 5. **M4** Famiglie 2026/27 → BIANCO LUCA tra i "Senza famiglia"; Correggi la famiglia 900003 e aggiungilo.
 6. **M5** Riconferme → sezione "Nuovi tesserati del 2026/27": "Annulla iscrizione" di BIANCO LUCA non disponibile
    finché è in famiglia; toltolo, annulla → 37 tesserati.

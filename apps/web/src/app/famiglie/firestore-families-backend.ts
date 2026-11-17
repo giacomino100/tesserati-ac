@@ -51,7 +51,7 @@ export class FirestoreFamiliesBackend implements FamiliesBackend {
         list,
         ...(bond ? { bond } : {}),
         ...(bondId ? { bondId } : {}),
-        ...(a['origin'] === 'riconferma' ? { origin: 'riconferma' as const } : {}),
+        ...(a['origin'] === 'riconferma' || a['origin'] === 'nuovo' ? { origin: a['origin'] as 'riconferma' | 'nuovo' } : {}),
       });
     }
     return members;

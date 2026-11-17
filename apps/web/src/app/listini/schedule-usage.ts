@@ -16,7 +16,7 @@ export class FirestoreScheduleUsage implements ScheduleUsage {
     const [batches, renewals] = await Promise.all([
       getDocs(query(collection(db, 'importBatches'), where('associationYear', '==', year), limit(1))),
       getDocs(
-        query(collection(db, 'adhesions'), where('associationYear', '==', year), where('origin', '==', 'riconferma'), limit(1)),
+        query(collection(db, 'adhesions'), where('associationYear', '==', year), where('origin', 'in', ['riconferma', 'nuovo']), limit(1)),
       ),
     ]);
     return !batches.empty || !renewals.empty;

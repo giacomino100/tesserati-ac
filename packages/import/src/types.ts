@@ -31,7 +31,9 @@ export type SkipReason =
   /** La persona ha già un'adesione nello stesso anno da un altro elenco (specifica 005). */
   | 'alreadyInYear'
   /** La persona è già stata riconfermata nell'anno (specifica 008). */
-  | 'alreadyRenewed';
+  | 'alreadyRenewed'
+  /** La persona è stata inserita a mano nell'anno (specifica 009). */
+  | 'alreadyAdded';
 
 export interface SkippedRow {
   readonly rowNumber: number;
@@ -136,3 +138,39 @@ export interface SheetInput {
   readonly rows: readonly (readonly unknown[])[];
   readonly date1904: boolean;
 }
+
+/* ---- Specifica 009: nuovo tesserato inserito a mano ---- */
+
+/** Testi del modulo "Nuovo tesserato" (data dal campo data del browser: "AAAA-MM-GG" o ""). */
+export interface NewMemberInput {
+  readonly lastName: string;
+  readonly firstName: string;
+  readonly birthDate: string;
+  readonly sex: string;
+  readonly taxCode: string;
+}
+
+/** Persona del modulo, pulita come nell'import. */
+export interface NewMember {
+  readonly lastName: string;
+  readonly firstName: string;
+  readonly birthDate: string;
+  readonly identityKey: string;
+  readonly sex?: 'M' | 'F';
+  readonly taxCode?: string;
+}
+
+export interface NewMemberErrors {
+  readonly lastName?: string;
+  readonly firstName?: string;
+  readonly birthDate?: string;
+  readonly taxCode?: string;
+}
+
+/** Esito della ricerca in archivio (research R4). */
+export type NewMemberMatch =
+  | { readonly kind: 'new' }
+  | { readonly kind: 'existing'; readonly person: ArchivedPerson; readonly by: 'identity' | 'taxCode' }
+  | { readonly kind: 'similar'; readonly candidates: readonly ArchivedPerson[] }
+  | { readonly kind: 'renewable'; readonly person: ArchivedPerson; readonly previousYear: number }
+  | { readonly kind: 'alreadyInYear'; readonly person: ArchivedPerson };

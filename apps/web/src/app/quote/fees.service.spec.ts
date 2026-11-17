@@ -69,6 +69,14 @@ describe('FeesService – quote dell’anno (US1)', () => {
     expect(service.scheduleMissing()).toBe('Manca il listino 2027/28. Crealo nella sezione Listini.');
     expect(service.comparisons()).toEqual([]);
   });
+
+  it('anno prima del primo listino (009): niente invito a crearlo', async () => {
+    const f = quoteFixture();
+    f.families.members.set(2025, [f.families.members.get(2026)![0]!]);
+    const { service } = setup(f);
+    await service.load(2025);
+    expect(service.scheduleMissing()).toBe('Nessun listino 2025/26: le quote si calcolano solo negli anni con un listino.');
+  });
 });
 
 describe('FeesService – quota manuale (US2)', () => {

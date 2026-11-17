@@ -174,24 +174,44 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Dati anagrafici ammessi (constitution III), comuni alla persona importata e a quella inserita a mano.
+    function validPersonFields(d) {
+      return isNonEmptyString(d.lastName)
+        && isNonEmptyString(d.firstName)
+        && isNonEmptyString(d.identityKey)
+        && d.birthDate is string
+        && d.birthDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && (!('sex' in d) || d.sex in ['M', 'F'])
+        && (!('taxCode' in d) || (d.taxCode is string && d.taxCode.matches('[A-Z0-9]{16}')));
+    }
+
+    // Persona inserita a mano (specifica 009): nasce solo insieme alla sua adesione "nuovo" dell'anno indicato.
+    function validManualPerson(d, personId) {
+      return d.keys().hasOnly(['lastName', 'firstName', 'birthDate', 'identityKey', 'sex', 'taxCode',
+                               'createdInYear', 'createdAt', 'createdBy'])
+        && d.keys().hasAll(['lastName', 'firstName', 'birthDate', 'identityKey', 'createdInYear', 'createdAt',
+                            'createdBy'])
+        && validPersonFields(d)
+        && d.createdInYear is int
+        && d.createdAt == request.time
+        && d.createdBy == ownEmail()
+        && !exists(/databases/$(database)/documents/adhesions/$(string(d.createdInYear) + '_' + personId))
+        && existsAfter(/databases/$(database)/documents/adhesions/$(string(d.createdInYear) + '_' + personId))
+        && getAfter(/databases/$(database)/documents/adhesions/$(string(d.createdInYear) + '_' + personId)).data.get('origin', '') == 'nuovo';
+    }
+
     // Anagrafica condivisa tra gli anni: solo le colonne necessarie (constitution III).
     match /persons/{personId} {
       allow get, list: if isAllowed();
+
+      allow create: if isAllowed() && validManualPerson(request.resource.data, personId);
 
       allow create: if isAllowed()
         && request.resource.data.keys().hasOnly(['lastName', 'firstName', 'birthDate', 'identityKey',
                                                  'createdInImport', 'sex', 'taxCode'])
         && request.resource.data.keys().hasAll(['lastName', 'firstName', 'birthDate', 'identityKey',
                                                 'createdInImport'])
-        && isNonEmptyString(request.resource.data.lastName)
-        && isNonEmptyString(request.resource.data.firstName)
-        && isNonEmptyString(request.resource.data.identityKey)
-        && request.resource.data.birthDate is string
-        && request.resource.data.birthDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
-        && (!('sex' in request.resource.data) || request.resource.data.sex in ['M', 'F'])
-        && (!('taxCode' in request.resource.data)
-            || (request.resource.data.taxCode is string
-                && request.resource.data.taxCode.matches('[A-Z0-9]{16}')))
+        && validPersonFields(request.resource.data)
         && createdWithNewBatch(request.resource.data.createdInImport);
 
       allow update, delete: if false;
@@ -220,12 +240,32 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/feeSchedules/$(string(d.associationYear)));
     }
 
+    // Nuovo tesserato (specifica 009): adesione di chi non aveva un'adesione l'anno prima (altrimenti va
+    // riconfermato); persona esistente o creata nella stessa scrittura; l'anno deve avere un listino.
+    function validNewAdhesion(d, adhesionId) {
+      return d.keys().hasOnly(['personId', 'associationYear', 'origin', 'list', 'sector', 'addedAt', 'addedBy'])
+        && d.keys().hasAll(['personId', 'associationYear', 'origin', 'list', 'sector', 'addedAt', 'addedBy'])
+        && d.origin == 'nuovo'
+        && d.associationYear is int
+        && isNonEmptyString(d.personId)
+        && adhesionId == string(d.associationYear) + '_' + d.personId
+        && d.list in ['ACR', 'GIOVANI', 'ADULTI']
+        && d.sector == {'ACR': 'RAGAZZI', 'GIOVANI': 'GIOVANI', 'ADULTI': 'ADULTI'}[d.list]
+        && d.addedAt == request.time
+        && d.addedBy == ownEmail()
+        && exists(/databases/$(database)/documents/feeSchedules/$(string(d.associationYear)))
+        && existsAfter(/databases/$(database)/documents/persons/$(d.personId))
+        && !exists(/databases/$(database)/documents/adhesions/$(string(d.associationYear - 1) + '_' + d.personId));
+    }
+
     // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno
     // qualunque sia l'elenco o l'origine (un `set` su un'adesione esistente è un update, vietato).
     match /adhesions/{adhesionId} {
       allow get, list: if isAllowed();
 
       allow create: if isAllowed() && validRenewal(request.resource.data, adhesionId);
+
+      allow create: if isAllowed() && validNewAdhesion(request.resource.data, adhesionId);
 
       allow create: if isAllowed()
         && request.resource.data.keys().hasOnly(['personId', 'associationYear', 'importId', 'sector',
@@ -242,9 +282,10 @@ service cloud.firestore {
         && optionalText(request.resource.data, 'bondId')
         && createdWithNewBatch(request.resource.data.importId);
 
-      // Annullare una riconferma: solo se la persona non è in una famiglia dell'anno (stesso formato di ID).
+      // Annullare una riconferma (008) o un nuovo tesserato (009): solo se la persona non è in una famiglia
+      // dell'anno (stesso formato di ID). Le adesioni importate non si cancellano.
       allow delete: if isAllowed()
-        && resource.data.get('origin', '') == 'riconferma'
+        && resource.data.get('origin', '') in ['riconferma', 'nuovo']
         && !exists(/databases/$(database)/documents/familyMemberships/$(adhesionId));
 
       allow update: if false;

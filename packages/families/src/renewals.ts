@@ -68,7 +68,8 @@ export function renewalView(input: RenewalInput): RenewalView {
       pending.push(m);
       continue;
     }
-    const origin = now.origin ?? 'import';
+    // Un nuovo tesserato (009) non ha adesioni l'anno prima: qui conta come gli importati (non annullabile).
+    const origin = now.origin === 'riconferma' ? 'riconferma' : 'import';
     const inFamily = input.memberships.has(m.personId);
     renewed.push({ member: now, origin, inFamily, undoable: origin === 'riconferma' && !inFamily });
   }

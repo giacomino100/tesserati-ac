@@ -179,14 +179,19 @@ describe('planImport – codice fiscale (D8, D9, specifica 006)', () => {
   });
 });
 
-describe('planImport – persone già riconfermate (008, I2–I3)', () => {
+describe('planImport – persone già riconfermate (008, I2–I3) o inserite a mano (009, N11)', () => {
   const archive = () => [person('p-due', 'DUE', 'ALFA', '2016-04-09'), person('p-quattro', 'QUATTRO', 'ALFA', '2016-04-09')];
 
   it('salta le righe delle persone riconfermate con il motivo alreadyRenewed', () => {
-    const plan = planImport(base(), 'ACR', archive(), new Map([['p-due', 'ACR']]), new Map(), new Set(['p-due']));
+    const plan = planImport(base(), 'ACR', archive(), new Map([['p-due', 'ACR']]), new Map(), new Map([['p-due', 'riconferma']]));
     expect(plan.reusedPersons.map((r) => r.personId)).toEqual(['p-quattro']);
     expect(plan.skipped[0]).toMatchObject({ rowNumber: 3, reason: 'alreadyRenewed', lastName: 'DUE', firstName: 'ALFA' });
     expect(plan.adhesions).toBe(2);
+  });
+
+  it('N11: persona inserita a mano → alreadyAdded', () => {
+    const plan = planImport(base(), 'ACR', archive(), new Map([['p-due', 'ACR']]), new Map(), new Map([['p-due', 'nuovo']]));
+    expect(plan.skipped[0]).toMatchObject({ rowNumber: 3, reason: 'alreadyAdded', lastName: 'DUE' });
   });
 
   it('senza persone riconfermate il comportamento non cambia', () => {

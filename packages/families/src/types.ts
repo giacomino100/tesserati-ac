@@ -13,8 +13,8 @@ export interface YearMember {
   readonly bond?: string;
   /** N. Legame dell'export, es. "900002". */
   readonly bondId?: string;
-  /** Come è nata l'adesione dell'anno (specifica 008); assente = import. */
-  readonly origin?: 'import' | 'riconferma';
+  /** Come è nata l'adesione dell'anno (specifiche 008 e 009); assente = import. */
+  readonly origin?: 'import' | 'riconferma' | 'nuovo';
 }
 
 /** Famiglia confermata da una persona per un anno (regole-famiglia.md §1). */

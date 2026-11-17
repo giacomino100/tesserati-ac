@@ -75,3 +75,22 @@ describe('RenewalsPage', () => {
     expect(backend.members.get(2027)).toHaveLength(3);
   });
 });
+
+describe('RenewalsPage – nuovi tesserati (009)', () => {
+  it('sezione "Nuovi tesserati" con il pulsante che apre il modulo', async () => {
+    const { NEW_MEMBER_BACKEND } = await import('../../../nuovo-tesserato/new-member-backend');
+    const { newMemberFixture } = await import('../../../nuovo-tesserato/testing');
+    TestBed.configureTestingModule({ providers: [{ provide: NEW_MEMBER_BACKEND, useValue: newMemberFixture() }] });
+    const backend = renewalsFixture();
+    backend.members.set(2027, [
+      { personId: 'bianco', lastName: 'BIANCO', firstName: 'LUCA', birthDate: '2019-05-10', list: 'ACR', origin: 'nuovo' },
+    ]);
+    const { el, settle } = await render(backend, { anno: '2027' });
+    const section = el.querySelector('[data-testid="new-members"]')!;
+    expect(section.textContent).toContain('Nuovi tesserati del 2027/28');
+    expect(section.textContent).toContain('BIANCO LUCA · ACR');
+    button(section, 'Nuovo tesserato')!.click();
+    await settle();
+    expect(el.querySelector('[data-testid="new-member"]')?.textContent).toContain('Nuovo tesserato nel 2027/28');
+  });
+});

@@ -318,12 +318,20 @@ describe('ImportService – persone già nell’anno (005, US2)', () => {
 
   it('salta chi è già stato riconfermato nell’anno (008)', async () => {
     const backend = new FakeImportBackend();
-    backend.addRenewed(2026, 'PROVA02|ALFA|1970-01-01', 'ADULTI');
+    backend.addManual(2026, 'PROVA02|ALFA|1970-01-01', 'ADULTI', 'riconferma');
     const { service } = setupImport(new FakeReader(sheetInput([adulti(1), adulti(2)])), backend);
     await service.chooseFile(fakeFile());
     expect(service.skippedMessages()).toEqual(["Riga 3 (PROVA02 ALFA): già presente nell'anno (riconferma)"]);
     await service.confirm();
     expect(service.summary()).toMatchObject({ adhesions: 1, newPersons: 1, reusedPersons: 0 });
+  });
+
+  it('salta chi è stato inserito a mano nell’anno (009)', async () => {
+    const backend = new FakeImportBackend();
+    backend.addManual(2026, 'PROVA02|ALFA|1970-01-01', 'ADULTI', 'nuovo');
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1), adulti(2)])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.skippedMessages()).toEqual(["Riga 3 (PROVA02 ALFA): già presente nell'anno (inserita a mano)"]);
   });
 
   it('riusa una persona di un anno precedente', async () => {

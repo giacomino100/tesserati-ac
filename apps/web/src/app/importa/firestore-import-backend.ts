@@ -63,7 +63,7 @@ export class FirestoreImportBackend implements ImportBackend {
       .filter((l): l is AdhesionList => l !== undefined);
 
     const yearAdhesions = new Map<string, AdhesionList>();
-    const renewedIds = new Set<string>();
+    const manualIds = new Map<string, 'riconferma' | 'nuovo'>();
     const lastAdhesion = new Map<string, { year: number; list: AdhesionList }>();
     for (const adhesion of adhesions.docs) {
       const data = adhesion.data();
@@ -75,7 +75,8 @@ export class FirestoreImportBackend implements ImportBackend {
       const adhesionYear = Number(data['associationYear']);
       if (!list || !Number.isInteger(adhesionYear)) continue;
       if (adhesionYear === year) yearAdhesions.set(personId, list);
-      if (adhesionYear === year && data['origin'] === 'riconferma') renewedIds.add(personId);
+      const origin = data['origin'];
+      if (adhesionYear === year && (origin === 'riconferma' || origin === 'nuovo')) manualIds.set(personId, origin);
       const last = lastAdhesion.get(personId);
       if (!last || adhesionYear > last.year) lastAdhesion.set(personId, { year: adhesionYear, list });
     }
@@ -103,7 +104,7 @@ export class FirestoreImportBackend implements ImportBackend {
       importedLists,
       archive,
       adhesions: yearAdhesions,
-      renewedIds,
+      manualIds,
     };
   }
 

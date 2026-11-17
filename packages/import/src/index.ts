@@ -1,4 +1,8 @@
 export type {
+  NewMember,
+  NewMemberErrors,
+  NewMemberInput,
+  NewMemberMatch,
   AgeWarning,
   ArchivedPerson,
   DuplicateDecision,
@@ -33,3 +37,4 @@ export {
   type AdhesionList,
   type ListRecognition,
 } from './lists';
+export { matchNewMember, resolveSimilar, validateNewMember } from './new-member';

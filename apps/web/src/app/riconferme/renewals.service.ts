@@ -25,18 +25,27 @@ export const RENEWALS_MESSAGES = {
   saveFailed: 'Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.',
   concurrent: 'Qualcuno ha appena iscritto una di queste persone: elenco aggiornato, riprova.',
   undone: 'Riconferma annullata.',
+  newUndone: 'Iscrizione annullata.',
   feeWarning: 'La quota salvata del suo nucleo andrà ricalcolata in Quote.',
   noYears: 'Nessun tesserato da riconfermare: importa prima un anno.',
 } as const;
 
 export interface UndoRequest {
   readonly personId: string;
+  /** Riconferma (008) o nuovo tesserato (009). */
+  readonly kind?: 'riconferma' | 'nuovo';
   readonly question: string;
   readonly feeWarning: string;
 }
 
 function dateText(date: Date): string {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+/** Iscritto a mano nell'anno (specifica 009). */
+export interface NewMemberRow {
+  readonly member: YearMember;
+  readonly undoable: boolean;
 }
 
 const EMPTY_VIEW: RenewalView = { groups: [], singles: [], renewed: [], pendingCount: 0, renewedCount: 0 };
@@ -76,6 +85,16 @@ export class RenewalsService {
         }),
   );
 
+  /** Nuovi tesserati dell'anno, in ordine di nome (specifica 009). */
+  readonly newMembers = computed<NewMemberRow[]>(() =>
+    this.current()
+      .filter((m) => m.origin === 'nuovo')
+      .sort((a, b) => a.lastName.localeCompare(b.lastName, 'it') || a.firstName.localeCompare(b.firstName, 'it'))
+      .map((member) => ({ member, undoable: !this.memberships().has(member.personId) })),
+  );
+
+  readonly newTitle = computed(() => `Nuovi tesserati del ${labelFor(this.year())}`);
+
   private readonly renewable = computed(() =>
     [...this.view().groups.flatMap((g) => g.candidates), ...this.view().singles].filter((c) => c.renewable),
   );
@@ -100,12 +119,15 @@ export class RenewalsService {
       : '',
   );
 
-  /** Anni proposti: l'anno dopo ogni anno con tesserati (research R9); predefinito il più alto. */
+  /**
+   * Anni proposti: ogni anno con tesserati e l'anno dopo (008 R9, esteso dalla 009 R6 per la sezione "Nuovi
+   * tesserati"); predefinito il più alto.
+   */
   async load(year?: number): Promise<void> {
     this.loading.set(true);
     try {
       const withMembers = await this.backend.memberYears();
-      const years = [...new Set(withMembers.map((y) => y + 1))].sort((a, b) => b - a);
+      const years = [...new Set(withMembers.flatMap((y) => [y, y + 1]))].sort((a, b) => b - a);
       this.years.set(years);
       const chosen = year !== undefined && years.includes(year) ? year : years[0];
       this.year.set(chosen ?? 0);
@@ -163,6 +185,14 @@ export class RenewalsService {
     if (r.origin === 'import') return `${base} · da import`;
     const info = this.info().get(r.member.personId);
     return info ? `${base} · riconferma del ${dateText(info.renewedAt)} (${info.renewedBy})` : `${base} · riconferma`;
+  }
+
+  newText(n: NewMemberRow): string {
+    return `${n.member.lastName} ${n.member.firstName} · ${listLabel(n.member.list)}`;
+  }
+
+  newBlockedText(n: NewMemberRow): string {
+    return n.undoable ? '' : this.inFamilyText();
   }
 
   blockedText(r: RenewedMember): string {
@@ -246,17 +276,22 @@ export class RenewalsService {
   }
 
   async startUndo(personId: string): Promise<void> {
-    const r = this.view().renewed.find((x) => x.member.personId === personId);
-    if (!r?.undoable) return;
+    const renewed = this.view().renewed.find((x) => x.member.personId === personId && x.undoable);
+    const added = this.newMembers().find((x) => x.member.personId === personId && x.undoable);
+    const member = renewed?.member ?? added?.member;
+    if (!member) return;
+    const kind = added ? 'nuovo' : 'riconferma';
     let feeWarning = '';
     try {
       if (await this.backend.hasSavedFee(this.year(), personId)) feeWarning = RENEWALS_MESSAGES.feeWarning;
     } catch {
       // Se non si riesce a leggere la quota, l'annullamento resta possibile: Quote la segnalerà comunque.
     }
+    const what = kind === 'nuovo' ? "l'iscrizione" : 'la riconferma';
     this.undoing.set({
       personId,
-      question: `Annullare la riconferma di ${r.member.lastName} ${r.member.firstName}?`,
+      ...(kind === 'nuovo' ? { kind } : {}),
+      question: `Annullare ${what} di ${member.lastName} ${member.firstName}?`,
       feeWarning,
     });
   }
@@ -274,7 +309,7 @@ export class RenewalsService {
     let message: string;
     try {
       await this.backend.undo(year, request.personId);
-      message = RENEWALS_MESSAGES.undone;
+      message = request.kind === 'nuovo' ? RENEWALS_MESSAGES.newUndone : RENEWALS_MESSAGES.undone;
     } catch (error) {
       message = error instanceof RenewalInFamilyError ? this.inFamilyText() : RENEWALS_MESSAGES.saveFailed;
     } finally {

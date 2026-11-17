@@ -1,14 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, PendingTasks } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, PendingTasks, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { labelFor } from '@tesseramento/fees';
-import { RenewalsService } from '../../renewals.service';
+import { NewMemberForm } from '../../../nuovo-tesserato/new-member-form';
+import { RenewalsService, type UndoRequest } from '../../renewals.service';
 
 /** Riconferme dell'anno nuovo (specifica 008). */
 @Component({
   selector: 'app-renewals-page',
-  imports: [MatButtonModule, MatToolbarModule, RouterLink],
+  imports: [MatButtonModule, MatToolbarModule, NewMemberForm, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-toolbar>
@@ -120,16 +121,44 @@ import { RenewalsService } from '../../renewals.service';
             </section>
           }
 
-          @if (service.undoing(); as undo) {
-            <div role="alertdialog" class="dialog" aria-label="Annulla riconferma">
-              <p>{{ undo.question }}</p>
-              @if (undo.feeWarning) {
-                <p class="warning">{{ undo.feeWarning }}</p>
+        }
+
+        <section data-testid="new-members">
+          <h2>{{ service.newTitle() }}</h2>
+          @if (service.newMembers().length === 0) {
+            <p>Nessuno.</p>
+          } @else {
+            <ul class="plain">
+              @for (n of service.newMembers(); track n.member.personId) {
+                <li>
+                  <span>{{ service.newText(n) }}</span>
+                  @if (n.undoable) {
+                    <button mat-stroked-button type="button" [disabled]="service.busy()" (click)="run(service.startUndo(n.member.personId))">
+                      Annulla iscrizione
+                    </button>
+                  } @else {
+                    <span class="note">{{ service.newBlockedText(n) }}</span>
+                  }
+                </li>
               }
-              <button mat-flat-button type="button" (click)="run(service.confirmUndo())">Annulla riconferma</button>
-              <button mat-stroked-button type="button" (click)="service.cancelUndo()">Indietro</button>
-            </div>
+            </ul>
           }
+          @if (adding()) {
+            <app-new-member-form [year]="service.year()" (saved)="onSaved($event)" (closed)="adding.set(false)" />
+          } @else {
+            <button mat-stroked-button type="button" (click)="adding.set(true)">Nuovo tesserato</button>
+          }
+        </section>
+
+        @if (service.undoing(); as undo) {
+          <div role="alertdialog" class="dialog" [attr.aria-label]="undoLabel(undo)">
+            <p>{{ undo.question }}</p>
+            @if (undo.feeWarning) {
+              <p class="warning">{{ undo.feeWarning }}</p>
+            }
+            <button mat-flat-button type="button" (click)="run(service.confirmUndo())">{{ undoLabel(undo) }}</button>
+            <button mat-stroked-button type="button" (click)="service.cancelUndo()">Indietro</button>
+          </div>
         }
       }
     </main>
@@ -207,6 +236,18 @@ export class RenewalsPage implements OnInit {
   private readonly pendingTasks = inject(PendingTasks);
 
   protected readonly label = labelFor;
+  protected readonly adding = signal(false);
+
+  protected undoLabel(undo: UndoRequest): string {
+    return undo.kind === 'nuovo' ? 'Annulla iscrizione' : 'Annulla riconferma';
+  }
+
+  /** Iscrizione dal modulo (specifica 009): chiude il modulo e rilegge l'anno. */
+  protected onSaved(message: string): void {
+    this.adding.set(false);
+    const year = this.service.year();
+    this.run(this.service.load(year).then(() => this.service.message.set(message)));
+  }
 
   ngOnInit(): void {
     const requested = Number(this.route.snapshot.queryParamMap.get('anno'));

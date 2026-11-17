@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { labelFor } from '@tesseramento/fees';
 import { ADHESION_LISTS, listLabel, sectorOf } from '@tesseramento/import';
 import { bondLabel, italianDate } from '../../../importa/format';
+import { NewMemberForm } from '../../../nuovo-tesserato/new-member-form';
 import { MEMBERS_BACKEND, type MemberRow } from '../../members-backend';
 
 const LOAD_ERROR = 'Impossibile leggere i tesserati. Controlla la connessione e riprova.';
@@ -34,7 +35,7 @@ function byName(a: MemberRow, b: MemberRow): number {
 /** Tesserati di un anno importato, in sola lettura (FR-019). */
 @Component({
   selector: 'app-members-page',
-  imports: [MatButtonModule, MatToolbarModule, RouterLink],
+  imports: [MatButtonModule, MatToolbarModule, NewMemberForm, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-toolbar>
@@ -59,6 +60,14 @@ function byName(a: MemberRow, b: MemberRow): number {
         </label>
         <p class="totals" data-testid="totals">{{ totals() }}</p>
         <p>{{ members().length }} tesserati nel {{ label(year()) }}</p>
+        @if (notice(); as n) {
+          <p role="status">{{ n }}</p>
+        }
+        @if (adding()) {
+          <app-new-member-form [year]="year()" (saved)="onSaved($event)" (closed)="adding.set(false)" />
+        } @else {
+          <button mat-stroked-button type="button" (click)="adding.set(true)">Nuovo tesserato</button>
+        }
         <div class="table-wrap">
           <table>
             <thead>
@@ -142,6 +151,8 @@ export class MembersPage implements OnInit {
   protected readonly years = signal<number[]>([]);
   protected readonly year = signal(0);
   protected readonly members = signal<MemberRow[]>([]);
+  protected readonly adding = signal(false);
+  protected readonly notice = signal<string | null>(null);
   protected readonly totals = computed(() => sectorTotals(this.members()));
   protected readonly label = labelFor;
   protected readonly date = italianDate;
@@ -169,6 +180,13 @@ export class MembersPage implements OnInit {
   protected onYear(event: Event): void {
     const year = Number((event.target as HTMLSelectElement).value);
     this.pendingTasks.run(() => this.show(year).catch(() => this.error.set(LOAD_ERROR)));
+  }
+
+  /** Iscrizione dal modulo (specifica 009): chiude il modulo e rilegge l'anno. */
+  protected onSaved(message: string): void {
+    this.adding.set(false);
+    this.notice.set(message);
+    this.pendingTasks.run(() => this.show(this.year()).catch(() => this.error.set(LOAD_ERROR)));
   }
 
   private async show(year: number): Promise<void> {

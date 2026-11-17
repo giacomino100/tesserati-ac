@@ -32,7 +32,8 @@
 ## Notes
 
 - Cartella `specs/009-nuovo-tesserato` (numero della roadmap).
-- Esempi con una persona inventata (BIANCO LUCA) e con i dati finti; il caso simile (ROSSI MARIO 12/03 → 21/03) rientra
-  in `regole-famiglia.md` §2 (una cifra diversa, oppure giorno e mese scambiati).
+- Esempi con una persona inventata (BIANCO LUCA) e con i dati finti; il caso simile (ROSSI MARIO 12/03 → 13/03) rientra
+  in `regole-famiglia.md` §2 (una sola cifra diversa). Corretto in implementazione: l'esempio iniziale 21/03 scambiava
+  due cifre e non è un caso dubbio di §2.
 - FR-011 (testo di Quote per un anno senza listino che non si può creare) viene dalla nota del brief.
 - Testi neutri: "Iscrizione salvata: …", "Ha già un'adesione nel …".

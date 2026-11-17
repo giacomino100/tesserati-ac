@@ -16,7 +16,7 @@
 - **N6** Nessuna persona simile → `new`.
 - **N7** Stessa chiave, ultima adesione 2023 → `existing` (`identity`), con `lastAdhesion`.
 - **N8** Stesso codice fiscale con nome diverso → `existing` (`taxCode`).
-- **N9** ROSSI MARIO 1965-03-21 con ROSSI MARIO 1965-03-12 in archivio → `similar` con 1 candidato.
+- **N9** ROSSI MARIO 1965-03-13 con ROSSI MARIO 1965-03-12 in archivio → `similar` con 1 candidato.
 - **N10** Persona con adesione nell'anno precedente → `renewable`; nell'anno → `alreadyInYear` (anche dopo "Stessa
   persona" con `resolveSimilar`).
 - **N11** `planImport` con `manualIds` → `alreadyRenewed` per le riconferme, `alreadyAdded` per i nuovi.

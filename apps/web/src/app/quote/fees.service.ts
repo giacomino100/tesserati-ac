@@ -106,9 +106,16 @@ export class FeesService {
 
   readonly totals = computed(() => yearTotals(this.comparisons()));
 
-  readonly scheduleMissing = computed(() =>
-    this.hasMembers() && !this.schedule() ? `Manca il listino ${labelFor(this.year())}. Crealo nella sezione Listini.` : '',
-  );
+  /** Primo anno con un listino: per gli anni prima non se ne può creare uno (regole della 003, specifica 009). */
+  private readonly firstScheduleYear = signal<number | undefined>(undefined);
+
+  readonly scheduleMissing = computed(() => {
+    if (!this.hasMembers() || this.schedule()) return '';
+    const first = this.firstScheduleYear();
+    return first !== undefined && this.year() < first
+      ? `Nessun listino ${labelFor(this.year())}: le quote si calcolano solo negli anni con un listino.`
+      : `Manca il listino ${labelFor(this.year())}. Crealo nella sezione Listini.`;
+  });
 
   readonly totalsText = computed(() => {
     const t = this.totals();
@@ -146,13 +153,16 @@ export class FeesService {
         this.members.set([]);
         return;
       }
-      const [members, confirmed, memberships, stored, saved] = await Promise.all([
+      const [members, confirmed, memberships, stored, saved, all] = await Promise.all([
         this.families.yearMembers(chosen),
         this.families.confirmedFamilies(chosen),
         this.families.memberships(chosen),
         this.schedules.get(chosen),
         this.fees.saved(chosen),
+        this.schedules.list(),
       ]);
+      const scheduleYears = all.map((s) => s.schedule.associationYear);
+      this.firstScheduleYear.set(scheduleYears.length > 0 ? Math.min(...scheduleYears) : undefined);
       this.members.set(members);
       this.confirmed.set(confirmed);
       this.memberships.set(memberships);

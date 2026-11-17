@@ -71,7 +71,7 @@ nel 2027/28: l'app dice "Ha un'adesione nel 2026/27: usa Riconferme." e non salv
    non crea una persona nuova.
 2. **Given** una persona in archivio con codice fiscale e un nome scritto diversamente, **When** si inserisce lo stesso
    codice fiscale, **Then** l'app usa quella persona e mostra il nome e la data in archivio.
-3. **Given** "ROSSI MARIO" del 12/03/1965 in archivio, **When** si inserisce "ROSSI MARIO" del 21/03/1965, **Then**
+3. **Given** "ROSSI MARIO" del 12/03/1965 in archivio, **When** si inserisce "ROSSI MARIO" del 13/03/1965, **Then**
    compare il possibile doppione con "Stessa persona" / "Persona diversa" e "Iscrivi" resta disattivato finché non si
    sceglie.
 4. **Given** una persona con adesione nell'anno precedente, **When** la si inserisce, **Then** compare "Ha un'adesione
