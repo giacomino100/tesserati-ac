@@ -52,7 +52,7 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   riconferma a gruppi di 15 (limite letture delle regole), "Annulla riconferma". Una riconferma è un'adesione con
   `origin: 'riconferma'` e `list` (niente `importId`); elenco letto con `listOfAdhesion`; anni con tesserati da
   `core/member-years.ts` (import + riconferme); l'import salta le persone riconfermate (`alreadyRenewed`).
-- **009 – Nuovo tesserato**: implementata, **non ancora rilasciata** (servono regole + hosting). Modulo "Nuovo
+- **009 – Nuovo tesserato**: rilasciata il 2026-11-17 (regole + hosting). Modulo "Nuovo
   tesserato" (`apps/web/src/app/nuovo-tesserato`) da Tesserati e Riconferme; ricerca in archivio con le regole di §2
   (`validateNewMember`, `matchNewMember` in `packages/import`); persona manuale (`createdInYear/At/By`, solo insieme alla
   sua adesione) e adesione `origin: 'nuovo'`; sezione "Nuovi tesserati" in Riconferme con "Annulla iscrizione";
