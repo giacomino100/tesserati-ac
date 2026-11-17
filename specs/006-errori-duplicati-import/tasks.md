@@ -113,7 +113,7 @@ constitution III (nessun dato nuovo salvato, regole invariate: i test delle rego
 - [X] T025 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules` (unchanged), `npm run test:integration -w web`, `npm run build -w web`
 - [X] T026 [P] Update `docs/roadmap.md` (006 ✅ when released) and `CLAUDE.md`
 - [ ] T027 Manual scenarios M1–M6 of `specs/006-errori-duplicati-import/quickstart.md`
-- [ ] T028 Release only with all tests green and the user's OK: `npx firebase deploy --only hosting --project tesseramento-ac` (rules unchanged)
+- [X] T028 Release only with all tests green and the user's OK: `npx firebase deploy --only hosting --project tesseramento-ac` (rules unchanged)
 
 ---
 
