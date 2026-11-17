@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink } from '@angular/router';
-import type { ImportRow } from '@tesseramento/import';
+import { listLabel, type AdhesionList, type ImportRow } from '@tesseramento/import';
 import type { HasUnsavedChanges } from '../../../listini/unsaved-changes.guard';
 import { bondLabel, italianDate } from '../../format';
 import { ImportService } from '../../import.service';
@@ -15,12 +15,12 @@ import { ImportService } from '../../import.service';
   template: `
     <mat-toolbar>
       <a mat-button routerLink="/">← Home</a>
-      <span class="title">Importa Excel ACR</span>
+      <span class="title">Importa Excel</span>
     </mat-toolbar>
     <main class="content">
       @switch (service.state().kind) {
         @case ('idle') {
-          <p>Scegli il file ElencoAdesioni_ACR.xlsx esportato dal sistema nazionale.</p>
+          <p>Scegli uno degli elenchi esportati dal sistema nazionale (ACR, Giovani o Adulti).</p>
           <label class="file">
             <input type="file" accept=".xlsx" (change)="onFile($event)" />
           </label>
@@ -41,8 +41,8 @@ import { ImportService } from '../../import.service';
         @case ('done') {
           @if (service.summary(); as s) {
             <p role="status">
-              Import completato: {{ s.adhesions }} adesioni {{ s.yearLabel }}, {{ s.newPersons }} persone nuove,
-              {{ s.reusedPersons }} già presenti.
+              Import completato: elenco {{ s.listLabel }}, {{ s.adhesions }} adesioni {{ s.yearLabel }},
+              {{ s.newPersons }} persone nuove, {{ s.reusedPersons }} già presenti.
             </p>
           }
           <ng-container [ngTemplateOutlet]="skippedList" />
@@ -54,7 +54,30 @@ import { ImportService } from '../../import.service';
           </div>
         }
         @default {
-          <h2>Anno associativo {{ service.yearLabel() }}</h2>
+          @if (service.listLabel()) {
+            <h2>Elenco {{ service.listLabel() }} · anno associativo {{ service.yearLabel() }}</h2>
+          } @else {
+            <h2>Anno associativo {{ service.yearLabel() }}</h2>
+          }
+          @if (service.tieCandidates().length > 0) {
+            <div class="choice" role="group" aria-label="Elenco">
+              <p>Di quale elenco si tratta?</p>
+              @for (list of service.tieCandidates(); track list) {
+                @if (service.selectedList() === list) {
+                  <button mat-flat-button type="button" [disabled]="service.isSaving()" (click)="service.choose(list)">
+                    {{ label(list) }}
+                  </button>
+                } @else {
+                  <button mat-stroked-button type="button" [disabled]="service.isSaving()" (click)="service.choose(list)">
+                    {{ label(list) }}
+                  </button>
+                }
+              }
+            </div>
+          }
+          @if (service.listMessage(); as listMessage) {
+            <p role="alert">{{ listMessage }}</p>
+          }
           <p>{{ service.totals().inFile }} righe nel file, {{ service.totals().toImport }} da importare</p>
           <div class="table-wrap">
             <table>
@@ -86,7 +109,7 @@ import { ImportService } from '../../import.service';
             <p role="alert">{{ message() }}</p>
           }
           <div class="actions">
-            <button mat-flat-button type="button" [disabled]="service.isSaving()" (click)="confirm()">
+            <button mat-flat-button type="button" [disabled]="!service.canConfirm()" (click)="confirm()">
               {{ service.state().kind === 'saveFailed' ? 'Riprova' : 'Importa' }}
             </button>
             <button mat-stroked-button type="button" [disabled]="service.isSaving()" (click)="service.cancel()">
@@ -146,6 +169,17 @@ import { ImportService } from '../../import.service';
       border-bottom: 1px solid rgba(128, 128, 128, 0.3);
       overflow-wrap: anywhere;
     }
+    .choice {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 16px;
+    }
+    .choice p {
+      margin: 0;
+      flex-basis: 100%;
+    }
     .skipped {
       margin: 0;
       padding-left: 20px;
@@ -162,6 +196,7 @@ export class ImportPage implements HasUnsavedChanges {
   protected readonly service = inject(ImportService);
   protected readonly date = italianDate;
   protected readonly bond = bondLabel;
+  protected readonly label = (list: AdhesionList): string => listLabel(list);
 
   constructor() {
     // Il servizio vive per tutta la sessione: entrando nella pagina si riparte dalla scelta del file,

@@ -6,11 +6,11 @@
 import { GoogleAuthProvider, signInWithCredential, signOut } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { SCHEDULE_2026_27 } from '@tesseramento/fees';
-import { parseAdhesionSheet, planImport, type ImportPlan } from '@tesseramento/import';
+import { parseAdhesionSheet, planImport, type AdhesionList, type ImportPlan } from '@tesseramento/import';
 import { auth, db } from '../core/firebase';
 import { scheduleToDocument } from '../listini/schedule-mapper';
 import { FirestoreScheduleUsage } from '../listini/schedule-usage';
-import { AlreadyImportedError, NoFeeScheduleError } from './import-backend';
+import { AlreadyImportedError, ImportContextChangedError, NoFeeScheduleError } from './import-backend';
 import { FirestoreImportBackend } from './firestore-import-backend';
 import { fakeRow, sheetInput, type FakeRow } from './testing';
 
@@ -56,20 +56,31 @@ async function seedSchedule(year: number): Promise<void> {
   });
 }
 
-function planFor(rows: FakeRow[], existing = new Map<string, string>()): ImportPlan {
+const backend = new FirestoreImportBackend();
+
+/** Piano come lo fa l'app: contesto dell'anno letto dall'archivio, elenco riconosciuto. */
+async function planFor(rows: FakeRow[]): Promise<ImportPlan> {
   const parsed = parseAdhesionSheet(sheetInput(rows));
-  if (!parsed.ok) throw new Error('foglio di prova non valido');
-  return planImport(parsed, existing);
+  if (!parsed.ok || parsed.recognition.kind !== 'recognized') throw new Error('foglio di prova non valido');
+  const context = await backend.yearContext(parsed.associationYear);
+  return planImport(parsed, parsed.recognition.list, context.persons, context.adhesions);
 }
 
-const fifteen = () => Array.from({ length: 15 }, (_, i) => fakeRow(i + 1));
+const SECTOR: Record<AdhesionList, FakeRow> = {
+  ACR: { Settore: 'RAGAZZI' },
+  GIOVANI: { Settore: 'GIOVANI', "Fasce d'età": '19/25', 'Data Nascita': '01/01/2001' },
+  ADULTI: { Settore: 'ADULTI', "Fasce d'età": 'AD', 'Data Nascita': '01/01/1970' },
+};
+const rowOf = (list: AdhesionList, n: number, over: FakeRow = {}) =>
+  fakeRow(n, { ...SECTOR[list], Cognome: `${list}${String(n).padStart(2, '0')}`, ...over });
+const rowsOf = (list: AdhesionList, count: number) => Array.from({ length: count }, (_, i) => rowOf(list, i + 1));
 
 const ALLOWED_PERSON_FIELDS = ['lastName', 'firstName', 'birthDate', 'identityKey', 'createdInImport', 'sex', 'taxCode'];
 const ALLOWED_ADHESION_FIELDS = ['personId', 'associationYear', 'importId', 'sector', 'exportAgeBand', 'bond', 'bondId'];
 
-describe('FirestoreImportBackend sugli emulatori', () => {
-  const backend = new FirestoreImportBackend();
+const size = async (name: string) => (await getDocs(collection(db, name))).size;
 
+describe('FirestoreImportBackend sugli emulatori', () => {
   beforeEach(async () => {
     await signOut(auth);
     await clear();
@@ -87,9 +98,8 @@ describe('FirestoreImportBackend sugli emulatori', () => {
     await signOut(auth);
   });
 
-  it('salva segno, 15 persone e 15 adesioni con i soli campi ammessi', async () => {
-    expect(await backend.existingPersons()).toEqual(new Map());
-    await backend.commit(planFor(fifteen()), 'Autorizzato@Example.org');
+  it('salva segno, 15 persone e 15 adesioni ACR con i soli campi ammessi', async () => {
+    await backend.commit(await planFor(rowsOf('ACR', 15)), 'Autorizzato@Example.org');
 
     const batch = await getDoc(doc(db, 'importBatches', '2026-ACR'));
     expect(batch.data()).toMatchObject({
@@ -100,65 +110,91 @@ describe('FirestoreImportBackend sugli emulatori', () => {
       newPersonCount: 15,
       skippedRowCount: 0,
     });
-
     const persons = await getDocs(collection(db, 'persons'));
     const adhesions = await getDocs(collection(db, 'adhesions'));
     expect(persons.size).toBe(15);
     expect(adhesions.size).toBe(15);
     for (const p of persons.docs) {
       expect(Object.keys(p.data()).every((k) => ALLOWED_PERSON_FIELDS.includes(k))).toBe(true);
-      expect(p.data()['createdInImport']).toBe('2026-ACR');
       expect(adhesions.docs.some((a) => a.id === `2026_${p.id}`)).toBe(true);
     }
     for (const a of adhesions.docs) {
       expect(Object.keys(a.data()).every((k) => ALLOWED_ADHESION_FIELDS.includes(k))).toBe(true);
-      expect(a.data()).toMatchObject({ associationYear: 2026, importId: '2026-ACR', sector: 'RAGAZZI', bond: 'C3', bondId: '900002' });
+      expect(a.data()).toMatchObject({ associationYear: 2026, importId: '2026-ACR', sector: 'RAGAZZI' });
     }
-
-    const index = await backend.existingPersons();
-    expect(index.size).toBe(15);
-    expect(index.get('PROVA01|ALFA|2016-04-09')).toBeDefined();
   });
 
-  it('anno successivo: riusa la persona già presente e aggiunge solo l’adesione', async () => {
-    await backend.commit(planFor([fakeRow(1)]), LISTED);
-    await seedSchedule(2027);
-    const existing = await backend.existingPersons();
-    await backend.commit(planFor([fakeRow(1, { 'Anno Associativo': 'Anno 2027' })], existing), LISTED);
+  it('ACR, Giovani e Adulti del 2026: tre segni e contesto dell’anno completo (005)', async () => {
+    await backend.commit(await planFor(rowsOf('ACR', 3)), LISTED);
+    await backend.commit(await planFor(rowsOf('GIOVANI', 2)), LISTED);
+    await backend.commit(await planFor(rowsOf('ADULTI', 4)), LISTED);
 
-    expect((await getDocs(collection(db, 'persons'))).size).toBe(1);
-    const personId = existing.get('PROVA01|ALFA|2016-04-09');
-    expect((await getDoc(doc(db, 'adhesions', `2027_${personId}`))).exists()).toBe(true);
+    const context = await backend.yearContext(2026);
+    expect(context.hasFeeSchedule).toBe(true);
+    expect([...context.importedLists].sort()).toEqual(['ACR', 'ADULTI', 'GIOVANI']);
+    expect(context.persons.size).toBe(9);
+    expect([...context.adhesions.values()].sort()).toEqual([
+      'ACR', 'ACR', 'ACR', 'ADULTI', 'ADULTI', 'ADULTI', 'ADULTI', 'GIOVANI', 'GIOVANI',
+    ]);
+    expect((await getDoc(doc(db, 'importBatches', '2026-GIOVANI'))).data()?.['source']).toBe('GIOVANI');
+  });
+
+  it('secondo import Giovani: AlreadyImportedError con l’elenco, nulla scritto', async () => {
+    await backend.commit(await planFor(rowsOf('GIOVANI', 1)), LISTED);
+    const again = await planFor([rowOf('GIOVANI', 2)]);
+    await expect(backend.commit(again, LISTED)).rejects.toBeInstanceOf(AlreadyImportedError);
+    await expect(backend.commit(again, LISTED)).rejects.toMatchObject({ list: 'GIOVANI' });
+    expect(await size('persons')).toBe(1);
+  });
+
+  it('persona ACR anche nell’elenco Adulti: riga saltata, salvate solo le altre (005, US2)', async () => {
+    await backend.commit(await planFor([rowOf('ACR', 1)]), LISTED);
+    const plan = await planFor([rowOf('ADULTI', 1), rowOf('ACR', 1, { Settore: 'ADULTI' }), rowOf('ADULTI', 2)]);
+    expect(plan.skipped).toEqual([{ rowNumber: 3, reason: 'alreadyInYear', fromList: 'ACR' }]);
+    await backend.commit(plan, LISTED);
+    expect(await size('persons')).toBe(3);
+    expect(await size('adhesions')).toBe(3);
+  });
+
+  it('persona riusata che riceve un’adesione dell’anno dopo l’anteprima: ImportContextChangedError', async () => {
+    await seedSchedule(2025);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025' })]), LISTED);
+    const adultsPlan = await planFor([rowOf('ADULTI', 1)]);
+    expect(adultsPlan.reusedPersons).toHaveLength(1);
+    // Nel frattempo la stessa persona viene importata nell'elenco Giovani del 2026.
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { Settore: 'GIOVANI' })]), LISTED);
+    await expect(backend.commit(adultsPlan, LISTED)).rejects.toBeInstanceOf(ImportContextChangedError);
+    expect(await size('importBatches')).toBe(2);
+    expect(await size('adhesions')).toBe(2);
+  });
+
+  it('anno successivo: riusa la persona e aggiunge solo l’adesione', async () => {
+    await backend.commit(await planFor([rowOf('ACR', 1)]), LISTED);
+    await seedSchedule(2027);
+    await backend.commit(await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2027' })]), LISTED);
+    expect(await size('persons')).toBe(1);
     expect((await getDoc(doc(db, 'importBatches', '2027-ACR'))).data()?.['newPersonCount']).toBe(0);
   });
 
   it('dati facoltativi assenti non vengono scritti', async () => {
-    await backend.commit(planFor([fakeRow(1, { Sesso: null, Legame: null, 'N. Legame': null })]), LISTED);
+    await backend.commit(await planFor([rowOf('ACR', 1, { Sesso: null, Legame: null, 'N. Legame': null })]), LISTED);
     const adhesion = (await getDocs(collection(db, 'adhesions'))).docs[0]!.data();
     expect(adhesion).not.toHaveProperty('bond');
     expect(adhesion).not.toHaveProperty('bondId');
-    const person = (await getDocs(collection(db, 'persons'))).docs[0]!.data();
-    expect(person).not.toHaveProperty('sex');
+    expect((await getDocs(collection(db, 'persons'))).docs[0]!.data()).not.toHaveProperty('sex');
   });
 
-  it('yearStatus e "anno con adesioni" dei listini seguono l’import dell’anno', async () => {
+  it('anno senza listino: NoFeeScheduleError, nulla scritto', async () => {
+    const plan = await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2030' })]);
+    expect((await backend.yearContext(2030)).hasFeeSchedule).toBe(false);
+    await expect(backend.commit(plan, LISTED)).rejects.toBeInstanceOf(NoFeeScheduleError);
+    expect(await size('importBatches')).toBe(0);
+  });
+
+  it('"anno con adesioni" dei listini vale per qualsiasi elenco (005, FR-011)', async () => {
     const usage = new FirestoreScheduleUsage();
-    expect(await backend.yearStatus(2026)).toEqual({ hasFeeSchedule: true, alreadyImported: false });
-    expect(await backend.yearStatus(2030)).toEqual({ hasFeeSchedule: false, alreadyImported: false });
     expect(await usage.isInUse(2026)).toBe(false);
-    await backend.commit(planFor([fakeRow(1)]), LISTED);
-    expect(await backend.yearStatus(2026)).toEqual({ hasFeeSchedule: true, alreadyImported: true });
+    await backend.commit(await planFor([rowOf('ADULTI', 1)]), LISTED);
     expect(await usage.isInUse(2026)).toBe(true);
-  });
-
-  it('rifiuta un anno già importato e un anno senza listino, senza scrivere nulla', async () => {
-    await backend.commit(planFor([fakeRow(1)]), LISTED);
-    await expect(backend.commit(planFor([fakeRow(2)]), LISTED)).rejects.toBeInstanceOf(AlreadyImportedError);
-    await expect(
-      backend.commit(planFor([fakeRow(3, { 'Anno Associativo': 'Anno 2030' })]), LISTED),
-    ).rejects.toBeInstanceOf(NoFeeScheduleError);
-    expect((await getDocs(collection(db, 'persons'))).size).toBe(1);
-    expect((await getDocs(collection(db, 'adhesions'))).size).toBe(1);
-    expect((await getDocs(collection(db, 'importBatches'))).size).toBe(1);
   });
 });

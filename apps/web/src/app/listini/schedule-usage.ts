@@ -1,6 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import { doc, getDoc } from 'firebase/firestore';
-import { acrImportId } from '@tesseramento/import';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../core/firebase';
 
 /** Dice se per l'anno esistono adesioni (specifica 003, FR-011). */
@@ -8,13 +7,13 @@ export interface ScheduleUsage {
   isInUse(year: number): Promise<boolean>;
 }
 
-/**
- * Un anno ha adesioni se il suo elenco ACR è stato importato (specifica 004, research R10).
- * Con la 005 conterà qualsiasi elenco dell'anno.
- */
+/** Un anno ha adesioni se almeno un suo elenco (ACR, Giovani, Adulti) è stato importato (specifica 005, R6). */
 export class FirestoreScheduleUsage implements ScheduleUsage {
   async isInUse(year: number): Promise<boolean> {
-    return (await getDoc(doc(db, 'importBatches', acrImportId(year)))).exists();
+    const batches = await getDocs(
+      query(collection(db, 'importBatches'), where('associationYear', '==', year), limit(1)),
+    );
+    return !batches.empty;
   }
 }
 

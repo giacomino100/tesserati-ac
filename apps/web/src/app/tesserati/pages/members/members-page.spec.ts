@@ -89,6 +89,26 @@ describe('MembersPage (FR-019)', () => {
     expect(rows(el)[0]?.[0]).toBe('VECCHIO ANNO');
   });
 
+  it('totali per settore nell’ordine ACR, Giovani, Adulti, poi gli altri (005, FR-010)', async () => {
+    const backend = new FakeMembers({
+      2026: [
+        member('A', 'UNO', { sector: 'ADULTI' }),
+        member('B', 'DUE'),
+        member('C', 'TRE', { sector: 'ALTRO' }),
+        member('D', 'QUATTRO', { sector: 'GIOVANI' }),
+        member('E', 'CINQUE'),
+      ],
+    });
+    const { el } = await render(backend);
+    expect(el.querySelector('[data-testid="totals"]')?.textContent?.trim()).toBe('ACR 2 · Giovani 1 · Adulti 1 · ALTRO 1');
+    expect(el.textContent).toContain('5 tesserati nel 2026/27');
+  });
+
+  it('totali: solo i settori presenti', async () => {
+    const { el } = await render(new FakeMembers({ 2026: [member('A', 'UNO', { sector: 'ADULTI' })] }));
+    expect(el.querySelector('[data-testid="totals"]')?.textContent?.trim()).toBe('Adulti 1');
+  });
+
   it('nessun pulsante di modifica o cancellazione', async () => {
     const { el } = await render(new FakeMembers({ 2026: [member('ROSSI', 'MARIO')] }));
     expect(el.querySelectorAll('tbody button')).toHaveLength(0);

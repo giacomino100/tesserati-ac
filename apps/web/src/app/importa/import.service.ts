@@ -1,14 +1,23 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { labelFor } from '@tesseramento/fees';
 import {
+  listLabel,
   parseAdhesionSheet,
   planImport,
+  type AdhesionList,
+  type ImportPlan,
   type ImportRow,
   type ParsedImportOk,
   type SkippedRow,
 } from '@tesseramento/import';
 import { AuthService } from '../core/auth.service';
-import { AlreadyImportedError, IMPORT_BACKEND, NoFeeScheduleError } from './import-backend';
+import {
+  AlreadyImportedError,
+  IMPORT_BACKEND,
+  ImportContextChangedError,
+  NoFeeScheduleError,
+  type YearContext,
+} from './import-backend';
 import {
   alreadyImportedMessage,
   fileErrorMessage,
@@ -23,9 +32,21 @@ const PREVIEW_ROWS = 10;
 export interface ImportSummary {
   readonly year: number;
   readonly yearLabel: string;
+  readonly listLabel: string;
   readonly adhesions: number;
   readonly newPersons: number;
   readonly reusedPersons: number;
+}
+
+/** File letto e contesto dell'anno: l'elenco può mancare solo in parità, finché l'utente non sceglie. */
+export interface PreviewData {
+  readonly parsed: ParsedImportOk;
+  readonly context: YearContext;
+  readonly list?: AdhesionList;
+  /** Piano definitivo (persone nuove, riusate, righe saltate) per l'elenco scelto. */
+  readonly plan?: ImportPlan;
+  /** L'elenco scelto in parità è già stato importato per l'anno. */
+  readonly listMessage?: string;
 }
 
 export type ImportState =
@@ -35,17 +56,18 @@ export type ImportState =
       readonly kind: 'rejected';
       readonly message: string;
       readonly skipped: readonly SkippedRow[];
+      readonly year?: number;
       /** Manca il listino dell'anno: la pagina mostra il collegamento ai Listini. */
       readonly showListiniLink: boolean;
     }
-  | { readonly kind: 'preview'; readonly parsed: ParsedImportOk }
-  | { readonly kind: 'saving'; readonly parsed: ParsedImportOk }
-  | { readonly kind: 'saveFailed'; readonly parsed: ParsedImportOk; readonly message: string }
-  | { readonly kind: 'done'; readonly parsed: ParsedImportOk; readonly summary: ImportSummary };
+  | ({ readonly kind: 'preview' } & PreviewData)
+  | ({ readonly kind: 'saving' } & PreviewData)
+  | ({ readonly kind: 'saveFailed'; readonly message: string } & PreviewData)
+  | { readonly kind: 'done'; readonly parsed: ParsedImportOk; readonly summary: ImportSummary; readonly plan: ImportPlan };
 
 /**
- * Import dell'elenco ACR (specifica 004): lettura del file, anteprima, salvataggio.
- * Il file resta in memoria nel browser; nessun dato delle righe viene scritto nei log.
+ * Import degli elenchi ACR, Giovani e Adulti (specifiche 004 e 005): lettura del file, anteprima,
+ * salvataggio. Il file resta in memoria nel browser; nessun dato delle righe viene scritto nei log.
  * L'autorizzazione vera sta nelle Security Rules.
  */
 @Injectable({ providedIn: 'root' })
@@ -61,6 +83,11 @@ export class ImportService {
     return 'parsed' in state ? state.parsed : undefined;
   });
 
+  private readonly plan = computed(() => {
+    const state = this.state();
+    return 'plan' in state ? state.plan : undefined;
+  });
+
   readonly isSaving = computed(() => this.state().kind === 'saving');
 
   readonly yearLabel = computed(() => {
@@ -68,17 +95,55 @@ export class ImportService {
     return parsed ? labelFor(parsed.associationYear) : '';
   });
 
-  readonly totals = computed(() => {
-    const parsed = this.parsed();
-    return { inFile: parsed?.totalRows ?? 0, toImport: parsed?.rows.length ?? 0 };
+  /** Elenco scelto o riconosciuto ("Giovani"); vuoto finché in parità non si sceglie. */
+  readonly listLabel = computed(() => {
+    const state = this.state();
+    return 'list' in state && state.list ? listLabel(state.list) : '';
   });
 
-  readonly firstRows = computed<readonly ImportRow[]>(() => this.parsed()?.rows.slice(0, PREVIEW_ROWS) ?? []);
+  readonly selectedList = computed(() => {
+    const state = this.state();
+    return 'list' in state ? state.list : undefined;
+  });
+
+  /** Elenchi tra cui scegliere quando il settore più frequente è in parità (chiarimento della 005). */
+  readonly tieCandidates = computed<readonly AdhesionList[]>(() => {
+    const recognition = this.parsed()?.recognition;
+    return recognition?.kind === 'tie' ? recognition.candidates : [];
+  });
+
+  readonly listMessage = computed(() => {
+    const state = this.state();
+    return 'listMessage' in state ? (state.listMessage ?? '') : '';
+  });
+
+  readonly canConfirm = computed(() => {
+    const state = this.state();
+    return (state.kind === 'preview' || state.kind === 'saveFailed') && !!state.plan && !state.listMessage;
+  });
+
+  readonly totals = computed(() => {
+    const parsed = this.parsed();
+    return {
+      inFile: parsed?.totalRows ?? 0,
+      toImport: this.plan()?.adhesions ?? parsed?.rows.length ?? 0,
+    };
+  });
+
+  /** Prime righe che verranno importate (senza quelle già presenti nell'anno). */
+  readonly firstRows = computed<readonly ImportRow[]>(() => {
+    const parsed = this.parsed();
+    if (!parsed) return [];
+    const skipped = new Set(this.plan()?.skipped.map((s) => s.rowNumber));
+    return parsed.rows.filter((r) => !skipped.has(r.rowNumber)).slice(0, PREVIEW_ROWS);
+  });
 
   readonly skippedMessages = computed(() => {
     const state = this.state();
-    const skipped = 'parsed' in state ? state.parsed.skipped : state.kind === 'rejected' ? state.skipped : [];
-    return skipped.map(skippedMessage);
+    const year = this.parsed()?.associationYear ?? (state.kind === 'rejected' ? state.year : undefined);
+    const skipped =
+      this.plan()?.skipped ?? this.parsed()?.skipped ?? (state.kind === 'rejected' ? state.skipped : []);
+    return skipped.map((row) => skippedMessage(row, year));
   });
 
   readonly showListiniLink = computed(() => {
@@ -91,7 +156,7 @@ export class ImportService {
     return state.kind === 'done' ? state.summary : undefined;
   });
 
-  /** Legge il file scelto e mostra l'anteprima o il motivo del rifiuto. */
+  /** Legge il file scelto, carica il contesto dell'anno e mostra l'anteprima o il motivo del rifiuto. */
   async chooseFile(file: File): Promise<void> {
     this.state.set({ kind: 'reading' });
     let parsed;
@@ -106,61 +171,91 @@ export class ImportService {
       this.reject(fileErrorMessage(parsed.error), parsed.error.kind === 'allRowsSkipped' ? parsed.error.skipped : []);
       return;
     }
-    let status;
+    let context;
     try {
-      status = await this.backend.yearStatus(parsed.associationYear);
+      context = await this.backend.yearContext(parsed.associationYear);
     } catch {
       this.reject(IMPORT_MESSAGES.yearCheckFailed);
       return;
     }
-    if (!status.hasFeeSchedule) {
+    if (!context.hasFeeSchedule) {
       this.reject(noFeeScheduleMessage(parsed.associationYear), [], true);
       return;
     }
-    if (status.alreadyImported) {
-      this.reject(alreadyImportedMessage(parsed.associationYear));
-      return;
-    }
-    this.state.set({ kind: 'preview', parsed });
+    const recognized = parsed.recognition.kind === 'recognized' ? parsed.recognition.list : undefined;
+    this.showPreview(parsed, context, recognized);
   }
 
-  /** Salva persone nuove e adesioni dell'anno in un colpo solo (FR-009, FR-014). */
+  /** Scelta dell'elenco in caso di parità. */
+  choose(list: AdhesionList): void {
+    const state = this.state();
+    if (state.kind !== 'preview' || !this.tieCandidates().includes(list)) return;
+    this.showPreview(state.parsed, state.context, list);
+  }
+
+  /** Salva persone nuove e adesioni dell'anno in un colpo solo (FR-009 e FR-014 della 004). */
   async confirm(): Promise<void> {
     const state = this.state();
-    if (state.kind !== 'preview' && state.kind !== 'saveFailed') return;
-    const { parsed } = state;
-    this.state.set({ kind: 'saving', parsed });
+    if ((state.kind !== 'preview' && state.kind !== 'saveFailed') || !this.canConfirm()) return;
+    const { parsed, context, list, plan } = state;
+    if (!plan || !list) return;
+    this.state.set({ kind: 'saving', parsed, context, list, plan });
     try {
       const email = this.auth.user()?.email;
       if (!email) throw new Error('no-user');
-      const plan = planImport(parsed, await this.backend.existingPersons());
       await this.backend.commit(plan, email);
       this.state.set({
         kind: 'done',
         parsed,
+        plan,
         summary: {
           year: plan.associationYear,
           yearLabel: labelFor(plan.associationYear),
+          listLabel: listLabel(plan.list),
           adhesions: plan.adhesions,
           newPersons: plan.newPersons.length,
           reusedPersons: plan.reusedPersons.length,
         },
       });
     } catch (error) {
-      // Controlli ripetuti nella transazione: qualcun altro può aver importato l'anno o tolto il listino.
-      if (error instanceof AlreadyImportedError) this.reject(alreadyImportedMessage(parsed.associationYear));
-      else if (error instanceof NoFeeScheduleError) this.reject(noFeeScheduleMessage(parsed.associationYear), [], true);
-      else this.state.set({ kind: 'saveFailed', parsed, message: IMPORT_MESSAGES.saveFailed });
+      // Controlli ripetuti nella transazione: qualcun altro può aver importato o tolto il listino.
+      const year = plan.associationYear;
+      if (error instanceof AlreadyImportedError) this.reject(alreadyImportedMessage(year, error.list));
+      else if (error instanceof NoFeeScheduleError) this.reject(noFeeScheduleMessage(year), [], true);
+      else if (error instanceof ImportContextChangedError) this.reject(IMPORT_MESSAGES.contextChanged);
+      else this.state.set({ kind: 'saveFailed', parsed, context, list, plan, message: IMPORT_MESSAGES.saveFailed });
     }
   }
 
-  /** Torna alla scelta del file e dimentica le righe lette (FR-004). */
+  /** Torna alla scelta del file e dimentica le righe lette (FR-004 della 004). */
   cancel(): void {
     if (this.isSaving()) return;
     this.state.set({ kind: 'idle' });
   }
 
-  private reject(message: string, skipped: readonly SkippedRow[] = [], showListiniLink = false): void {
-    this.state.set({ kind: 'rejected', message, skipped, showListiniLink });
+  /** Anteprima per un elenco (o in attesa della scelta in parità). */
+  private showPreview(parsed: ParsedImportOk, context: YearContext, list: AdhesionList | undefined): void {
+    const year = parsed.associationYear;
+    if (!list) {
+      this.state.set({ kind: 'preview', parsed, context });
+      return;
+    }
+    if (context.importedLists.includes(list)) {
+      const message = alreadyImportedMessage(year, list);
+      // Elenco riconosciuto: rifiuto. Elenco scelto in parità: messaggio, l'utente può sceglierne un altro.
+      if (parsed.recognition.kind === 'recognized') this.reject(message);
+      else this.state.set({ kind: 'preview', parsed, context, list, listMessage: message });
+      return;
+    }
+    const plan = planImport(parsed, list, context.persons, context.adhesions);
+    if (plan.adhesions === 0) {
+      this.reject(IMPORT_MESSAGES.allRowsSkipped, plan.skipped, false, year);
+      return;
+    }
+    this.state.set({ kind: 'preview', parsed, context, list, plan });
+  }
+
+  private reject(message: string, skipped: readonly SkippedRow[] = [], showListiniLink = false, year?: number): void {
+    this.state.set({ kind: 'rejected', message, skipped, showListiniLink, ...(year === undefined ? {} : { year }) });
   }
 }

@@ -1,12 +1,31 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, PendingTasks, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PendingTasks, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { labelFor } from '@tesseramento/fees';
+import { ADHESION_LISTS, listLabel, sectorOf } from '@tesseramento/import';
 import { bondLabel, italianDate } from '../../../importa/format';
 import { MEMBERS_BACKEND, type MemberRow } from '../../members-backend';
 
 const LOAD_ERROR = 'Impossibile leggere i tesserati. Controlla la connessione e riprova.';
+
+/**
+ * "ACR 15 · Giovani 8 · Adulti 14": solo i settori presenti, nell'ordine degli elenchi, poi gli altri
+ * settori col nome dell'export (specifica 005, research R7).
+ */
+export function sectorTotals(members: readonly MemberRow[]): string {
+  const counts = new Map<string, number>();
+  for (const m of members) counts.set(m.sector, (counts.get(m.sector) ?? 0) + 1);
+  const known = ADHESION_LISTS.map((list) => [sectorOf(list), listLabel(list)] as const);
+  const parts = known
+    .filter(([sector]) => counts.has(sector))
+    .map(([sector, label]) => `${label} ${counts.get(sector)}`);
+  const others = [...counts]
+    .filter(([sector]) => !known.some(([s]) => s === sector))
+    .sort(([a], [b]) => a.localeCompare(b, 'it'))
+    .map(([sector, n]) => `${sector} ${n}`);
+  return [...parts, ...others].join(' · ');
+}
 
 function byName(a: MemberRow, b: MemberRow): number {
   return a.lastName.localeCompare(b.lastName, 'it') || a.firstName.localeCompare(b.firstName, 'it');
@@ -38,6 +57,7 @@ function byName(a: MemberRow, b: MemberRow): number {
             }
           </select>
         </label>
+        <p class="totals" data-testid="totals">{{ totals() }}</p>
         <p>{{ members().length }} tesserati nel {{ label(year()) }}</p>
         <div class="table-wrap">
           <table>
@@ -87,6 +107,10 @@ function byName(a: MemberRow, b: MemberRow): number {
       align-items: center;
       gap: 8px;
     }
+    .totals {
+      font-weight: 500;
+      margin-bottom: 0;
+    }
     select {
       font: inherit;
       padding: 4px 8px;
@@ -118,6 +142,7 @@ export class MembersPage implements OnInit {
   protected readonly years = signal<number[]>([]);
   protected readonly year = signal(0);
   protected readonly members = signal<MemberRow[]>([]);
+  protected readonly totals = computed(() => sectorTotals(this.members()));
   protected readonly label = labelFor;
   protected readonly date = italianDate;
   protected readonly bond = bondLabel;

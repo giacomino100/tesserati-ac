@@ -18,8 +18,13 @@ function sample(name: string): ParsedImport {
 }
 
 describe('errori di file (P2, P4–P7, P10)', () => {
-  it.each(['ElencoAdesioni_Giovani.xlsx', 'ElencoAdesioni_Adulti.xlsx'])('%s non è l’elenco ACR', (name) => {
-    expect(sample(name)).toEqual({ ok: false, error: { kind: 'notAcr' } });
+  it.each([
+    ['ElencoAdesioni_ACR.xlsx', 'ACR'],
+    ['ElencoAdesioni_Giovani.xlsx', 'GIOVANI'],
+    ['ElencoAdesioni_Adulti.xlsx', 'ADULTI'],
+  ])('%s: elenco riconosciuto %s (Q1–Q3, specifica 005)', (name, list) => {
+    const result = sample(name);
+    expect(result.ok && result.recognition).toEqual({ kind: 'recognized', list });
   });
 
   it('colonna Data Nascita mancante o rinominata', () => {
@@ -55,11 +60,37 @@ describe('errori di file (P2, P4–P7, P10)', () => {
     expect(parse([acrRow({ 'Anno Associativo': year })])).toEqual({ ok: false, error: { kind: 'invalidYear' } });
   });
 
-  it('nessuna riga RAGAZZI: non è l’elenco ACR', () => {
-    expect(parse([acrRow({ Settore: 'GIOVANI' }), acrRow({ Nome: 'BETA', Settore: 'ADULTI' })])).toEqual({
+  it('settore più frequente sconosciuto: elenco non riconoscibile (Q6)', () => {
+    expect(parse([acrRow({ Settore: 'ALTRO' }), acrRow({ Nome: 'BETA', Settore: 'ALTRO' }), acrRow({ Nome: 'GAMMA' })])).toEqual({
       ok: false,
-      error: { kind: 'notAcr' },
+      error: { kind: 'unknownList' },
     });
+    expect(parse([acrRow({ Settore: 'ALTRO' }), acrRow({ Nome: 'BETA', Settore: 'GIOVANI' })])).toEqual({
+      ok: false,
+      error: { kind: 'unknownList' },
+    });
+  });
+
+  it('3 GIOVANI + 1 ADULTI: elenco Giovani, la riga ADULTI tiene il suo settore (Q5)', () => {
+    const result = parse([
+      acrRow({ Settore: 'GIOVANI', Nome: 'A' }),
+      acrRow({ Settore: 'GIOVANI', Nome: 'B' }),
+      acrRow({ Settore: 'GIOVANI', Nome: 'C' }),
+      acrRow({ Settore: 'ADULTI', Nome: 'D' }),
+    ]);
+    if (!result.ok) throw new Error('atteso ok');
+    expect(result.recognition).toEqual({ kind: 'recognized', list: 'GIOVANI' });
+    expect(result.rows.map((r) => r.sector)).toEqual(['GIOVANI', 'GIOVANI', 'GIOVANI', 'ADULTI']);
+  });
+
+  it('2 GIOVANI + 2 ADULTI: parità, scelta all’utente (Q4)', () => {
+    const result = parse([
+      acrRow({ Settore: 'ADULTI', Nome: 'A' }),
+      acrRow({ Settore: 'GIOVANI', Nome: 'B' }),
+      acrRow({ Settore: 'ADULTI', Nome: 'C' }),
+      acrRow({ Settore: 'GIOVANI', Nome: 'D' }),
+    ]);
+    expect(result.ok && result.recognition).toEqual({ kind: 'tie', candidates: ['GIOVANI', 'ADULTI'] });
   });
 
   it('tutte le righe da saltare: errore con l’elenco delle righe', () => {

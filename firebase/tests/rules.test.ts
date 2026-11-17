@@ -524,10 +524,10 @@ type Db = ReturnType<typeof user>;
 type Docs = Record<string, Record<string, unknown>>;
 
 /** Segno di import valido dell'anno. */
-function batchFor(year: number, over: Record<string, unknown> = {}, count = 15) {
+function batchFor(year: number, over: Record<string, unknown> = {}, count = 15, list = 'ACR') {
   return withoutUndefined({
     associationYear: year,
-    source: 'ACR',
+    source: list,
     importedAt: serverTimestamp(),
     importedBy: LISTED,
     adhesionCount: count,
@@ -537,23 +537,23 @@ function batchFor(year: number, over: Record<string, unknown> = {}, count = 15) 
   }) as Record<string, unknown>;
 }
 
-function personFor(i: number, year = 2026, over: Record<string, unknown> = {}) {
+function personFor(i: number, year = 2026, over: Record<string, unknown> = {}, list = 'ACR') {
   return withoutUndefined({
     lastName: `PROVA${i}`,
     firstName: 'ALFA',
     birthDate: '2016-04-09',
     identityKey: `PROVA${i}|ALFA|2016-04-09`,
     sex: 'F',
-    createdInImport: `${year}-ACR`,
+    createdInImport: `${year}-${list}`,
     ...over,
   }) as Record<string, unknown>;
 }
 
-function adhesionFor(personId: string, year = 2026, over: Record<string, unknown> = {}) {
+function adhesionFor(personId: string, year = 2026, over: Record<string, unknown> = {}, list = 'ACR') {
   return withoutUndefined({
     personId,
     associationYear: year,
-    importId: `${year}-ACR`,
+    importId: `${year}-${list}`,
     sector: 'RAGAZZI',
     exportAgeBand: '9/11',
     bond: 'C3',
@@ -563,11 +563,12 @@ function adhesionFor(personId: string, year = 2026, over: Record<string, unknown
 }
 
 /** Documenti di un import completo: segno + n persone nuove + n adesioni. */
-function fullImport(year = 2026, n = 15): Docs {
-  const docs: Docs = { [`importBatches/${year}-ACR`]: batchFor(year, {}, n) };
+function fullImport(year = 2026, n = 15, list = 'ACR'): Docs {
+  const docs: Docs = { [`importBatches/${year}-${list}`]: batchFor(year, {}, n, list) };
   for (let i = 1; i <= n; i++) {
-    docs[`persons/p${year}-${i}`] = personFor(i, year);
-    docs[`adhesions/${year}_p${year}-${i}`] = adhesionFor(`p${year}-${i}`, year);
+    const id = `p${year}-${list}-${i}`;
+    docs[`persons/${id}`] = personFor(i, year, { identityKey: `PROVA${i}|${list}|2016-04-09` }, list);
+    docs[`adhesions/${year}_${id}`] = adhesionFor(id, year, {}, list);
   }
   return docs;
 }
@@ -823,5 +824,92 @@ describe('I6 – anno senza listino', () => {
   it('import del 2030 senza feeSchedules/2030: negato', async () => {
     await assertFails(commitAll(user(LISTED), fullImport(2030, 1)));
     expect(await countImportDocs()).toEqual({ importBatches: 0, persons: 0, adhesions: 0 });
+  });
+});
+
+/* Specifica 005 – elenchi Giovani e Adulti (contracts/firestore-import-changes.md, I12–I16). */
+
+describe('I12 – import completo Giovani e Adulti', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('Giovani e Adulti del 2026, anche dopo l’ACR: consentito', async () => {
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 3, 'ACR')));
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 8, 'GIOVANI')));
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 14, 'ADULTI')));
+    expect(await countImportDocs()).toEqual({ importBatches: 3, persons: 25, adhesions: 25 });
+  });
+
+  it('non autenticato o non in elenco: import Giovani negato (SC-006)', async () => {
+    await assertFails(commitAll(guest(), fullImport(2026, 2, 'GIOVANI')));
+    await assertFails(commitAll(user(STRANGER), fullImport(2026, 2, 'GIOVANI')));
+    expect(await countImportDocs()).toEqual({ importBatches: 0, persons: 0, adhesions: 0 });
+  });
+});
+
+describe('I13 – Giovani dopo ACR con una persona già esistente', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs({ 'importBatches/2025-ACR': batchFor(2025, {}, 1), 'persons/p1': personFor(1, 2025), 'adhesions/2025_p1': adhesionFor('p1', 2025) });
+    await seedDocs({ 'importBatches/2026-ACR': batchFor(2026, {}, 1), 'persons/p2': personFor(2), 'adhesions/2026_p2': adhesionFor('p2') });
+  });
+
+  it('solo segno e adesione per la persona riusata: consentito', async () => {
+    await assertSucceeds(
+      commitAll(user(LISTED), {
+        'importBatches/2026-GIOVANI': batchFor(2026, { newPersonCount: 0 }, 1, 'GIOVANI'),
+        'adhesions/2026_p1': adhesionFor('p1', 2026, { sector: 'GIOVANI' }, 'GIOVANI'),
+      }),
+    );
+  });
+});
+
+describe('I14 – secondo import dello stesso elenco', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs({ 'importBatches/2026-GIOVANI': batchFor(2026, {}, 1, 'GIOVANI') });
+  });
+
+  it('secondo Giovani 2026: negato', async () => {
+    await assertFails(commitAll(user(LISTED), fullImport(2026, 2, 'GIOVANI')));
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 0, adhesions: 0 });
+  });
+});
+
+describe('I15 – una sola adesione per persona per anno', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs(EXISTING);
+  });
+
+  it('adesione Giovani 2026 per chi ha già l’adesione ACR 2026: negato e nulla cambia', async () => {
+    await assertFails(
+      commitAll(user(LISTED), {
+        'importBatches/2026-GIOVANI': batchFor(2026, { newPersonCount: 0 }, 1, 'GIOVANI'),
+        'adhesions/2026_p1': adhesionFor('p1', 2026, { sector: 'GIOVANI' }, 'GIOVANI'),
+      }),
+    );
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 1, adhesions: 1 });
+  });
+});
+
+describe('I16 – elenchi non validi', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('source sconosciuto: negato', async () => {
+    const docs = fullImport(2026, 1, 'ALTRO');
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+
+  it('ID con un elenco diverso dal source: negato', async () => {
+    const docs = fullImport(2026, 1, 'GIOVANI');
+    docs['importBatches/2026-GIOVANI'] = batchFor(2026, { source: 'ADULTI' }, 1, 'GIOVANI');
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+
+  it('importId dell’adesione con elenco sconosciuto: negato', async () => {
+    const docs = fullImport(2026, 1, 'GIOVANI');
+    const [path] = Object.keys(docs).filter((k) => k.startsWith('adhesions/'));
+    docs[path!] = { ...docs[path!], importId: '2026-ALTRO' };
+    await assertFails(commitAll(user(LISTED), docs));
   });
 });

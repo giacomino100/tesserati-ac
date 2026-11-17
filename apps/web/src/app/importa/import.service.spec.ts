@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../core/auth.service';
 import { IMPORT_BACKEND } from './import-backend';
 import { ImportService } from './import.service';
-import { FakeImportBackend, FakeReader, fakeFile, fakeRow, sheetInput } from './testing';
+import { FakeImportBackend, FakeReader, fakeFile, fakeRow, sheetInput, type FakeRow } from './testing';
 import { WORKBOOK_READER } from './workbook-reader';
 
 export function setupImport(reader = new FakeReader(), backend = new FakeImportBackend()) {
@@ -77,7 +77,14 @@ describe('ImportService – salvataggio (US2)', () => {
     expect(backend.commits[0]?.email).toBe('Segreteria@Example.org');
     expect(backend.commits[0]?.plan.adhesions).toBe(15);
     expect(service.state().kind).toBe('done');
-    expect(service.summary()).toEqual({ year: 2026, yearLabel: '2026/27', adhesions: 15, newPersons: 15, reusedPersons: 0 });
+    expect(service.summary()).toEqual({
+      year: 2026,
+      yearLabel: '2026/27',
+      listLabel: 'ACR',
+      adhesions: 15,
+      newPersons: 15,
+      reusedPersons: 0,
+    });
   });
 
   it('riusa le persone già presenti', async () => {
@@ -166,9 +173,11 @@ describe('ImportService – rifiuti (US3)', () => {
     ).toBe(expected);
   });
 
-  it('non è l’elenco ACR', async () => {
-    const { message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { Settore: 'GIOVANI' })])));
-    expect(message).toBe('Il file non sembra l\'elenco ACR: nessuna riga ha il settore RAGAZZI.');
+  it('elenco non riconoscibile (specifica 005)', async () => {
+    const { message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { Settore: 'ALTRO' })])));
+    expect(message).toBe(
+      'Non riesco a capire di quale elenco si tratta: la colonna Settore deve contenere RAGAZZI, GIOVANI o ADULTI.',
+    );
   });
 
   it('tutte le righe saltate: messaggio ed elenco', async () => {
@@ -187,7 +196,7 @@ describe('ImportService – rifiuti (US3)', () => {
 
   it('anno già importato', async () => {
     const backend = new FakeImportBackend();
-    backend.importedYears.add(2026);
+    backend.importedLists.add('2026-ACR');
     const { service, message } = await rejectedWith(new FakeReader(), backend);
     expect(message).toBe('L\'elenco ACR del 2026/27 è già stato importato.');
     expect(service.showListiniLink()).toBe(false);
@@ -197,7 +206,7 @@ describe('ImportService – rifiuti (US3)', () => {
     const backend = new FakeImportBackend();
     const { service } = setupImport(new FakeReader(), backend);
     await service.chooseFile(fakeFile());
-    backend.importedYears.add(2026);
+    backend.importedLists.add('2026-ACR');
     await service.confirm();
     const state = service.state();
     expect(state.kind === 'rejected' && state.message).toBe('L\'elenco ACR del 2026/27 è già stato importato.');
@@ -212,5 +221,126 @@ describe('ImportService – rifiuti (US3)', () => {
     await service.confirm();
     const state = service.state();
     expect(state.kind === 'rejected' && state.message).toBe('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
+  });
+});
+
+/* ---- Specifica 005: elenchi Giovani e Adulti ---- */
+
+const giovani = (n: number, over: FakeRow = {}) =>
+  fakeRow(n, { Settore: 'GIOVANI', "Fasce d'età": '19/25', 'Data Nascita': '01/01/2001', ...over });
+const adulti = (n: number, over: FakeRow = {}) =>
+  fakeRow(n, { Settore: 'ADULTI', "Fasce d'età": 'AD', 'Data Nascita': '01/01/1970', ...over });
+
+describe('ImportService – elenchi (005, US1)', () => {
+  it('riconosce l’elenco Giovani e lo usa nel salvataggio', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2026, 'ALTRO|ACR|2016-01-01', 'ACR');
+    const { service } = setupImport(new FakeReader(sheetInput([giovani(1), giovani(2)])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.state().kind).toBe('preview');
+    expect(service.listLabel()).toBe('Giovani');
+    expect(service.canConfirm()).toBe(true);
+    await service.confirm();
+    expect(backend.commits[0]?.plan.importId).toBe('2026-GIOVANI');
+    expect(service.summary()).toMatchObject({ listLabel: 'Giovani', adhesions: 2 });
+  });
+
+  it('elenco già importato: rifiuto con il nome dell’elenco', async () => {
+    const backend = new FakeImportBackend();
+    backend.importedLists.add('2026-GIOVANI');
+    const { service } = setupImport(new FakeReader(sheetInput([giovani(1)])), backend);
+    await service.chooseFile(fakeFile());
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe("L'elenco Giovani del 2026/27 è già stato importato.");
+  });
+
+  it('parità: chiede l’elenco, "Importa" bloccato finché non si sceglie', async () => {
+    const backend = new FakeImportBackend();
+    const { service } = setupImport(
+      new FakeReader(sheetInput([giovani(1), adulti(2), giovani(3), adulti(4)])),
+      backend,
+    );
+    await service.chooseFile(fakeFile());
+    expect(service.state().kind).toBe('preview');
+    expect(service.tieCandidates()).toEqual(['GIOVANI', 'ADULTI']);
+    expect(service.listLabel()).toBe('');
+    expect(service.canConfirm()).toBe(false);
+    service.choose('ADULTI');
+    expect(service.listLabel()).toBe('Adulti');
+    expect(service.canConfirm()).toBe(true);
+    await service.confirm();
+    expect(backend.commits[0]?.plan.importId).toBe('2026-ADULTI');
+    expect(backend.commits[0]?.plan.adhesions).toBe(4);
+  });
+
+  it('parità con un elenco già importato: messaggio alla scelta e "Importa" bloccato', async () => {
+    const backend = new FakeImportBackend();
+    backend.importedLists.add('2026-ADULTI');
+    const { service } = setupImport(new FakeReader(sheetInput([giovani(1), adulti(2)])), backend);
+    await service.chooseFile(fakeFile());
+    service.choose('ADULTI');
+    expect(service.listMessage()).toBe("L'elenco Adulti del 2026/27 è già stato importato.");
+    expect(service.canConfirm()).toBe(false);
+    service.choose('GIOVANI');
+    expect(service.listMessage()).toBe('');
+    expect(service.canConfirm()).toBe(true);
+  });
+
+  it('elenco importato da qualcun altro tra anteprima e conferma', async () => {
+    const backend = new FakeImportBackend();
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1)])), backend);
+    await service.chooseFile(fakeFile());
+    backend.importedLists.add('2026-ADULTI');
+    await service.confirm();
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe("L'elenco Adulti del 2026/27 è già stato importato.");
+  });
+});
+
+describe('ImportService – persone già nell’anno (005, US2)', () => {
+  it('salta e elenca chi è già stato importato da un altro elenco dell’anno', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2026, 'PROVA02|ALFA|1970-01-01', 'ACR');
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1), adulti(2), adulti(3)])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.totals()).toEqual({ inFile: 3, toImport: 2 });
+    expect(service.skippedMessages()).toEqual(["Riga 3: già importata nell'elenco ACR del 2026/27"]);
+    expect(service.firstRows().map((r) => r.lastName)).toEqual(['PROVA01', 'PROVA03']);
+    await service.confirm();
+    expect(service.summary()).toMatchObject({ adhesions: 2, newPersons: 2, reusedPersons: 0 });
+  });
+
+  it('riusa una persona di un anno precedente', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2025, 'PROVA01|ALFA|1970-01-01', 'ADULTI');
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1)])), backend);
+    await service.chooseFile(fakeFile());
+    await service.confirm();
+    expect(service.summary()).toMatchObject({ adhesions: 1, newPersons: 0, reusedPersons: 1 });
+  });
+
+  it('tutte le righe già importate nell’anno: rifiuto con l’elenco delle righe', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2026, 'PROVA01|ALFA|1970-01-01', 'ACR');
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1)])), backend);
+    await service.chooseFile(fakeFile());
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe('Nessuna riga valida da importare.');
+    expect(service.skippedMessages()).toEqual(["Riga 2: già importata nell'elenco ACR del 2026/27"]);
+    expect(backend.commits).toEqual([]);
+  });
+
+  it('dati cambiati durante il salvataggio: rifiuto e invito a ricaricare', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2025, 'PROVA01|ALFA|1970-01-01', 'ADULTI');
+    const { service } = setupImport(new FakeReader(sheetInput([adulti(1)])), backend);
+    await service.chooseFile(fakeFile());
+    backend.addMember(2026, 'PROVA01|ALFA|1970-01-01', 'GIOVANI');
+    backend.importedLists.delete('2026-GIOVANI');
+    await service.confirm();
+    const state = service.state();
+    expect(state.kind === 'rejected' && state.message).toBe(
+      'Nel frattempo sono stati importati altri tesserati di questo anno. Ricarica il file e riprova.',
+    );
   });
 });

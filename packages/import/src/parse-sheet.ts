@@ -2,11 +2,10 @@ import { cleanText, parseAssociationYear } from './clean';
 import { EXPECTED_SHEET, locateColumns, type ColumnIndex, type RequiredColumn } from './columns';
 import { toIsoDate } from './date';
 import { identityKey } from './identity';
+import { recognizeList } from './lists';
 import type { ImportRow, ParsedImport, SheetInput, SkippedRow } from './types';
 
 const TAX_CODE = /^[A-Z0-9]{16}$/;
-/** Settore dell'ACR nell'export. */
-const ACR_SECTOR = 'RAGAZZI';
 
 function isBlankRow(row: readonly unknown[]): boolean {
   return row.every((cell) => cleanText(cell) === undefined);
@@ -79,11 +78,10 @@ export function parseAdhesionSheet(input: SheetInput): ParsedImport {
   if (years.size !== 1) return { ok: false, error: { kind: 'mixedYears' } };
   const [associationYear] = [...years] as [number];
 
-  // Le righe di altri settori si importano (FR-012), ma un file senza nessuna riga RAGAZZI non è
-  // l'elenco ACR: si rifiuta per non usare per sbaglio l'import ACR dell'anno.
-  if (!dataRows.some(({ cells }) => cleanText(cells[index['Settore']])?.toUpperCase() === ACR_SECTOR)) {
-    return { ok: false, error: { kind: 'notAcr' } };
-  }
+  // L'elenco (ACR, Giovani, Adulti) è il settore più frequente; le righe di altri settori si importano
+  // comunque con il loro settore (specifica 005, research R1).
+  const recognition = recognizeList(dataRows.map(({ cells }) => cleanText(cells[index['Settore']])));
+  if (!recognition) return { ok: false, error: { kind: 'unknownList' } };
 
   const rows: ImportRow[] = [];
   const skipped: SkippedRow[] = [];
@@ -104,5 +102,5 @@ export function parseAdhesionSheet(input: SheetInput): ParsedImport {
   }
 
   if (rows.length === 0) return { ok: false, error: { kind: 'allRowsSkipped', skipped } };
-  return { ok: true, associationYear, rows, skipped, totalRows: dataRows.length };
+  return { ok: true, associationYear, rows, skipped, totalRows: dataRows.length, recognition };
 }

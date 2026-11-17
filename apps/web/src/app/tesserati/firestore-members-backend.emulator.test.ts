@@ -63,6 +63,14 @@ describe('FirestoreMembersBackend sugli emulatori', () => {
     expect(await backend.membersOfYear(2026)).toEqual([]);
   });
 
+  it('tre elenchi dello stesso anno: l’anno compare una volta sola (005)', async () => {
+    const batch = { importedAt: new Date(), importedBy: LISTED, adhesionCount: 1, newPersonCount: 1, skippedRowCount: 0 };
+    for (const source of ['ACR', 'GIOVANI', 'ADULTI']) {
+      await put(`importBatches/2026-${source}`, { ...batch, associationYear: 2026, source });
+    }
+    expect(await backend.importedYears()).toEqual([2026]);
+  });
+
   it('unisce adesioni dell’anno e persone, senza altri anni', async () => {
     const batch = { source: 'ACR', importedAt: new Date(), importedBy: LISTED, adhesionCount: 1, newPersonCount: 1, skippedRowCount: 0 };
     await put('importBatches/2026-ACR', { ...batch, associationYear: 2026 });

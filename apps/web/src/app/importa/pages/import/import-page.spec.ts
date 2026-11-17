@@ -38,7 +38,8 @@ export function button(el: HTMLElement, text: string): HTMLButtonElement | undef
 describe('ImportPage – scelta e anteprima (US1)', () => {
   it('chiede il file .xlsx', async () => {
     const { el } = await renderImport();
-    expect(el.textContent).toContain('Scegli il file ElencoAdesioni_ACR.xlsx esportato dal sistema nazionale.');
+    expect(el.textContent).toContain('Scegli uno degli elenchi esportati dal sistema nazionale (ACR, Giovani o Adulti).');
+    expect(el.textContent).toContain('Importa Excel');
     const input = el.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.accept).toBe('.xlsx');
   });
@@ -52,7 +53,7 @@ describe('ImportPage – scelta e anteprima (US1)', () => {
     );
     const { fixture, el } = await renderImport(reader);
     await chooseFile(fixture);
-    expect(el.textContent).toContain('Anno associativo 2026/27');
+    expect(el.textContent).toContain('Elenco ACR · anno associativo 2026/27');
     expect(el.textContent).toContain('2 righe nel file, 2 da importare');
     const headers = Array.from(el.querySelectorAll('th')).map((th) => th.textContent?.trim());
     expect(headers).toEqual(['Cognome e nome', 'Data di nascita', "Fascia d'età (export)", 'Legame']);
@@ -85,7 +86,7 @@ describe('ImportPage – scelta e anteprima (US1)', () => {
     button(el, 'Annulla')!.click();
     fixture.detectChanges();
     expect(el.querySelector('table')).toBeNull();
-    expect(el.textContent).toContain('Scegli il file');
+    expect(el.textContent).toContain('Scegli uno degli elenchi');
     expect(backend.commits).toEqual([]);
   });
 });
@@ -98,7 +99,7 @@ describe('ImportPage – salvataggio (US2)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(backend.commits).toHaveLength(1);
-    expect(el.textContent).toContain('Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti.');
+    expect(el.textContent).toContain('Import completato: elenco ACR, 15 adesioni 2026/27, 15 persone nuove, 0 già presenti.');
     expect(button(el, 'Torna alla home')?.getAttribute('href')).toBe('/');
     expect(button(el, 'Vedi i tesserati')?.getAttribute('href')).toBe('/tesserati?anno=2026');
   });
@@ -147,10 +148,10 @@ describe('ImportPage – salvataggio (US2)', () => {
 
 describe('ImportPage – rifiuti (US3)', () => {
   it('mostra il messaggio e "Scegli un altro file", che riporta alla scelta', async () => {
-    const reader = new FakeReader(sheetInput([fakeRow(1, { Settore: 'ADULTI' })]));
+    const reader = new FakeReader(sheetInput([fakeRow(1, { Settore: 'ALTRO' })]));
     const { fixture, el } = await renderImport(reader);
     await chooseFile(fixture);
-    expect(el.querySelector('[role="alert"]')?.textContent).toContain('Il file non sembra l\'elenco ACR');
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('Non riesco a capire di quale elenco si tratta');
     expect(el.querySelector('table')).toBeNull();
     button(el, 'Scegli un altro file')!.click();
     fixture.detectChanges();
@@ -164,5 +165,44 @@ describe('ImportPage – rifiuti (US3)', () => {
     await chooseFile(fixture);
     expect(el.textContent).toContain('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
     expect(el.querySelector('a[href="/listini"]')?.textContent).toContain('Listini');
+  });
+});
+
+describe('ImportPage – elenchi (005)', () => {
+  const giovani = (n: number) => fakeRow(n, { Settore: 'GIOVANI', 'Data Nascita': '01/01/2001' });
+  const adulti = (n: number) => fakeRow(n, { Settore: 'ADULTI', 'Data Nascita': '01/01/1970' });
+
+  it('anteprima con l’elenco riconosciuto e riepilogo con l’elenco', async () => {
+    const { fixture, el } = await renderImport(new FakeReader(sheetInput([giovani(1), giovani(2)])));
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('Elenco Giovani · anno associativo 2026/27');
+    button(el, 'Importa')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Import completato: elenco Giovani, 2 adesioni 2026/27, 2 persone nuove, 0 già presenti.');
+  });
+
+  it('parità: domanda, scelta e "Importa" attivo solo dopo la scelta', async () => {
+    const { fixture, el, backend } = await renderImport(new FakeReader(sheetInput([giovani(1), adulti(2)])));
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('Di quale elenco si tratta?');
+    expect(button(el, 'Importa')!.disabled).toBe(true);
+    button(el, 'Adulti')!.click();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Elenco Adulti · anno associativo 2026/27');
+    expect(button(el, 'Importa')!.disabled).toBe(false);
+    button(el, 'Importa')!.click();
+    await fixture.whenStable();
+    expect(backend.commits[0]?.plan.importId).toBe('2026-ADULTI');
+  });
+
+  it('riga già importata da un altro elenco: elencata in anteprima', async () => {
+    const backend = new FakeImportBackend();
+    backend.addMember(2026, 'PROVA02|ALFA|1970-01-01', 'ACR');
+    const { fixture, el } = await renderImport(new FakeReader(sheetInput([adulti(1), adulti(2)])), backend);
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('2 righe nel file, 1 da importare');
+    expect(el.textContent).toContain("Riga 3: già importata nell'elenco ACR del 2026/27");
+    expect(el.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 });

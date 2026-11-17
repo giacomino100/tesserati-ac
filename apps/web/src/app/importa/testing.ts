@@ -1,5 +1,18 @@
-import { REQUIRED_COLUMNS, type ImportPlan, type SheetInput } from '@tesseramento/import';
-import { AlreadyImportedError, NoFeeScheduleError, type ImportBackend, type YearStatus } from './import-backend';
+import {
+  ADHESION_LISTS,
+  importId,
+  REQUIRED_COLUMNS,
+  type AdhesionList,
+  type ImportPlan,
+  type SheetInput,
+} from '@tesseramento/import';
+import {
+  AlreadyImportedError,
+  ImportContextChangedError,
+  NoFeeScheduleError,
+  type ImportBackend,
+  type YearContext,
+} from './import-backend';
 import type { WorkbookReader } from './workbook-reader';
 
 /** Strumenti di prova condivisi dagli spec dell'import (nessun dato reale). */
@@ -59,9 +72,12 @@ export interface FakeCommit {
 export class FakeImportBackend implements ImportBackend {
   /** Anni con listino. */
   feeScheduleYears = new Set<number>([2026]);
-  /** Anni con l'elenco ACR già importato. */
-  importedYears = new Set<number>();
+  /** Elenchi già importati, come ID del segno ("2026-ACR"). */
+  importedLists = new Set<string>();
+  /** Persone in archivio: chiave di identità → ID. */
   persons = new Map<string, string>();
+  /** Adesioni per anno: ID persona → elenco. */
+  adhesions = new Map<number, Map<string, AdhesionList>>();
   commits: FakeCommit[] = [];
   failCommitWith: Error | undefined;
   private gate: { promise: Promise<void>; resolve: () => void } | undefined;
@@ -79,21 +95,44 @@ export class FakeImportBackend implements ImportBackend {
     this.gate = undefined;
   }
 
-  async yearStatus(year: number): Promise<YearStatus> {
-    return { hasFeeSchedule: this.feeScheduleYears.has(year), alreadyImported: this.importedYears.has(year) };
+  /** Una persona già importata nell'anno da un elenco (con il suo segno di import). */
+  addMember(year: number, identity: string, list: AdhesionList): string {
+    const id = this.persons.get(identity) ?? `p${this.nextId++}`;
+    this.persons.set(identity, id);
+    this.yearAdhesions(year).set(id, list);
+    this.importedLists.add(importId(year, list));
+    return id;
   }
 
-  async existingPersons(): Promise<Map<string, string>> {
-    return new Map(this.persons);
+  async yearContext(year: number): Promise<YearContext> {
+    return {
+      hasFeeSchedule: this.feeScheduleYears.has(year),
+      importedLists: ADHESION_LISTS.filter((l) => this.importedLists.has(importId(year, l))),
+      persons: new Map(this.persons),
+      adhesions: new Map(this.yearAdhesions(year)),
+    };
   }
 
   async commit(plan: ImportPlan, email: string): Promise<void> {
     if (this.gate) await this.gate.promise;
     if (this.failCommitWith) throw this.failCommitWith;
-    if (this.importedYears.has(plan.associationYear)) throw new AlreadyImportedError();
+    if (this.importedLists.has(plan.importId)) throw new AlreadyImportedError(plan.list);
     if (!this.feeScheduleYears.has(plan.associationYear)) throw new NoFeeScheduleError();
-    for (const row of plan.newPersons) this.persons.set(row.identityKey, `p${this.nextId++}`);
-    this.importedYears.add(plan.associationYear);
+    const year = this.yearAdhesions(plan.associationYear);
+    if (plan.reusedPersons.some(({ personId }) => year.has(personId))) throw new ImportContextChangedError();
+    for (const row of plan.newPersons) {
+      const id = `p${this.nextId++}`;
+      this.persons.set(row.identityKey, id);
+      year.set(id, plan.list);
+    }
+    for (const { personId } of plan.reusedPersons) year.set(personId, plan.list);
+    this.importedLists.add(plan.importId);
     this.commits.push({ plan, email });
+  }
+
+  private yearAdhesions(year: number): Map<string, AdhesionList> {
+    let map = this.adhesions.get(year);
+    if (!map) this.adhesions.set(year, (map = new Map()));
+    return map;
   }
 }

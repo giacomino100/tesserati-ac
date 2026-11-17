@@ -150,8 +150,9 @@ service cloud.firestore {
       return isNonEmptyString(id) && !exists(batchPath(id)) && existsAfter(batchPath(id));
     }
 
-    // Segno di import: ID "{anno}-ACR". Esiste = elenco ACR dell'anno già importato. L'anno deve
-    // avere un listino. Mai modificabile né cancellabile.
+    // Segno di import: ID "{anno}-{ELENCO}" con ELENCO = ACR, GIOVANI o ADULTI (specifica 005).
+    // Esiste = quell'elenco dell'anno è già stato importato. L'anno deve avere un listino.
+    // Mai modificabile né cancellabile.
     match /importBatches/{batchId} {
       allow get, list: if isAllowed();
 
@@ -161,8 +162,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['associationYear', 'source', 'importedAt', 'importedBy',
                                                 'adhesionCount', 'newPersonCount', 'skippedRowCount'])
         && request.resource.data.associationYear is int
-        && batchId == string(request.resource.data.associationYear) + '-ACR'
-        && request.resource.data.source == 'ACR'
+        && request.resource.data.source in ['ACR', 'GIOVANI', 'ADULTI']
+        && batchId == string(request.resource.data.associationYear) + '-' + request.resource.data.source
         && isPositiveInt(request.resource.data.adhesionCount)
         && isCount(request.resource.data.newPersonCount)
         && isCount(request.resource.data.skippedRowCount)
@@ -196,7 +197,8 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno.
+    // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno
+    // qualunque sia l'elenco (un `set` su un'adesione esistente è un update, vietato).
     match /adhesions/{adhesionId} {
       allow get, list: if isAllowed();
 
@@ -207,7 +209,8 @@ service cloud.firestore {
         && request.resource.data.associationYear is int
         && isNonEmptyString(request.resource.data.personId)
         && adhesionId == string(request.resource.data.associationYear) + '_' + request.resource.data.personId
-        && request.resource.data.importId == string(request.resource.data.associationYear) + '-ACR'
+        && request.resource.data.importId is string
+        && request.resource.data.importId.matches(string(request.resource.data.associationYear) + '-(ACR|GIOVANI|ADULTI)')
         && isNonEmptyString(request.resource.data.sector)
         && optionalText(request.resource.data, 'exportAgeBand')
         && optionalText(request.resource.data, 'bond')

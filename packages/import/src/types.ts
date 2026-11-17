@@ -1,3 +1,5 @@
+import type { AdhesionList, ListRecognition } from './lists';
+
 /** Riga valida dell'elenco adesioni: solo le colonne necessarie (constitution III, data-model.md). */
 export interface ImportRow {
   /** Numero di riga in Excel (intestazioni = 1). */
@@ -20,13 +22,22 @@ export interface ImportRow {
   readonly identityKey: string;
 }
 
-export type SkipReason = 'missingLastName' | 'missingFirstName' | 'missingBirthDate' | 'invalidBirthDate' | 'duplicate';
+export type SkipReason =
+  | 'missingLastName'
+  | 'missingFirstName'
+  | 'missingBirthDate'
+  | 'invalidBirthDate'
+  | 'duplicate'
+  /** La persona ha già un'adesione nello stesso anno da un altro elenco (specifica 005). */
+  | 'alreadyInYear';
 
 export interface SkippedRow {
   readonly rowNumber: number;
   readonly reason: SkipReason;
   /** Per `duplicate`: la riga che è stata tenuta. */
   readonly duplicateOf?: number;
+  /** Per `alreadyInYear`: l'elenco dell'adesione già presente. */
+  readonly fromList?: AdhesionList;
 }
 
 export type ImportError =
@@ -35,7 +46,7 @@ export type ImportError =
   | { readonly kind: 'noRows' }
   | { readonly kind: 'invalidYear' }
   | { readonly kind: 'mixedYears' }
-  | { readonly kind: 'notAcr' }
+  | { readonly kind: 'unknownList' }
   | { readonly kind: 'allRowsSkipped'; readonly skipped: readonly SkippedRow[] };
 
 export interface ParsedImportOk {
@@ -45,6 +56,8 @@ export interface ParsedImportOk {
   readonly skipped: readonly SkippedRow[];
   /** Righe di dati nel file (escluse le intestazioni e le righe del tutto vuote). */
   readonly totalRows: number;
+  /** Elenco riconosciuto dal settore più frequente, o parità da far scegliere all'utente. */
+  readonly recognition: ListRecognition;
 }
 
 export interface ParsedImportError {
@@ -56,7 +69,8 @@ export type ParsedImport = ParsedImportOk | ParsedImportError;
 
 export interface ImportPlan {
   readonly associationYear: number;
-  /** ID del segno di import, es. "2026-ACR". */
+  readonly list: AdhesionList;
+  /** ID del segno di import, es. "2026-GIOVANI". */
   readonly importId: string;
   readonly newPersons: readonly ImportRow[];
   readonly reusedPersons: readonly { readonly row: ImportRow; readonly personId: string }[];

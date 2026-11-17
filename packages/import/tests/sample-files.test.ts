@@ -50,3 +50,20 @@ describe('file finto ElencoAdesioni_ACR.xlsx (P1, FR-016)', () => {
     }
   });
 });
+
+describe('file finti Giovani e Adulti (Q1, Q2, FR-012 della 005)', () => {
+  it('Giovani: 8 righe del 2026', () => {
+    const result = ok(parseAdhesionSheet(readSample('ElencoAdesioni_Giovani.xlsx')));
+    expect(result.associationYear).toBe(2026);
+    expect(result.rows).toHaveLength(8);
+    expect(result.skipped).toEqual([]);
+    expect(result.recognition).toEqual({ kind: 'recognized', list: 'GIOVANI' });
+  });
+
+  it('Adulti: 14 righe del 2026', () => {
+    const result = ok(parseAdhesionSheet(readSample('ElencoAdesioni_Adulti.xlsx')));
+    expect(result.rows).toHaveLength(14);
+    expect(result.skipped).toEqual([]);
+    expect(result.recognition).toEqual({ kind: 'recognized', list: 'ADULTI' });
+  });
+});

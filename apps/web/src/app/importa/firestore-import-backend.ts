@@ -1,7 +1,13 @@
-import { collection, doc, getDoc, getDocs, runTransaction, serverTimestamp } from 'firebase/firestore';
-import type { ImportPlan, ImportRow } from '@tesseramento/import';
+import { collection, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
+import { listOfImportId, type AdhesionList, type ImportPlan, type ImportRow } from '@tesseramento/import';
 import { db } from '../core/firebase';
-import { AlreadyImportedError, NoFeeScheduleError, type ImportBackend, type YearStatus } from './import-backend';
+import {
+  AlreadyImportedError,
+  ImportContextChangedError,
+  NoFeeScheduleError,
+  type ImportBackend,
+  type YearContext,
+} from './import-backend';
 
 /** Toglie i campi assenti: Firestore rifiuta `undefined` e le regole ammettono solo campi presenti. */
 function defined(fields: Record<string, unknown>): Record<string, unknown> {
@@ -32,40 +38,52 @@ function adhesionDocument(row: ImportRow, personId: string, plan: ImportPlan): R
   });
 }
 
-/** Import in Cloud Firestore (contracts/firestore-import.md). Nessun dato delle righe nei log. */
+/** Import in Cloud Firestore (specifiche 004 e 005). Nessun dato delle righe nei log. */
 export class FirestoreImportBackend implements ImportBackend {
-  async yearStatus(year: number): Promise<YearStatus> {
-    const [schedule, batch] = await Promise.all([
+  /** Listino, elenchi importati, persone e adesioni dell'anno, letti in parallelo (research R4 della 005). */
+  async yearContext(year: number): Promise<YearContext> {
+    const [schedule, batches, persons, adhesions] = await Promise.all([
       getDoc(doc(db, 'feeSchedules', String(year))),
-      getDoc(doc(db, 'importBatches', `${year}-ACR`)),
+      getDocs(query(collection(db, 'importBatches'), where('associationYear', '==', year))),
+      getDocs(collection(db, 'persons')),
+      getDocs(query(collection(db, 'adhesions'), where('associationYear', '==', year))),
     ]);
-    return { hasFeeSchedule: schedule.exists(), alreadyImported: batch.exists() };
-  }
-
-  async existingPersons(): Promise<Map<string, string>> {
-    const snapshot = await getDocs(collection(db, 'persons'));
-    const index = new Map<string, string>();
-    for (const person of snapshot.docs) {
+    const importedLists = batches.docs
+      .map((b) => listOfImportId(b.id))
+      .filter((l): l is AdhesionList => l !== undefined);
+    const personIndex = new Map<string, string>();
+    for (const person of persons.docs) {
       const key = person.data()['identityKey'];
-      if (typeof key === 'string') index.set(key, person.id);
+      if (typeof key === 'string') personIndex.set(key, person.id);
     }
-    return index;
+    const adhesionIndex = new Map<string, AdhesionList>();
+    for (const adhesion of adhesions.docs) {
+      const data = adhesion.data();
+      const list = listOfImportId(String(data['importId']));
+      if (list) adhesionIndex.set(String(data['personId']), list);
+    }
+    return { hasFeeSchedule: schedule.exists(), importedLists, persons: personIndex, adhesions: adhesionIndex };
   }
 
   /**
-   * Una sola transazione (research R8): rilegge segno e listino, poi crea segno, persone nuove e
-   * adesioni. O tutto o niente; senza connessione la transazione fallisce invece di restare in coda.
+   * Una sola transazione: rilegge segno dell'elenco, listino e adesioni dell'anno delle persone riusate,
+   * poi crea segno, persone nuove e adesioni. O tutto o niente; senza connessione fallisce invece di
+   * restare in coda.
    */
   async commit(plan: ImportPlan, email: string): Promise<void> {
     const batchRef = doc(db, 'importBatches', plan.importId);
     const scheduleRef = doc(db, 'feeSchedules', String(plan.associationYear));
+    const adhesionRef = (personId: string) => doc(db, 'adhesions', `${plan.associationYear}_${personId}`);
     await runTransaction(db, async (tx) => {
-      if ((await tx.get(batchRef)).exists()) throw new AlreadyImportedError();
+      if ((await tx.get(batchRef)).exists()) throw new AlreadyImportedError(plan.list);
       if (!(await tx.get(scheduleRef)).exists()) throw new NoFeeScheduleError();
+      for (const { personId } of plan.reusedPersons) {
+        if ((await tx.get(adhesionRef(personId))).exists()) throw new ImportContextChangedError();
+      }
 
       tx.set(batchRef, {
         associationYear: plan.associationYear,
-        source: 'ACR',
+        source: plan.list,
         importedAt: serverTimestamp(),
         importedBy: email.trim().toLowerCase(),
         adhesionCount: plan.adhesions,
@@ -75,10 +93,10 @@ export class FirestoreImportBackend implements ImportBackend {
       for (const row of plan.newPersons) {
         const personRef = doc(collection(db, 'persons'));
         tx.set(personRef, personDocument(row, plan.importId));
-        tx.set(doc(db, 'adhesions', `${plan.associationYear}_${personRef.id}`), adhesionDocument(row, personRef.id, plan));
+        tx.set(adhesionRef(personRef.id), adhesionDocument(row, personRef.id, plan));
       }
       for (const { row, personId } of plan.reusedPersons) {
-        tx.set(doc(db, 'adhesions', `${plan.associationYear}_${personId}`), adhesionDocument(row, personId, plan));
+        tx.set(adhesionRef(personId), adhesionDocument(row, personId, plan));
       }
     });
   }
