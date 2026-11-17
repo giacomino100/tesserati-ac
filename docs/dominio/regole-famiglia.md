@@ -47,5 +47,9 @@ L'export **contiene già i nuclei familiari**:
 - ✅ La fascia dipende **solo dall'anno di nascita**: età = anno associativo − anno di nascita.
 - ✅ Fasce secondo il PDF delle quote: ≤ 5 non previsto · 6–14 ACR · 15–18 Giovanissimi · 19–29 Giovani · ≥ 30 Adulti.
   (Differenza con l'export: l'export mette i trentenni nei GIOVANI, il PDF negli Adulti → vale il PDF.)
-- Alla riconferma l'app ricalcola settore e fascia in automatico? **TODO** (proposta: sì)
-- Si può forzare a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO**
+- ✅ Alla riconferma l'app ricalcola **sempre in automatico** settore e fascia dall'età nel nuovo anno, con le fasce
+  del listino del nuovo anno: ACR (6–14) → elenco ACR; Giovanissimi e Giovani (15–29) → Giovani; Adulti (30+) →
+  Adulti; sotto l'età minima resta ACR con l'avviso "non previsto dal listino". Confermato il 2026-11-17 (specifica 008).
+- ✅ Alla riconferma `Legame` e `N. Legame` si copiano dall'anno precedente, così le famiglie vengono di nuovo
+  suggerite (e vanno riconfermate) nel nuovo anno. Confermato il 2026-11-17 (specifica 008).
+- Si può forzare a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO** (specifica 011)
