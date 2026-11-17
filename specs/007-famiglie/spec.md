@@ -108,11 +108,15 @@ contiene e lui risulta senza famiglia; creare una famiglia con due tesserati sen
 - `Legame` diverso tra componenti con lo stesso `N. Legame` (es. `C3` e `C4`): la famiglia mostra un avviso.
 - Famiglie con 5 o più componenti: si confermano normalmente; il fatto che il listino non le preveda è affare della
   010.
-- Un tesserato della famiglia suggerita è già in un'altra famiglia confermata: non viene proposto due volte; la
-  famiglia suggerita lo mostra come "già nella famiglia di …".
+- Un tesserato con il `N. Legame` di una famiglia suggerita è già in un'altra famiglia confermata: non viene
+  proposto due volte; la famiglia suggerita mostra la nota "VERDI SOFIA è nella famiglia di VERDI PAOLO".
 - "Conferma tutte" conferma tutte le famiglie suggerite con almeno 2 componenti (anche quelle con avviso) e salta le
   altre, dicendo quante e perché ("1 famiglia con un solo componente non confermata").
-- Due persone confermano la stessa famiglia quasi insieme: vale l'ultima conferma; nessuna famiglia duplicata.
+- Due persone confermano la stessa famiglia suggerita quasi insieme: vale la prima conferma; chi conferma dopo vede
+  "Le famiglie sono state modificate da qualcun altro" e la pagina si aggiorna; nessuna famiglia duplicata.
+- Su una famiglia già confermata, due correzioni quasi insieme: vale l'ultima (riconferma della stessa famiglia).
+- "Conferma tutte" con molte famiglie (dati reali: ~45) conferma le famiglie a gruppi; se un gruppo non riesce, le
+  famiglie dei gruppi precedenti restano confermate e il messaggio dice quante sono state confermate.
 - I dati importati (persone, adesioni) non vengono mai modificati da questa sezione.
 - Utente non autorizzato: nessun accesso.
 

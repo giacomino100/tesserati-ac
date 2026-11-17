@@ -15,6 +15,10 @@ Forma dei documenti: [../data-model.md](../data-model.md). Base: `isAllowed()` d
   un'altra famiglia → `MemberInOtherFamilyError`); scrive `families/{id}` (nuovo ID se suggerita/manuale nuova);
   `set` delle appartenenze; `delete` delle appartenenze dei componenti tolti (letti dalla versione precedente).
 - **dissolve(familyId)**: legge la famiglia, cancella famiglia e appartenenze.
+- **Conferma tutte**: una transazione per gruppo di al massimo 8 famiglie (limite di 20 documenti letti dalle regole
+  per richiesta: ogni appartenenza legge la sua famiglia con `getAfter`).
+- **Lettura**: `families where associationYear == Y` e `familyMemberships where associationYear == Y`; l'appartenenza
+  è la fonte di verità (research R8).
 
 ## Test sull'emulatore (`firebase/tests/rules.test.ts`)
 
@@ -30,3 +34,4 @@ Forma dei documenti: [../data-model.md](../data-model.md). Base: `isAllowed()` d
 | J8 | Appartenenza spostata verso una famiglia che non contiene la persona | negato; spostamento da A a B in una sola scrittura (A senza la persona, B con la persona, appartenenza aggiornata): consentito |
 | J9 | Correzione: togliere un componente (update famiglia + delete appartenenza) | consentito; delete dell'appartenenza di una persona ancora nella famiglia: negato |
 | J10 | Scioglimento: delete famiglia + appartenenze | consentito; update che cambia `associationYear`: negato |
+| J11 | 8 famiglie da 2 + 16 appartenenze in una scrittura (un gruppo di "Conferma tutte") | consentito |

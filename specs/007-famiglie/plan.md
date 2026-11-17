@@ -30,8 +30,8 @@ scioglimento sono transazioni; persone e adesioni non vengono mai toccate.
 
 **Project Type**: web application (nuovo `packages/families`, `apps/web`, `firebase/`)
 
-**Performance Goals**: pagina dell'anno in meno di 2 s con ~165 adesioni; "Conferma tutte" (≈ 45 famiglie reali,
-≈ 100 componenti) in un'unica scrittura ≤ 500 operazioni
+**Performance Goals**: pagina dell'anno in meno di 2 s con ~165 adesioni; "Conferma tutte" (≈ 45 famiglie reali)
+a gruppi di 8 famiglie per transazione (limite di 20 documenti letti dalle regole per richiesta)
 
 **Constraints**: nessuna Cloud Function; solo dati finti nei test; nessun nome nei log; persone e adesioni immutabili
 
@@ -100,4 +100,4 @@ le quote); accesso ai dati dietro un'interfaccia come nelle specifiche precedent
 
 | Scelta | Perché serve | Alternativa scartata |
 |---|---|---|
-| Indice `familyMemberships/{anno}_{personId}` | Le regole non possono cercare in tutte le famiglie; l'ID dell'indice rende impossibile due appartenenze nello stesso anno | Controllo solo nell'app (non garantito con due utenti insieme); un documento unico per anno (le regole non possono controllare "almeno 2" per ogni famiglia di una mappa) |
+| Indice `familyMemberships/{anno}_{personId}` (fonte di verità, research R8) | Le regole non possono cercare in tutte le famiglie; l'ID dell'indice rende impossibile due **appartenenze** nello stesso anno, e in lettura conta solo l'appartenenza (i `memberIds` incoerenti sono ignorati e segnalati) | Controllo solo nell'app (non garantito con due utenti insieme); un documento unico per anno (le regole non possono controllare "almeno 2" per ogni famiglia di una mappa) |

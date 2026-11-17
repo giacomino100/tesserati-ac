@@ -15,7 +15,8 @@
   'manuale', bondId?, confirmedAt, confirmedBy }`; `familyMemberships/{anno}_{personId}` = `{ associationYear,
   personId, familyId }`.
 - **Rationale**: un documento per famiglia permette alle regole di controllare "almeno 2 componenti" e chi/quando;
-  l'indice con ID `{anno}_{personId}` garantisce per costruzione una sola famiglia per persona per anno.
+  l'indice con ID `{anno}_{personId}` garantisce una sola **appartenenza** per persona per anno. Le regole non possono
+  però controllare tutte le liste `memberIds`: per questo **l'appartenenza è la fonte di verità** (R8).
 - **Alternatives considered**: campo `familyId` sull'adesione (le adesioni sono immutabili per le regole della 004);
   un documento per anno con tutte le famiglie (regole non verificabili per singola famiglia).
 
@@ -24,9 +25,13 @@
 - **Decision**: `confirm(families[], email)` in una `runTransaction`: per ogni famiglia legge le appartenenze dei
   componenti; se una appartiene a un'altra famiglia → `MemberInOtherFamilyError(personId)`; poi scrive la famiglia
   (nuova o aggiornata), crea/aggiorna le appartenenze dei componenti e cancella quelle dei componenti tolti.
-  `dissolve(familyId)`: transazione che cancella la famiglia e le sue appartenenze. "Conferma tutte" = una sola
-  transazione con tutte le famiglie suggerite valide (≈ 45 famiglie + ≈ 100 appartenenze < 500).
-- **Rationale**: tutto o niente; offline la transazione fallisce invece di restare in coda (come 003–006).
+  `dissolve(familyId)`: transazione che cancella la famiglia e le sue appartenenze. "Conferma tutte" = una
+  transazione **per gruppo di al massimo 8 famiglie**, in sequenza; si ferma al primo gruppo che non riesce e riporta
+  quante famiglie sono state confermate.
+- **Rationale**: ogni famiglia è tutto o niente; offline la transazione fallisce invece di restare in coda (come
+  003–006). I gruppi servono per il limite di Firestore di **20 documenti letti dalle regole per richiesta**: ogni
+  appartenenza legge (`getAfter`) la sua famiglia, quindi 8 famiglie + l'email autorizzata restano sotto il limite;
+  con ~45 famiglie reali in un'unica transazione la richiesta verrebbe rifiutata.
 
 ## R4. Regole
 
@@ -54,9 +59,17 @@
   confermate con lo stesso `N. Legame`), `bondMismatch` se i componenti hanno `Legame` diversi.
 - **Rationale**: `regole-famiglia.md` §0: il numero del `Legame` coincide con i componenti tesserati.
 
+## R8. Fonte di verità: l'appartenenza
+
+- **Decision**: una persona sta nella famiglia indicata dalla sua `familyMemberships/{anno}_{personId}`. In lettura
+  (`suggestFamilies` riceve anche le appartenenze dell'anno) i componenti effettivi di una famiglia sono i suoi
+  `memberIds` che hanno un'appartenenza verso di lei; un `memberIds` senza appartenenza corrispondente è ignorato e la
+  famiglia mostra l'avviso `inconsistent`; le appartenenze verso famiglie inesistenti sono ignorate.
+- **Rationale**: è l'unico dato garantito unico dalle regole (ID); protegge da scritture parziali o da client non
+  aggiornati.
+
 ## R7. Concorrenza
 
-- **Decision**: vale l'ultima conferma (transazione): una famiglia confermata da due persone insieme non si duplica
-  perché la seconda trova le appartenenze già create e, se la famiglia è la stessa (stesso ID), la aggiorna; se
-  sono due famiglie nuove con gli stessi componenti la seconda fallisce con `MemberInOtherFamilyError` e la pagina
-  si ricarica.
+- **Decision**: famiglia suggerita confermata da due persone insieme: vale la **prima**; la seconda trova le
+  appartenenze già create verso un'altra famiglia e fallisce con `MemberInOtherFamilyError`, la pagina si ricarica.
+  Correzioni insieme della stessa famiglia confermata (stesso ID): vale l'ultima.
