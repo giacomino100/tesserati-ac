@@ -23,6 +23,7 @@ type Json = Record<string, unknown>;
 function toValue(v: unknown): Json {
   if (typeof v === 'number') return { integerValue: String(v) };
   if (typeof v === 'string') return { stringValue: v };
+  if (typeof v === 'boolean') return { booleanValue: v };
   if (v instanceof Date) return { timestampValue: v.toISOString() };
   if (Array.isArray(v)) return { arrayValue: { values: v.map(toValue) } };
   return { mapValue: { fields: toFields(v as Json) } };
@@ -84,7 +85,8 @@ describe('FirestoreImportBackend sugli emulatori', () => {
   beforeEach(async () => {
     await signOut(auth);
     await clear();
-    await put(`allowedEmails/${LISTED}`, {});
+    // Dalla 013 l'import è dell'amministratore.
+    await put(`allowedEmails/${LISTED}`, { admin: true });
     await seedSchedule(2026);
     await signInWithCredential(
       auth,

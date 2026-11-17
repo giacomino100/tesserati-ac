@@ -70,7 +70,7 @@ describe('NewMemberForm', () => {
     type('lastName', 'ROSSI');
     type('birthDate', '1965-03-12');
     await settle();
-    expect(el.textContent).not.toContain('usa Riconferme');
+    expect(el.textContent).not.toContain('usa Conferma');
   });
 
   it('errori accanto ai campi', async () => {

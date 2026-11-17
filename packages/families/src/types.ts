@@ -17,6 +17,12 @@ export interface YearMember {
   readonly origin?: 'import' | 'riconferma' | 'nuovo';
   /** L'elenco dell'anno è un'eccezione decisa a mano con nota (specifica 011). */
   readonly exception?: true;
+  /** Nota dell'eccezione (011), solo per mostrarla. */
+  readonly listNote?: string;
+  /** Giorno del pagamento "AAAA-MM-GG" (specifica 013). */
+  readonly paidOn?: string;
+  /** Tolta a mano dalla famiglia: non viene riaggiunta da sola (specifica 013). */
+  readonly familyOptOut?: true;
 }
 
 /** Famiglia confermata da una persona per un anno (regole-famiglia.md §1). */
@@ -235,3 +241,42 @@ export type ListStatus =
   | { readonly kind: 'exception'; readonly expected?: FamilyList }
   /** Senza listino o con data non valida. */
   | { readonly kind: 'unknown' };
+
+/* ---- Specifica 013: elenco unico di Tesserati e famiglia ---- */
+
+export interface MemberYearRow {
+  readonly member: YearMember;
+  readonly status: 'pending' | 'enrolled';
+  /** Solo per chi è da confermare: età, elenco del nuovo anno e avvisi (008). */
+  readonly candidate?: RenewalCandidate;
+  readonly origin?: 'import' | 'riconferma' | 'nuovo';
+  readonly paidOn?: string;
+  readonly familyId?: string;
+  /** Conferma o iscrizione annullabile (riconferma o nuovo, fuori da famiglie). */
+  readonly undoable: boolean;
+}
+
+export interface MemberYearView {
+  readonly rows: readonly MemberYearRow[];
+  readonly pendingCount: number;
+  readonly enrolledCount: number;
+}
+
+export type FamilyUpdate =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'add'; readonly familyId: string; readonly memberIds: readonly string[] }
+  | { readonly kind: 'create'; readonly bondId: string; readonly memberIds: readonly string[] };
+
+export interface FamilyPanelMember {
+  readonly member: YearMember;
+  readonly status: 'pending' | 'enrolled';
+  readonly inFamily: boolean;
+}
+
+export interface FamilyPanel {
+  readonly familyId?: string;
+  readonly bondId?: string;
+  readonly members: readonly FamilyPanelMember[];
+  /** Iscritti dell'anno fuori da famiglie, aggiungibili. */
+  readonly addable: readonly YearMember[];
+}

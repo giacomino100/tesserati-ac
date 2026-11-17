@@ -27,6 +27,13 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/allowedEmails/$(ownEmail()));
     }
 
+    // Amministratore (specifica 013, utenti.md): segno `admin: true` sulla propria email in elenco, messo dalla console.
+    // Stesso documento letto da isAllowed(): nessuna lettura in più.
+    function isAdmin() {
+      return isAllowed()
+        && get(/databases/$(database)/documents/allowedEmails/$(ownEmail())).data.get('admin', false) == true;
+    }
+
     // Elenco delle email autorizzate: l'ID del documento è l'email in minuscolo.
     // Ognuno può leggere solo il proprio documento (per sapere se è in elenco);
     // nessuna scrittura né elenco dall'app: l'elenco si gestisce dalla console.
@@ -157,7 +164,8 @@ service cloud.firestore {
     match /importBatches/{batchId} {
       allow get, list: if isAllowed();
 
-      allow create: if isAllowed()
+      // Dalla 013 l'import è riservato all'amministratore (persone e adesioni importate nascono solo con il segno).
+      allow create: if isAdmin()
         && request.resource.data.keys().hasOnly(['associationYear', 'source', 'importedAt', 'importedBy',
                                                  'adhesionCount', 'newPersonCount', 'skippedRowCount'])
         && request.resource.data.keys().hasAll(['associationYear', 'source', 'importedAt', 'importedBy',
@@ -217,12 +225,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Pagamento (specifica 013): giorno "AAAA-MM-GG" non futuro, registrato da chi salva, adesso.
+    function validPayment(d) {
+      return d.paidOn is string
+        && d.paidOn.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && timestamp.date(int(d.paidOn.split('-')[0]), int(d.paidOn.split('-')[1]), int(d.paidOn.split('-')[2])) <= request.time
+        && d.paidAt == request.time
+        && d.paidBy == ownEmail();
+    }
+
+    // Alla creazione il pagamento è facoltativo, ma tutto o niente.
+    function optionalPayment(d) {
+      return (!('paidOn' in d) && !('paidAt' in d) && !('paidBy' in d)) || validPayment(d);
+    }
+
     // Riconferma (specifica 008, contracts/firestore-renewals.md): adesione dell'anno nuovo di chi aveva
     // un'adesione nell'anno immediatamente precedente; l'anno nuovo deve avere un listino. Le regole leggono
     // 2 documenti (adesione precedente + listino, uguale per tutte): l'app salva a gruppi di 15.
     function validRenewal(d, adhesionId) {
       return d.keys().hasOnly(['personId', 'associationYear', 'origin', 'list', 'sector', 'bond', 'bondId',
-                               'renewedFrom', 'renewedAt', 'renewedBy'])
+                               'renewedFrom', 'renewedAt', 'renewedBy', 'paidOn', 'paidAt', 'paidBy'])
+        && optionalPayment(d)
         && d.keys().hasAll(['personId', 'associationYear', 'origin', 'list', 'sector', 'renewedFrom',
                             'renewedAt', 'renewedBy'])
         && d.origin == 'riconferma'
@@ -243,7 +266,9 @@ service cloud.firestore {
     // Nuovo tesserato (specifica 009): adesione di chi non aveva un'adesione l'anno prima (altrimenti va
     // riconfermato); persona esistente o creata nella stessa scrittura; l'anno deve avere un listino.
     function validNewAdhesion(d, adhesionId) {
-      return d.keys().hasOnly(['personId', 'associationYear', 'origin', 'list', 'sector', 'addedAt', 'addedBy'])
+      return d.keys().hasOnly(['personId', 'associationYear', 'origin', 'list', 'sector', 'addedAt', 'addedBy',
+                               'paidOn', 'paidAt', 'paidBy'])
+        && optionalPayment(d)
         && d.keys().hasAll(['personId', 'associationYear', 'origin', 'list', 'sector', 'addedAt', 'addedBy'])
         && d.origin == 'nuovo'
         && d.associationYear is int
@@ -310,7 +335,14 @@ service cloud.firestore {
         && resource.data.get('origin', '') in ['riconferma', 'nuovo']
         && !exists(/databases/$(database)/documents/familyMemberships/$(adhesionId));
 
-      allow update: if isAllowed() && validListChange(request.resource.data, resource.data);
+      allow update: if isAllowed()
+        && (validListChange(request.resource.data, resource.data)
+            // "Registra pagamento" (013): solo i tre campi del pagamento.
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paidOn', 'paidAt', 'paidBy'])
+                && validPayment(request.resource.data))
+            // Tolta a mano da una famiglia (013): non viene riaggiunta da sola.
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['familyOptOut'])
+                && request.resource.data.familyOptOut is bool));
     }
 
     // ---- Famiglie per anno (specifica 007, contracts/firestore-families.md) ----

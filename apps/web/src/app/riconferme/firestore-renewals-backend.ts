@@ -61,7 +61,7 @@ export class FirestoreRenewalsBackend implements RenewalsBackend {
    * persone del gruppo (una già presente → nulla salvato del gruppo) e poi le crea. Senza connessione fallisce invece
    * di restare in coda.
    */
-  async renew(drafts: readonly RenewalDraft[], email: string): Promise<void> {
+  async renew(drafts: readonly RenewalDraft[], email: string, paidOn?: string): Promise<void> {
     const by = email.trim().toLowerCase();
     let saved = 0;
     for (let i = 0; i < drafts.length; i += RENEWAL_GROUP_SIZE) {
@@ -83,6 +83,8 @@ export class FirestoreRenewalsBackend implements RenewalsBackend {
               renewedFrom: d.associationYear - 1,
               renewedAt: serverTimestamp(),
               renewedBy: by,
+              // Conferma = pagato (specifica 013).
+              ...(paidOn ? { paidOn, paidAt: serverTimestamp(), paidBy: by } : {}),
             });
           });
         });

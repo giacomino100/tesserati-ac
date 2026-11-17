@@ -45,6 +45,10 @@ class FakeBackend implements AuthBackend {
     if (this.allowedError) throw this.allowedError;
     return this.allowed;
   }
+  admin = false;
+  async isAdmin(): Promise<boolean> {
+    return this.admin;
+  }
 }
 
 function setup() {
@@ -224,5 +228,22 @@ describe('AuthService – rifiuto (US2)', () => {
     await vi.waitFor(() => expect(service.state()).toBe('signedOut'));
     await service.revalidate();
     expect(backend.calls).toEqual([]);
+  });
+});
+
+describe('AuthService – amministratore (013)', () => {
+  it('admin vero solo se il backend lo dice', async () => {
+    const { backend, service } = setup();
+    backend.admin = true;
+    backend.emit(sessionUser());
+    await vi.waitFor(() => expect(service.state()).toBe('allowed'));
+    expect(service.admin()).toBe(true);
+  });
+
+  it('utente autorizzato non amministratore', async () => {
+    const { backend, service } = setup();
+    backend.emit(sessionUser());
+    await vi.waitFor(() => expect(service.state()).toBe('allowed'));
+    expect(service.admin()).toBe(false);
   });
 });

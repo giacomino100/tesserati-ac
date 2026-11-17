@@ -3,7 +3,7 @@ import type { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/route
 import { Router, UrlTree, provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { AuthService, type AuthState } from './auth.service';
-import { requireState } from './auth.guard';
+import { requireAdmin, requireState } from './auth.guard';
 
 function setup(initial: AuthState) {
   const state = signal<AuthState>(initial);
@@ -99,5 +99,31 @@ describe('requireState – riverifica a ogni navigazione', () => {
     const { fake, run } = setup('signedOut');
     await run('signedOut', '/accesso');
     expect(fake.revalidate).not.toHaveBeenCalled();
+  });
+});
+
+describe('requireAdmin (013)', () => {
+  async function runAdmin(state: AuthState, admin: boolean) {
+    const fake = {
+      state: signal<AuthState>(state),
+      admin: signal(admin),
+      ready: vi.fn(async () => undefined),
+      revalidate: vi.fn(async () => undefined),
+    };
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: AuthService, useValue: fake }] });
+    const router = TestBed.inject(Router);
+    const route = { queryParamMap: { get: () => null } } as unknown as ActivatedRouteSnapshot;
+    const result = await TestBed.runInInjectionContext(() => requireAdmin(route, { url: '/importa' } as RouterStateSnapshot));
+    return result instanceof UrlTree ? router.serializeUrl(result) : result;
+  }
+
+  it('amministratore → consentito; autorizzato non amministratore → home', async () => {
+    expect(await runAdmin('allowed', true)).toBe(true);
+    TestBed.resetTestingModule();
+    expect(await runAdmin('allowed', false)).toBe('/');
+  });
+
+  it('non entrato → accesso', async () => {
+    expect(await runAdmin('signedOut', false)).toBe('/accesso?returnUrl=%2Fimporta');
   });
 });

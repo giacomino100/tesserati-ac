@@ -43,6 +43,8 @@ export class NewMemberService {
   readonly message = signal<string | null>(null);
   /** Scelta su un possibile doppione: ID della persona ("Stessa persona") o 'new' ("Persona diversa"). */
   readonly choice = signal<string | null>(null);
+  /** Giorno del pagamento "AAAA-MM-GG" scelto nella pagina (specifica 013); vuoto = non registrato. */
+  readonly paidOn = signal('');
   private readonly context = signal<NewMemberContext | null>(null);
 
   private readonly validation = computed(() => validateNewMember(this.fields(), this.year()));
@@ -118,13 +120,12 @@ export class NewMemberService {
           ? `Già in archivio: ultima adesione nel ${labelFor(m.person.lastAdhesion.year)}. Verrà usata questa persona.`
           : 'Già in archivio. Verrà usata questa persona.';
       case 'renewable':
-        return `Ha un'adesione nel ${labelFor(m.previousYear)}: usa Riconferme.`;
+        return `È tra i tesserati del ${labelFor(m.previousYear)}: usa Conferma nell’elenco.`;
       case 'alreadyInYear':
         return this.alreadyText();
     }
   });
 
-  readonly showRenewalsLink = computed(() => this.match()?.kind === 'renewable');
 
   readonly canSave = computed(() => {
     const m = this.match();
@@ -164,10 +165,11 @@ export class NewMemberService {
     const p = this.placement();
     if (!v.ok || !m || !p || !this.canSave()) return false;
     const year = this.year();
+    const paid = this.paidOn() ? { paidOn: this.paidOn() } : {};
     const entry =
       m.kind === 'existing'
-        ? { year, list: p.list, personId: m.person.id }
-        : { year, list: p.list, member: v.member };
+        ? { year, list: p.list, ...paid, personId: m.person.id }
+        : { year, list: p.list, ...paid, member: v.member };
     this.busy.set(true);
     try {
       await this.backend.add(entry, this.auth.user()?.email ?? '');
@@ -178,7 +180,7 @@ export class NewMemberService {
         error instanceof AlreadyEnrolledError
           ? this.alreadyText()
           : error instanceof RenewableError
-            ? `Ha un'adesione nel ${labelFor(year - 1)}: usa Riconferme.`
+            ? `È tra i tesserati del ${labelFor(year - 1)}: usa Conferma nell’elenco.`
             : NEW_MEMBER_MESSAGES.saveFailed,
       );
       return false;

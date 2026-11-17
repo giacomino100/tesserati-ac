@@ -28,6 +28,8 @@ export class AuthService {
 
   readonly state = signal<AuthState>('loading');
   readonly user = signal<SessionUser | null>(null);
+  /** Amministratore: solo lui vede e usa l'import (specifica 013). Le regole lo verificano davvero. */
+  readonly admin = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
   private resolveReady: () => void = () => undefined;
@@ -61,6 +63,7 @@ export class AuthService {
       // l'uscita deve riuscire comunque lato app
     }
     this.user.set(null);
+    this.admin.set(false);
     this.errorMessage.set(null);
     this.setState('signedOut');
   }
@@ -113,6 +116,13 @@ export class AuthService {
       }
     }
     if (allowed) {
+      let admin = false;
+      try {
+        admin = (await this.backend.isAdmin?.(user.email)) ?? false;
+      } catch {
+        // senza risposta: nessuna voce da amministratore (le regole decidono comunque)
+      }
+      this.admin.set(admin);
       this.user.set(user);
       this.setState('allowed');
       return;

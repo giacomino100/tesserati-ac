@@ -42,4 +42,10 @@ export class FirebaseAuthBackend implements AuthBackend {
     const snapshot = await getDoc(doc(db, 'allowedEmails', normalizeEmail(email)));
     return snapshot.exists();
   }
+
+  /** Amministratore (specifica 013): segno `admin: true` messo dalla console sul proprio documento. */
+  async isAdmin(email: string): Promise<boolean> {
+    const snapshot = await getDoc(doc(db, 'allowedEmails', normalizeEmail(email)));
+    return snapshot.exists() && snapshot.data()['admin'] === true;
+  }
 }

@@ -1,34 +1,64 @@
 import { Injectable, Injector, computed, inject, signal } from '@angular/core';
-import type { FeeSchedule } from '@tesseramento/fees';
-import { alignAllPlan, listForAge, listStatus, type ListStatus } from '@tesseramento/families';
-import { listLabel, type AdhesionList } from '@tesseramento/import';
+import { labelFor, type FeeSchedule } from '@tesseramento/fees';
+import {
+  familyAfterConfirm,
+  familyPanel,
+  listStatus,
+  memberYearView,
+  renewalDraft,
+  type ConfirmedFamily,
+  type FamilyPanel,
+  type MemberYearRow,
+  type MemberYearView,
+  type RenewalWarning,
+  type YearMember,
+} from '@tesseramento/families';
+import { listLabel, normalize, type AdhesionList } from '@tesseramento/import';
 import { AuthService } from '../core/auth.service';
-import { MEMBERS_BACKEND, type ListChangeRequest, type MemberRow } from './members-backend';
+import { italianDate } from '../importa/format';
+import { AlreadyRenewedError, RenewalInFamilyError } from '../riconferme/renewals-backend';
+import { TODAY, YEAR_BACKEND } from './year-backend';
 
 export const MEMBERS_MESSAGES = {
   load: 'Impossibile leggere i tesserati. Controlla la connessione e riprova.',
   saveFailed: 'Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.',
+  concurrent: 'Qualcuno ha appena confermato questa persona: elenco aggiornato.',
+  futureDate: 'La data di pagamento non può essere nel futuro.',
+  invalidDate: 'Scegli la data di pagamento.',
+  familyFailed: 'Conferma salvata, ma la famiglia non è stata aggiornata: riprova dal pannello.',
   updated: 'Elenco aggiornato.',
   noteRequired: "Scrivi una nota che spieghi l'eccezione.",
   noteTooLong: 'La nota può avere al massimo 200 caratteri.',
+  undone: 'Conferma annullata.',
+  feeWarning: 'La quota salvata del suo nucleo andrà ricalcolata in Quote.',
 } as const;
 
-const NOTE_MAX = 200;
+export type MemberFilter = 'all' | 'pending' | 'enrolled';
 
-function byName(a: MemberRow, b: MemberRow): number {
-  return a.lastName.localeCompare(b.lastName, 'it') || a.firstName.localeCompare(b.firstName, 'it');
+export interface UndoRequest {
+  readonly personId: string;
+  readonly question: string;
+  readonly feeWarning: string;
 }
 
-const adhesions = (n: number) => (n === 1 ? '1 adesione' : `${n} adesioni`);
+const NOTE_MAX = 200;
+const EMPTY: MemberYearView = { rows: [], pendingCount: 0, enrolledCount: 0 };
+
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const fullName = (m: YearMember) => `${m.lastName} ${m.firstName}`;
 
 /**
- * Tesserati di un anno (FR-019 della 004) con l'elenco rispetto all'età (specifica 011): avvisi, allineamento,
- * eccezioni con nota. Le quote non usano l'elenco e non cambiano.
+ * Tesserati di un anno (specifica 013): un solo elenco con chi è da confermare e chi è iscritto, conferma = pagato,
+ * famiglia aggiornata da sola e correggibile nel pannello, nuovo tesserato, cambio di elenco come azione secondaria.
  */
 @Injectable()
 export class MembersService {
-  private readonly backend = inject(MEMBERS_BACKEND);
+  private readonly backend = inject(YEAR_BACKEND);
   private readonly injector = inject(Injector);
+  private readonly today = inject(TODAY);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -36,44 +66,93 @@ export class MembersService {
   readonly message = signal<string | null>(null);
   readonly years = signal<number[]>([]);
   readonly year = signal(0);
-  private readonly members = signal<MemberRow[]>([]);
-  private readonly schedule = signal<FeeSchedule | undefined>(undefined);
+  readonly paidOn = signal(isoDate(this.today()));
+  readonly filter = signal<MemberFilter>('all');
+  readonly search = signal('');
+  readonly panelPersonId = signal<string | null>(null);
+  readonly undoing = signal<UndoRequest | null>(null);
 
-  // Cambio di elenco in corso.
-  readonly editing = signal<MemberRow | null>(null);
+  // Cambio di elenco (011), azione secondaria.
+  readonly editing = signal<MemberYearRow | null>(null);
   readonly editList = signal<AdhesionList>('ACR');
   readonly editNote = signal('');
   readonly editError = signal<string | null>(null);
-  readonly confirmingAlignAll = signal(false);
 
-  readonly rows = computed(() => [...this.members()].sort(byName));
+  private readonly previous = signal<YearMember[]>([]);
+  private readonly current = signal<YearMember[]>([]);
+  private readonly memberships = signal<Map<string, string>>(new Map());
+  private readonly families = signal<ConfirmedFamily[]>([]);
+  private readonly schedule = signal<FeeSchedule | undefined>(undefined);
 
-  private readonly plan = computed(() =>
-    alignAllPlan(
-      this.rows().map((r) => ({ ...r, ...(this.isException(r) ? { exception: true as const } : {}) })),
-      this.year(),
-      this.schedule(),
-    ),
+  readonly view = computed<MemberYearView>(() =>
+    this.year() === 0
+      ? EMPTY
+      : memberYearView({
+          year: this.year(),
+          previous: this.previous(),
+          current: this.current(),
+          memberships: this.memberships(),
+          ...(this.schedule() ? { schedule: this.schedule() } : {}),
+        }),
   );
 
-  readonly misalignedText = computed(() => {
-    const n = this.plan().length;
-    return n === 0 ? '' : `${adhesions(n)} non ${n === 1 ? 'allineata' : 'allineate'} all’età`;
+  readonly visibleRows = computed(() => {
+    const filter = this.filter();
+    const words = normalize(this.search()).split(' ').filter(Boolean);
+    return this.view().rows.filter((r) => {
+      if (filter !== 'all' && r.status !== filter) return false;
+      const name = normalize(`${r.member.lastName} ${r.member.firstName}`);
+      return words.every((w) => name.includes(w));
+    });
   });
 
-  readonly alignAllQuestion = computed(() => {
-    const n = this.plan().length;
-    return `${adhesions(n)} ${n === 1 ? 'cambierà' : 'cambieranno'} elenco. Confermi?`;
+  readonly countsText = computed(() => {
+    const v = this.view();
+    return `${v.pendingCount} da confermare · ${v.enrolledCount} ${v.enrolledCount === 1 ? 'iscritto' : 'iscritti'}`;
   });
 
+  readonly scheduleMissing = computed(() =>
+    this.year() > 0 && !this.schedule() && this.view().pendingCount > 0
+      ? `Manca il listino ${labelFor(this.year())}. Crealo nella sezione Listini.`
+      : '',
+  );
+
+  readonly panel = computed<FamilyPanel | null>(() => {
+    const id = this.panelPersonId();
+    if (!id) return null;
+    return familyPanel({
+      personId: id,
+      previous: this.previous(),
+      current: this.current(),
+      families: this.families(),
+      memberships: this.memberships(),
+    });
+  });
+
+  readonly panelTitle = computed(() => {
+    const p = this.panel();
+    if (!p) return '';
+    if (!p.familyId && !p.bondId) return 'Nessuna famiglia';
+    return p.bondId ? `Famiglia · N. Legame ${p.bondId}` : 'Famiglia';
+  });
+
+  /**
+   * Anni proposti: ogni anno con tesserati e l'anno dopo (research R7); predefinito l'anno dopo l'ultimo con tesserati
+   * se ha un listino, altrimenti l'ultimo con tesserati.
+   */
   async load(requested?: number): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const years = [...(await this.backend.importedYears())].sort((a, b) => b - a);
+      const withMembers = await this.backend.memberYears();
+      const years = [...new Set(withMembers.flatMap((y) => [y, y + 1]))].sort((a, b) => b - a);
       this.years.set(years);
-      const first = requested !== undefined && years.includes(requested) ? requested : years[0];
-      if (first !== undefined) await this.show(first);
+      let chosen = requested !== undefined && years.includes(requested) ? requested : undefined;
+      if (chosen === undefined && withMembers.length > 0) {
+        const last = Math.max(...withMembers);
+        chosen = (await this.backend.schedule(last + 1)) ? last + 1 : last;
+      }
+      if (chosen !== undefined) await this.show(chosen);
     } catch {
       this.error.set(MEMBERS_MESSAGES.load);
     } finally {
@@ -83,67 +162,254 @@ export class MembersService {
 
   async show(year: number): Promise<void> {
     this.year.set(year);
-    const [members, schedule] = await Promise.all([this.backend.membersOfYear(year), this.backend.schedule(year)]);
-    this.members.set(members);
+    const [previous, current, memberships, families, schedule] = await Promise.all([
+      this.backend.yearMembers(year - 1),
+      this.backend.yearMembers(year),
+      this.backend.memberships(year),
+      this.backend.confirmedFamilies(year),
+      this.backend.schedule(year),
+    ]);
+    this.previous.set(previous);
+    this.current.set(current);
+    this.memberships.set(memberships);
+    this.families.set(families);
     this.schedule.set(schedule);
   }
 
   // ---- Testi (solo a schermo) ----
 
-  isException(r: MemberRow): boolean {
-    return !!r.listChange?.note;
+  rowText(r: MemberYearRow): string {
+    const list = r.status === 'pending' ? r.candidate?.list : r.member.list;
+    const base = `${fullName(r.member)} · ${italianDate(r.member.birthDate)}`;
+    if (!list) return base;
+    const note = r.status === 'enrolled' && r.member.listNote ? ` · eccezione: ${r.member.listNote}` : '';
+    return `${base} · ${listLabel(list)}${note}`;
   }
 
-  status(r: MemberRow): ListStatus {
-    return listStatus({ list: r.list, birthDate: r.birthDate, ...(this.isException(r) ? { exception: true } : {}) }, this.year(), this.schedule());
+  statusText(r: MemberYearRow): string {
+    if (r.status === 'pending') return 'Da confermare';
+    return r.paidOn ? `Pagato il ${italianDate(r.paidOn)}` : 'Pagamento non registrato';
   }
 
-  listText(r: MemberRow): string {
-    const exception = this.isException(r) ? ` · eccezione: ${r.listChange!.note}` : '';
-    const exportSector = r.exportSector && r.exportSector !== r.sector ? ` (export: ${r.exportSector})` : '';
-    return `${listLabel(r.list)}${exception}${exportSector}`;
+  warningTexts(r: MemberYearRow): string[] {
+    if (r.status === 'enrolled') {
+      const s = listStatus(r.member, this.year(), this.schedule());
+      return s.kind === 'misaligned' ? [`Per età: ${listLabel(s.expected)}`] : [];
+    }
+    return (r.candidate?.warnings ?? []).map((w: RenewalWarning) => {
+      switch (w.kind) {
+        case 'listChange':
+          return `Passa da ${listLabel(w.from)} a ${listLabel(w.to)}`;
+        case 'underMinAge':
+          return `Sotto l'età minima del listino (${w.minAge} anni): quota non prevista`;
+        case 'invalidBirthDate':
+          return 'Data di nascita incoerente: non si può confermare';
+        case 'previousException':
+          return `L'anno scorso era un'eccezione: ${listLabel(w.list)}`;
+      }
+    });
   }
 
-  warningText(r: MemberRow): string {
-    const s = this.status(r);
-    return s.kind === 'misaligned' ? `Per età: ${listLabel(s.expected)}` : '';
+  canConfirm(r: MemberYearRow): boolean {
+    return r.status === 'pending' && !!this.schedule() && !!r.candidate?.renewable && !this.busy();
   }
 
-  canAlign(r: MemberRow): boolean {
-    return this.status(r).kind === 'misaligned';
+  canAlign(r: MemberYearRow): boolean {
+    return r.status === 'enrolled' && listStatus(r.member, this.year(), this.schedule()).kind === 'misaligned';
   }
 
-  // ---- Azioni ----
+  // ---- Conferma = pagato ----
 
-  async align(r: MemberRow): Promise<void> {
-    const s = this.status(r);
+  /** Giorno del pagamento valido e non futuro, oppure il messaggio d'errore. */
+  private payment(): string | null {
+    const paidOn = this.paidOn();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) {
+      this.message.set(MEMBERS_MESSAGES.invalidDate);
+      return null;
+    }
+    if (paidOn > isoDate(this.today())) {
+      this.message.set(MEMBERS_MESSAGES.futureDate);
+      return null;
+    }
+    return paidOn;
+  }
+
+  private email(): string {
+    return this.injector.get(AuthService).user()?.email ?? '';
+  }
+
+  /** Conferma = pagato; poi la famiglia si aggiorna da sola e si apre il pannello. True se la conferma è salvata. */
+  async confirm(personId: string): Promise<boolean> {
+    const row = this.view().rows.find((r) => r.member.personId === personId && r.status === 'pending');
+    if (!row?.candidate?.renewable || !this.schedule()) return false;
+    const paidOn = this.payment();
+    if (!paidOn) return false;
+    const year = this.year();
+    this.busy.set(true);
+    this.message.set(null);
+    try {
+      await this.backend.renew([renewalDraft(row.candidate, year)], paidOn, this.email());
+    } catch (error) {
+      this.message.set(error instanceof AlreadyRenewedError ? MEMBERS_MESSAGES.concurrent : MEMBERS_MESSAGES.saveFailed);
+      this.busy.set(false);
+      await this.reload(year);
+      return false;
+    }
+    let message = `Conferma salvata: ${fullName(row.member)}, pagato il ${italianDate(paidOn)}.`;
+    try {
+      await this.reload(year);
+      const family = await this.updateFamilyAfter(personId, year);
+      if (family !== undefined) message += ` Famiglia aggiornata: ${family} componenti.`;
+    } catch {
+      message = MEMBERS_MESSAGES.familyFailed;
+    } finally {
+      this.busy.set(false);
+    }
+    await this.reload(year).catch(() => undefined);
+    const member = this.current().find((m) => m.personId === personId);
+    if (member?.bondId || this.memberships().has(personId)) this.panelPersonId.set(personId);
+    this.message.set(message);
+    return true;
+  }
+
+  /** Aggiornamento automatico della famiglia (chiarimento B); numero di componenti se cambiata. */
+  private async updateFamilyAfter(personId: string, year: number): Promise<number | undefined> {
+    const update = familyAfterConfirm({
+      personId,
+      current: this.current(),
+      families: this.families(),
+      memberships: this.memberships(),
+    });
+    if (update.kind === 'none') return undefined;
+    const existing = update.kind === 'add' ? this.families().find((f) => f.id === update.familyId) : undefined;
+    await this.backend.confirmFamily(
+      {
+        ...(update.kind === 'add' ? { id: update.familyId } : {}),
+        associationYear: year,
+        memberIds: update.memberIds,
+        origin: existing?.origin ?? 'legame',
+        ...((update.kind === 'create' ? update.bondId : existing?.bondId) ? { bondId: update.kind === 'create' ? update.bondId : existing!.bondId! } : {}),
+      },
+      this.email(),
+    );
+    return update.memberIds.length;
+  }
+
+  async registerPayment(personId: string): Promise<void> {
+    const paidOn = this.payment();
+    if (!paidOn) return;
+    await this.run(() => this.backend.registerPayment(this.year(), [personId], paidOn, this.email()), `Pagamento registrato: pagato il ${italianDate(paidOn)}.`);
+  }
+
+  // ---- Annulla conferma ----
+
+  async startUndo(personId: string): Promise<void> {
+    const row = this.view().rows.find((r) => r.member.personId === personId && r.status === 'enrolled' && r.undoable);
+    if (!row) return;
+    let feeWarning = '';
+    try {
+      if (await this.backend.hasSavedFee(this.year(), personId)) feeWarning = MEMBERS_MESSAGES.feeWarning;
+    } catch {
+      // l'annullamento resta possibile: Quote lo segnalerà comunque
+    }
+    this.undoing.set({ personId, question: `Annullare la conferma di ${fullName(row.member)}?`, feeWarning });
+  }
+
+  cancelUndo(): void {
+    this.undoing.set(null);
+  }
+
+  async confirmUndo(): Promise<void> {
+    const request = this.undoing();
+    if (!request) return;
+    this.undoing.set(null);
+    const year = this.year();
+    this.busy.set(true);
+    let message: string = MEMBERS_MESSAGES.undone;
+    try {
+      await this.backend.undo(year, request.personId);
+    } catch (error) {
+      message =
+        error instanceof RenewalInFamilyError
+          ? `Prima togli questa persona dalla famiglia del ${labelFor(year)}.`
+          : MEMBERS_MESSAGES.saveFailed;
+    } finally {
+      this.busy.set(false);
+    }
+    await this.reload(year).catch(() => undefined);
+    if (this.panelPersonId() === request.personId) this.panelPersonId.set(null);
+    this.message.set(message);
+  }
+
+  // ---- Pannello famiglia ----
+
+  openPanel(personId: string): void {
+    this.panelPersonId.set(personId);
+  }
+
+  closePanel(): void {
+    this.panelPersonId.set(null);
+  }
+
+  /** Toglie una persona dalla sua famiglia (sciolta se resta 1) e la segna per non riaggiungerla da sola. */
+  async removeFromFamily(personId: string): Promise<void> {
+    const familyId = this.memberships().get(personId);
+    const family = this.families().find((f) => f.id === familyId);
+    if (!family) return;
+    const remaining = family.memberIds.filter((id) => id !== personId && this.memberships().get(id) === family.id);
+    const year = this.year();
+    await this.run(async () => {
+      if (remaining.length < 2) await this.backend.dissolveFamily(family.id);
+      else
+        await this.backend.confirmFamily(
+          { id: family.id, associationYear: year, memberIds: remaining, origin: family.origin, ...(family.bondId ? { bondId: family.bondId } : {}) },
+          this.email(),
+        );
+      await this.backend.setFamilyOptOut(year, personId, true);
+    }, remaining.length < 2 ? 'Famiglia sciolta.' : `Famiglia aggiornata: ${remaining.length} componenti.`);
+  }
+
+  /** Aggiunge un iscritto alla famiglia del pannello, o crea la famiglia con la persona del pannello. */
+  async addToFamily(personId: string): Promise<void> {
+    const panel = this.panel();
+    const owner = this.panelPersonId();
+    if (!panel || !owner) return;
+    const year = this.year();
+    const family = this.families().find((f) => f.id === panel.familyId);
+    const members = family
+      ? [...family.memberIds.filter((id) => this.memberships().get(id) === family.id), personId]
+      : [owner, personId];
+    const added = this.current().find((m) => m.personId === personId);
+    await this.run(async () => {
+      await this.backend.confirmFamily(
+        {
+          ...(family ? { id: family.id } : {}),
+          associationYear: year,
+          memberIds: members,
+          origin: family?.origin ?? (panel.bondId ? 'legame' : 'manuale'),
+          ...((family?.bondId ?? panel.bondId) ? { bondId: (family?.bondId ?? panel.bondId)! } : {}),
+        },
+        this.email(),
+      );
+      if (added?.familyOptOut) await this.backend.setFamilyOptOut(year, personId, false);
+    }, `Famiglia aggiornata: ${members.length} componenti.`);
+  }
+
+  // ---- Cambio di elenco (011), azione secondaria ----
+
+  async align(r: MemberYearRow): Promise<void> {
+    const s = listStatus(r.member, this.year(), this.schedule());
     if (s.kind !== 'misaligned') return;
-    await this.apply([{ adhesionId: r.adhesionId, to: s.expected }], MEMBERS_MESSAGES.updated);
-  }
-
-  askAlignAll(): void {
-    if (this.plan().length > 0) this.confirmingAlignAll.set(true);
-  }
-
-  cancelAlignAll(): void {
-    this.confirmingAlignAll.set(false);
-  }
-
-  async alignAll(): Promise<void> {
-    this.confirmingAlignAll.set(false);
-    const plan = this.plan();
-    if (plan.length === 0) return;
-    const n = plan.length;
-    await this.apply(
-      plan.map((p) => ({ adhesionId: p.row.adhesionId, to: p.to })),
-      `${adhesions(n)} ${n === 1 ? 'allineata' : 'allineate'} all’età.`,
+    await this.run(
+      () => this.backend.changeList([{ adhesionId: `${this.year()}_${r.member.personId}`, to: s.expected }], this.email()),
+      MEMBERS_MESSAGES.updated,
     );
   }
 
-  startEdit(r: MemberRow): void {
+  startEdit(r: MemberYearRow): void {
     this.editing.set(r);
-    this.editList.set(r.list);
-    this.editNote.set(r.listChange?.note ?? '');
+    this.editList.set(r.member.list);
+    this.editNote.set(r.member.listNote ?? '');
     this.editError.set(null);
   }
 
@@ -152,7 +418,6 @@ export class MembersService {
     this.editError.set(null);
   }
 
-  /** Eccezione con nota obbligatoria (1–200 caratteri dopo il trim); true se salvata. */
   async saveEdit(): Promise<boolean> {
     const r = this.editing();
     if (!r) return false;
@@ -165,42 +430,35 @@ export class MembersService {
       this.editError.set(MEMBERS_MESSAGES.noteTooLong);
       return false;
     }
-    this.editError.set(null);
-    const ok = await this.apply([{ adhesionId: r.adhesionId, to: this.editList(), note }], MEMBERS_MESSAGES.updated);
+    const ok = await this.run(
+      () => this.backend.changeList([{ adhesionId: `${this.year()}_${r.member.personId}`, to: this.editList(), note }], this.email()),
+      MEMBERS_MESSAGES.updated,
+    );
     if (ok) this.editing.set(null);
     return ok;
   }
 
-  /** Con il listino torna all'elenco per età; senza, all'elenco di prima dell'eccezione. */
-  async removeException(r: MemberRow): Promise<void> {
-    if (!this.isException(r)) return;
-    const schedule = this.schedule();
-    const to = (schedule ? listForAge(r.birthDate, this.year(), schedule) : undefined) ?? r.listChange!.from;
-    await this.apply([{ adhesionId: r.adhesionId, to }], MEMBERS_MESSAGES.updated);
+  // ---- Comuni ----
+
+  private async reload(year: number): Promise<void> {
+    await this.show(year);
   }
 
-  private async apply(changes: ListChangeRequest[], success: string): Promise<boolean> {
+  private async run(work: () => Promise<void>, success: string): Promise<boolean> {
     const year = this.year();
-    const email = this.injector.get(AuthService).user()?.email ?? '';
     this.busy.set(true);
     this.message.set(null);
     let ok = false;
     try {
-      await this.backend.changeList(changes, email);
+      await work();
       ok = true;
     } catch {
       this.message.set(MEMBERS_MESSAGES.saveFailed);
     } finally {
       this.busy.set(false);
     }
-    if (ok) {
-      try {
-        await this.show(year);
-        this.message.set(success);
-      } catch {
-        this.error.set(MEMBERS_MESSAGES.load);
-      }
-    }
+    await this.reload(year).catch(() => this.error.set(MEMBERS_MESSAGES.load));
+    if (ok) this.message.set(success);
     return ok;
   }
 }

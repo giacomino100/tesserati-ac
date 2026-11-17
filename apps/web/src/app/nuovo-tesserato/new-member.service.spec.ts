@@ -15,6 +15,8 @@ async function setup(backend = newMemberFixture(), year = 2026) {
   });
   const service = TestBed.inject(NewMemberService);
   await service.open(year);
+  // 013: l'iscrizione vale come pagamento, con la data scelta nella pagina.
+  service.paidOn.set('2026-11-17');
   return { service, backend };
 }
 
@@ -32,7 +34,7 @@ describe('NewMemberService – iscrivere (US1)', () => {
     expect(await service.save()).toBe(true);
     expect(service.message()).toBe('Iscrizione salvata: BIANCO LUCA nel 2026/27.');
     expect(backend.added).toEqual([
-      { year: 2026, list: 'ACR', member: expect.objectContaining({ lastName: 'BIANCO', firstName: 'LUCA', birthDate: '2019-05-10' }) },
+      { year: 2026, list: 'ACR', paidOn: '2026-11-17', member: expect.objectContaining({ lastName: 'BIANCO', firstName: 'LUCA', birthDate: '2019-05-10' }) },
     ]);
   });
 
@@ -79,7 +81,7 @@ describe('NewMemberService – non duplicare (US2)', () => {
     fill(service, { lastName: 'VERDI', firstName: 'PAOLO', birthDate: '1980-01-20' });
     expect(service.statusText()).toBe('Già in archivio: ultima adesione nel 2023/24. Verrà usata questa persona.');
     expect(await service.save()).toBe(true);
-    expect(backend.added).toEqual([{ year: 2026, list: 'ADULTI', personId: 'verdi' }]);
+    expect(backend.added).toEqual([{ year: 2026, list: 'ADULTI', paidOn: '2026-11-17', personId: 'verdi' }]);
   });
 
   it('stesso codice fiscale con un altro nome', async () => {
@@ -106,8 +108,7 @@ describe('NewMemberService – non duplicare (US2)', () => {
   it('adesione nell’anno precedente: rimando a Riconferme', async () => {
     const { service } = await setup(newMemberFixture(), 2026);
     fill(service, { lastName: 'NERI', firstName: 'ANNA', birthDate: '1982-11-05' });
-    expect(service.statusText()).toBe("Ha un'adesione nel 2025/26: usa Riconferme.");
-    expect(service.showRenewalsLink()).toBe(true);
+    expect(service.statusText()).toBe('È tra i tesserati del 2025/26: usa Conferma nell’elenco.');
     expect(service.canSave()).toBe(false);
   });
 

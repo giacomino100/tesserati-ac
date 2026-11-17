@@ -14,10 +14,10 @@ export interface NewMemberContext {
   readonly schedule?: FeeSchedule;
 }
 
-/** Iscrizione: persona nuova (`member`) oppure persona già in archivio (`personId`). */
+/** Iscrizione: persona nuova (`member`) oppure persona già in archivio (`personId`); `paidOn` = giorno del pagamento (013). */
 export type NewMemberEntry =
-  | { readonly year: number; readonly list: FamilyList; readonly member: NewMember }
-  | { readonly year: number; readonly list: FamilyList; readonly personId: string };
+  | { readonly year: number; readonly list: FamilyList; readonly paidOn?: string; readonly member: NewMember }
+  | { readonly year: number; readonly list: FamilyList; readonly paidOn?: string; readonly personId: string };
 
 /** La persona ha già un'adesione nell'anno (anche se iscritta nel frattempo da un altro utente). */
 export class AlreadyEnrolledError extends Error {

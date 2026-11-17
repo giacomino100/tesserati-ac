@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { requireState } from './core/auth.guard';
+import { requireAdmin, requireState } from './core/auth.guard';
 import { unsavedChangesGuard } from './listini/unsaved-changes.guard';
 
 export const routes: Routes = [
@@ -38,7 +38,7 @@ export const routes: Routes = [
   },
   {
     path: 'importa',
-    canActivate: [requireState('allowed')],
+    canActivate: [requireAdmin],
     canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./importa/pages/import/import-page').then((m) => m.ImportPage),
   },
@@ -59,10 +59,7 @@ export const routes: Routes = [
     canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./quote/pages/fees/fees-page').then((m) => m.FeesPage),
   },
-  {
-    path: 'riconferme',
-    canActivate: [requireState('allowed')],
-    loadComponent: () => import('./riconferme/pages/renewals/renewals-page').then((m) => m.RenewalsPage),
-  },
+  // La pagina Riconferme è confluita in Tesserati (specifica 013).
+  { path: 'riconferme', redirectTo: 'tesserati' },
   { path: '**', redirectTo: '' },
 ];

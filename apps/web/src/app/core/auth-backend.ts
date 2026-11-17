@@ -19,6 +19,8 @@ export interface AuthBackend {
   deleteCurrentUser(): Promise<void>;
   /** True se `allowedEmails/<email in minuscolo>` esiste. Può fallire con `permission-denied`. */
   isEmailAllowed(email: string): Promise<boolean>;
+  /** True se il documento dell'email ha `admin: true` (specifica 013); assente = nessun amministratore. */
+  isAdmin?(email: string): Promise<boolean>;
 }
 
 export const AUTH_BACKEND = new InjectionToken<AuthBackend>('AUTH_BACKEND');

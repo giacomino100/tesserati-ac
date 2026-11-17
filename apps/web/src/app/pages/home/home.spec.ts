@@ -5,8 +5,9 @@ import { AuthService } from '../../core/auth.service';
 import { Home } from './home';
 
 describe('Home', () => {
-  function setup() {
+  function setup(admin = false) {
     const fake = {
+      admin: signal(admin),
       user: signal({ displayName: 'Utente Prova', email: 'x@example.org', emailVerified: true, lastSignInTime: undefined }),
       signOut: vi.fn(async () => undefined),
     };
@@ -29,7 +30,7 @@ describe('Home', () => {
   });
 
   it('ha il collegamento "Importa Excel"', () => {
-    const link = setup().el.querySelector('a[href="/importa"]');
+    const link = setup(true).el.querySelector('a[href="/importa"]');
     expect(link?.textContent).toContain('Importa Excel');
   });
 
@@ -43,11 +44,6 @@ describe('Home', () => {
     expect(link?.textContent).toContain('Famiglie');
   });
 
-  it('ha il collegamento "Riconferme"', () => {
-    const link = setup().el.querySelector('a[href="/riconferme"]');
-    expect(link?.textContent).toContain('Riconferme');
-  });
-
   it('ha il collegamento "Quote"', () => {
     const link = setup().el.querySelector('a[href="/quote"]');
     expect(link?.textContent).toContain('Quote');
@@ -59,5 +55,13 @@ describe('Home', () => {
     expect(button).toBeTruthy();
     button?.click();
     expect(fake.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('013: "Importa Excel" solo per l’amministratore; niente Riconferme', () => {
+    expect(setup(false).el.querySelector('a[href="/importa"]')).toBeNull();
+    TestBed.resetTestingModule();
+    const el = setup(true).el;
+    expect(el.querySelector('a[href="/importa"]')?.textContent).toContain('Importa Excel');
+    expect(el.querySelector('a[href="/riconferme"]')).toBeNull();
   });
 });

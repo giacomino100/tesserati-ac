@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { type CanActivateFn, Router } from '@angular/router';
+import { type CanActivateFn, Router, type UrlTree } from '@angular/router';
 import { AuthService, type AuthState } from './auth.service';
 
 /** Solo percorsi interni dell'app: niente indirizzi esterni (open redirect). */
@@ -32,4 +32,14 @@ export const requireState = (required: AuthState | 'allowed'): CanActivateFn => 
         queryParams: required === 'allowed' ? { returnUrl: state.url || '/' } : {},
       });
   }
+};
+
+/** Solo l'amministratore (specifica 013): gli altri utenti autorizzati tornano alla home. */
+export const requireAdmin: CanActivateFn = async (route, state) => {
+  // Le iniezioni prima di qualsiasi await (contesto di iniezione).
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const allowed = (await requireState('allowed')(route, state)) as boolean | UrlTree;
+  if (allowed !== true) return allowed;
+  return auth.admin() ? true : router.parseUrl('/');
 };

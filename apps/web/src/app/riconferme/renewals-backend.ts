@@ -47,7 +47,7 @@ export interface RenewalsBackend {
    * Crea le adesioni a gruppi di 15 (research R5). Lancia `AlreadyRenewedError` o `PartialRenewalError`;
    * qualsiasi altro errore = nulla salvato.
    */
-  renew(drafts: readonly RenewalDraft[], email: string): Promise<void>;
+  renew(drafts: readonly RenewalDraft[], email: string, paidOn?: string): Promise<void>;
   /** Cancella l'adesione riconfermata; `RenewalInFamilyError` se la persona è in una famiglia dell'anno. */
   undo(year: number, personId: string): Promise<void>;
   /** Esiste una quota salvata del nucleo da 1 della persona (specifica 010)? */

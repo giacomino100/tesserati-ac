@@ -1,15 +1,16 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../core/auth.service';
-import { MEMBERS_BACKEND } from './members-backend';
 import { MembersService, MEMBERS_MESSAGES } from './members.service';
-import { membersFixture } from './testing';
+import { yearFixture } from './testing';
+import { TODAY, YEAR_BACKEND } from './year-backend';
 
-async function setup(backend = membersFixture(), year?: number) {
+async function setup(backend = yearFixture(), year?: number) {
   TestBed.configureTestingModule({
     providers: [
       MembersService,
-      { provide: MEMBERS_BACKEND, useValue: backend },
+      { provide: YEAR_BACKEND, useValue: backend },
+      { provide: TODAY, useValue: () => new Date(2026, 10, 17, 12) },
       { provide: AuthService, useValue: { user: signal({ email: 'Segreteria@Example.org' }) } },
     ],
   });
@@ -18,101 +19,150 @@ async function setup(backend = membersFixture(), year?: number) {
   return { service, backend };
 }
 
-const row = (service: MembersService, lastName: string, firstName: string) =>
-  service.rows().find((r) => r.lastName === lastName && r.firstName === firstName)!;
+const row = (service: MembersService, id: string) => service.view().rows.find((r) => r.member.personId === id)!;
 
-describe('MembersService – non allineate (US1)', () => {
-  it('conteggio, elenco e avviso per età', async () => {
+describe('MembersService – elenco unico (US1)', () => {
+  it('anno dopo l’ultimo con tesserati, conteggi, righe da confermare', async () => {
     const { service } = await setup();
-    expect(service.misalignedText()).toBe('2 adesioni non allineate all’età');
-    const elena = row(service, 'ROSSI', 'ELENA');
-    expect(service.listText(elena)).toBe('Giovani');
-    expect(service.warningText(elena)).toBe('Per età: Adulti');
-    expect(service.warningText(row(service, 'MORETTI', 'CARLA'))).toBe('');
+    expect(service.years()).toEqual([2027, 2026]);
+    expect(service.year()).toBe(2027);
+    expect(service.paidOn()).toBe('2026-11-17');
+    expect(service.countsText()).toBe('7 da confermare · 0 iscritti');
+    expect(service.rowText(row(service, 'gallo-t'))).toBe('GALLO TOMMASO · 01/09/2014 · ACR');
+    expect(service.statusText(row(service, 'gallo-t'))).toBe('Da confermare');
+    expect(service.warningTexts(row(service, 'rinaldi'))).toEqual(['Passa da ACR a Giovani']);
   });
 
-  it('senza listino: nessun avviso, nessun allineamento', async () => {
-    const backend = membersFixture();
-    backend.schedules.clear();
+  it('filtro e ricerca', async () => {
+    const { service } = await setup();
+    service.search.set('gallo');
+    expect(service.visibleRows().map((r) => r.member.personId)).toEqual(['gallo-g', 'gallo-l', 'gallo-t']);
+    service.search.set('');
+    await service.confirm('moretti');
+    service.filter.set('enrolled');
+    expect(service.visibleRows().map((r) => r.member.personId)).toEqual(['moretti']);
+    service.filter.set('pending');
+    expect(service.visibleRows()).toHaveLength(6);
+  });
+
+  it('Conferma = pagato con la data scelta', async () => {
+    const { service, backend } = await setup();
+    expect(await service.confirm('moretti')).toBe(true);
+    expect(service.message()).toBe('Conferma salvata: MORETTI CARLA, pagato il 17/11/2026.');
+    expect(service.countsText()).toBe('6 da confermare · 1 iscritto');
+    expect(service.statusText(row(service, 'moretti'))).toBe('Pagato il 17/11/2026');
+    expect(backend.members.get(2027)![0]).toMatchObject({ personId: 'moretti', list: 'ADULTI', paidOn: '2026-11-17' });
+    expect(service.panel()).toBeNull();
+  });
+
+  it('data di pagamento futura: nulla salvato', async () => {
+    const { service, backend } = await setup();
+    service.paidOn.set('2026-11-18');
+    expect(await service.confirm('moretti')).toBe(false);
+    expect(service.message()).toBe('La data di pagamento non può essere nel futuro.');
+    expect(backend.calls).toEqual([]);
+  });
+
+  it('errori: rete, già confermata da altri, senza listino', async () => {
+    const backend = yearFixture();
     const { service } = await setup(backend);
-    expect(service.misalignedText()).toBe('');
-    expect(service.warningText(row(service, 'ROSSI', 'ELENA'))).toBe('');
-    expect(service.canAlign(row(service, 'ROSSI', 'ELENA'))).toBe(false);
-  });
-});
-
-describe('MembersService – allineare (US2)', () => {
-  it('allinea una riga: elenco per età, elenco di prima e settore dell’export conservati', async () => {
-    const { service, backend } = await setup();
-    await service.align(row(service, 'ROSSI', 'ELENA'));
-    expect(service.message()).toBe('Elenco aggiornato.');
-    const elena = row(service, 'ROSSI', 'ELENA');
-    expect(elena).toMatchObject({ list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI' });
-    expect(elena.listChange).toMatchObject({ from: 'GIOVANI', by: 'segreteria@example.org' });
-    expect(service.listText(elena)).toBe('Adulti (export: GIOVANI)');
-    expect(service.misalignedText()).toBe('1 adesione non allineata all’età');
-    expect(backend.calls).toEqual(['change:1']);
-  });
-
-  it('Allinea tutte con conferma, escluse le eccezioni', async () => {
-    const { service, backend } = await setup();
-    service.startEdit(row(service, 'GRECO', 'NICOLO'));
-    service.editList.set('ACR');
-    service.editNote.set('resta in ACR un anno in più');
-    await service.saveEdit();
-    service.askAlignAll();
-    expect(service.alignAllQuestion()).toBe('2 adesioni cambieranno elenco. Confermi?');
-    await service.alignAll();
-    expect(service.message()).toBe('2 adesioni allineate all’età.');
-    expect(service.misalignedText()).toBe('');
-    expect(row(service, 'GRECO', 'NICOLO').list).toBe('ACR');
-    expect(backend.calls).toEqual(['change:1', 'change:2']);
-  });
-
-  it('errore di rete: nulla cambia', async () => {
-    const { service, backend } = await setup();
     backend.failWith = new Error('offline');
-    await service.align(row(service, 'ROSSI', 'ELENA'));
+    await service.confirm('moretti');
     expect(service.message()).toBe(MEMBERS_MESSAGES.saveFailed);
-    expect(row(service, 'ROSSI', 'ELENA').list).toBe('GIOVANI');
-  });
-});
+    backend.failWith = undefined;
+    backend.members.set(2027, [{ ...backend.members.get(2026)![4]!, origin: 'riconferma' }]);
+    await service.confirm('moretti');
+    expect(service.message()).toBe(MEMBERS_MESSAGES.concurrent);
+    expect(service.countsText()).toBe('6 da confermare · 1 iscritto');
 
-describe('MembersService – eccezione (US3)', () => {
-  it('nota obbligatoria, al massimo 200 caratteri; riga con l’eccezione', async () => {
-    const { service } = await setup();
-    service.startEdit(row(service, 'GRECO', 'NICOLO'));
-    service.editList.set('ACR');
-    expect(await service.saveEdit()).toBe(false);
-    expect(service.editError()).toBe("Scrivi una nota che spieghi l'eccezione.");
-    service.editNote.set('x'.repeat(201));
-    expect(await service.saveEdit()).toBe(false);
-    expect(service.editError()).toBe('La nota può avere al massimo 200 caratteri.');
-    service.editNote.set('  resta in ACR un anno in più ');
-    expect(await service.saveEdit()).toBe(true);
-    const greco = row(service, 'GRECO', 'NICOLO');
-    expect(service.listText(greco)).toBe('ACR · eccezione: resta in ACR un anno in più (export: GIOVANI)');
-    expect(service.warningText(greco)).toBe('');
-    expect(service.isException(greco)).toBe(true);
-  });
-
-  it('togli eccezione: con listino torna all’elenco per età, senza listino a quello di prima', async () => {
-    const { service, backend } = await setup();
-    service.startEdit(row(service, 'GRECO', 'NICOLO'));
-    service.editList.set('ACR');
-    service.editNote.set('resta in ACR');
-    await service.saveEdit();
-    await service.removeException(row(service, 'GRECO', 'NICOLO'));
-    expect(row(service, 'GRECO', 'NICOLO').list).toBe('GIOVANI');
-    expect(service.isException(row(service, 'GRECO', 'NICOLO'))).toBe(false);
-
-    service.startEdit(row(service, 'GRECO', 'NICOLO'));
-    service.editList.set('ADULTI');
-    service.editNote.set('prova');
-    await service.saveEdit();
     backend.schedules.clear();
-    await service.load(2026);
-    await service.removeException(row(service, 'GRECO', 'NICOLO'));
-    expect(row(service, 'GRECO', 'NICOLO').list).toBe('GIOVANI');
+    await service.load(2027);
+    expect(service.scheduleMissing()).toBe('Manca il listino 2027/28. Crealo nella sezione Listini.');
+    expect(service.canConfirm(row(service, 'rinaldi'))).toBe(false);
+  });
+
+  it('Annulla conferma e Registra pagamento', async () => {
+    const { service, backend } = await setup();
+    await service.confirm('moretti');
+    await service.startUndo('moretti');
+    expect(service.undoing()?.question).toBe('Annullare la conferma di MORETTI CARLA?');
+    await service.confirmUndo();
+    expect(service.countsText()).toBe('7 da confermare · 0 iscritti');
+
+    backend.members.set(2027, [{ ...backend.members.get(2026)![4]!, origin: 'riconferma' }]);
+    await service.load(2027);
+    expect(service.statusText(row(service, 'moretti'))).toBe('Pagamento non registrato');
+    await service.registerPayment('moretti');
+    expect(service.statusText(row(service, 'moretti'))).toBe('Pagato il 17/11/2026');
   });
 });
+
+describe('MembersService – famiglia (US2)', () => {
+  async function confirmGallo() {
+    const s = await setup();
+    await s.service.confirm('gallo-l');
+    return s;
+  }
+  const states = (service: MembersService) =>
+    service.panel()!.members.map((m) => [m.member.personId, m.status, m.inFamily]);
+
+  it('il pannello si apre con i 4 componenti del N. Legame', async () => {
+    const { service } = await confirmGallo();
+    expect(service.panelTitle()).toBe('Famiglia · N. Legame 900003');
+    expect(states(service)).toEqual([
+      ['gallo-l', 'enrolled', false],
+      ['conti', 'pending', false],
+      ['gallo-t', 'pending', false],
+      ['gallo-g', 'pending', false],
+    ]);
+  });
+
+  it('seconda conferma: la famiglia nasce; terza: si aggiunge', async () => {
+    const { service, backend } = await confirmGallo();
+    await service.confirm('conti');
+    expect(service.message()).toBe('Conferma salvata: CONTI MARTA, pagato il 17/11/2026. Famiglia aggiornata: 2 componenti.');
+    expect(backend.families[0]).toMatchObject({ memberIds: ['gallo-l', 'conti'], bondId: '900003', origin: 'legame' });
+    await service.confirm('gallo-t');
+    expect(backend.families[0]!.memberIds).toEqual(['gallo-l', 'conti', 'gallo-t']);
+    expect(states(service).filter(([, , inFamily]) => inFamily)).toHaveLength(3);
+  });
+
+  it('Togli: non viene riaggiunta; la famiglia resta con gli altri', async () => {
+    const { service, backend } = await confirmGallo();
+    await service.confirm('conti');
+    await service.confirm('gallo-t');
+    await service.removeFromFamily('gallo-t');
+    expect(backend.families[0]!.memberIds).toEqual(['gallo-l', 'conti']);
+    expect(backend.calls).toContain('optOut:gallo-t:true');
+    await service.confirm('gallo-g');
+    expect(backend.families[0]!.memberIds).toEqual(['gallo-l', 'conti', 'gallo-g']);
+  });
+
+  it('Togli da una famiglia di 2: la famiglia si scioglie', async () => {
+    const { service, backend } = await confirmGallo();
+    await service.confirm('conti');
+    await service.removeFromFamily('conti');
+    expect(backend.families).toEqual([]);
+  });
+
+  it('Aggiungi un tesserato e Crea famiglia', async () => {
+    const { service, backend } = await setup();
+    await service.confirm('moretti');
+    await service.confirm('rinaldi');
+    service.openPanel('moretti');
+    expect(service.panelTitle()).toBe('Nessuna famiglia');
+    expect(service.panel()!.addable.map((m) => m.personId)).toEqual(['rinaldi']);
+    await service.addToFamily('rinaldi');
+    expect(backend.families[0]).toMatchObject({ memberIds: ['moretti', 'rinaldi'], origin: 'manuale' });
+    expect(service.message()).toBe('Famiglia aggiornata: 2 componenti.');
+  });
+
+  it('famiglia non salvata: la conferma resta', async () => {
+    const { service, backend } = await confirmGallo();
+    backend.failFamilyWith = new Error('offline');
+    await service.confirm('conti');
+    expect(service.message()).toBe('Conferma salvata, ma la famiglia non è stata aggiornata: riprova dal pannello.');
+    expect(service.countsText()).toBe('5 da confermare · 2 iscritti');
+  });
+});
+

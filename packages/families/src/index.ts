@@ -16,6 +16,11 @@ export type {
   FamilyList,
   FamilyWarning,
   ListStatus,
+  FamilyPanel,
+  FamilyPanelMember,
+  FamilyUpdate,
+  MemberYearRow,
+  MemberYearView,
   ProposedAddition,
   RenewalCandidate,
   RenewalDraft,
@@ -34,3 +39,4 @@ export { householdsOfYear } from './households';
 export { compareWithSaved, householdFees, toSavedCalculated, yearTotals } from './household-fees';
 export { renewalDraft, renewalView, type RenewalInput } from './renewals';
 export { alignAllPlan, listForAge, listForBand, listStatus } from './categories';
+export { familyAfterConfirm, familyPanel, memberYearView, type MemberYearInput } from './members-view';

@@ -94,6 +94,7 @@ export class FirestoreNewMemberBackend implements NewMemberBackend {
         sector: sectorOf(entry.list),
         addedAt: serverTimestamp(),
         addedBy: by,
+        ...(entry.paidOn ? { paidOn: entry.paidOn, paidAt: serverTimestamp(), paidBy: by } : {}),
       });
     });
   }

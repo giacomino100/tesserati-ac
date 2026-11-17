@@ -52,7 +52,7 @@ export class FakeRenewalsBackend implements RenewalsBackend {
     return new Map([...this.info].filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v]));
   }
 
-  async renew(drafts: readonly RenewalDraft[], email: string): Promise<void> {
+  async renew(drafts: readonly RenewalDraft[], email: string, paidOn?: string): Promise<void> {
     let saved = 0;
     for (let i = 0, group = 1; i < drafts.length; i += RENEWAL_GROUP_SIZE, group++) {
       const chunk = drafts.slice(i, i + RENEWAL_GROUP_SIZE);
@@ -69,7 +69,7 @@ export class FakeRenewalsBackend implements RenewalsBackend {
         for (const d of chunk) {
           const before = (this.members.get(previousYear) ?? []).find((m) => m.personId === d.personId)!;
           const list = this.members.get(d.associationYear) ?? [];
-          list.push({ ...before, list: d.list, origin: 'riconferma' });
+          list.push({ ...before, list: d.list, origin: 'riconferma', ...(paidOn ? { paidOn } : {}) });
           this.members.set(d.associationYear, list);
           this.info.set(`${d.associationYear}_${d.personId}`, {
             renewedAt: new Date('2026-11-17T10:00:00Z'),

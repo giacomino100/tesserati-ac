@@ -64,9 +64,6 @@ import { NewMemberService } from './new-member.service';
       @if (service.statusText(); as status) {
         <p role="status">
           {{ status }}
-          @if (service.showRenewalsLink()) {
-            <a routerLink="/riconferme" [queryParams]="{ anno: service.year() }">Riconferme</a>
-          }
         </p>
       }
       @if (service.candidateTexts().length > 0 && service.choice() === null) {
@@ -139,6 +136,8 @@ export class NewMemberForm {
   private readonly pendingTasks = inject(PendingTasks);
 
   readonly year = input.required<number>();
+  /** Giorno del pagamento (specifica 013): l'iscrizione vale come pagamento. */
+  readonly paidOn = input('');
   /** Messaggio di iscrizione riuscita. */
   readonly saved = output<string>();
   readonly closed = output<void>();
@@ -150,6 +149,7 @@ export class NewMemberForm {
       const year = this.year();
       this.pendingTasks.run(() => this.service.open(year));
     });
+    effect(() => this.service.paidOn.set(this.paidOn()));
   }
 
   protected on(field: keyof NewMemberInput, event: Event): void {

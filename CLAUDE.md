@@ -61,6 +61,13 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   mostra l'elenco, "Per età: …" per le adesioni non allineate, "Allinea all'età" / "Allinea tutte", "Cambia elenco" con
   nota (eccezione) e "Togli eccezione". Adesione aggiornabile solo in `list`, `sector`, `exportSector`, `listChange`;
   `list` ha la precedenza sul segno di import. Le quote non dipendono dall'elenco.
+- **013 – Tesserati semplificati** (correzione di 008, 009, 011 chiesta dall'utente): implementata, **non ancora
+  rilasciata**. Una sola pagina `/tesserati`: elenco "da confermare" (anno prima) + "iscritti", filtro, ricerca, data di
+  pagamento; "Conferma" = pagato (`paidOn`, `paidAt`, `paidBy` sull'adesione); la famiglia del `N. Legame` si aggiorna da
+  sola e si corregge nel pannello (`familyOptOut` per chi è tolto a mano); "Nuovo tesserato" nella pagina. La pagina
+  Riconferme non c'è più (`/riconferme` → `/tesserati`; restano i backend in `apps/web/src/app/riconferme`). **Import solo
+  per l'amministratore**: `admin: true` sul documento dell'email in `allowedEmails` (dalla console), regola `isAdmin()`,
+  guardia `requireAdmin`.
 - Poi: **012 – Riepilogo ed export** (roadmap in `docs/roadmap.md`).
 
 ## Comandi

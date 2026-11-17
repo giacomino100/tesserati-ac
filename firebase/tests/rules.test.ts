@@ -43,6 +43,7 @@ function rulesWithProbe(): string {
 
 const LISTED = 'autorizzato@example.org';
 const STRANGER = 'estraneo@example.org';
+const SECRETARY = 'segreteria@example.org';
 const DAY = 24 * 60 * 60;
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
@@ -63,7 +64,9 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'allowedEmails', LISTED), {});
+    // Dalla 013 l'import è dell'amministratore: l'utente di prova lo è; SECRETARY è autorizzato ma non amministratore.
+    await setDoc(doc(db, 'allowedEmails', LISTED), { admin: true });
+    await setDoc(doc(db, 'allowedEmails', SECRETARY), {});
     await setDoc(doc(db, 'probe', 'x'), { v: 1 });
     await setDoc(doc(db, 'anything', 'x'), { v: 1 });
   });
@@ -1572,5 +1575,75 @@ describe('N6 – "Allinea tutte" in una sola scrittura', () => {
       batch.update(doc(db, `adhesions/2026_p${i}`), align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'GIOVANI' }));
     }
     await assertSucceeds(batch.commit());
+  });
+});
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 013 – import dell'amministratore, pagamento, familyOptOut (contracts/firestore-changes.md, O1–O5).
+ * ---------------------------------------------------------------------------------------- */
+
+const paidBy = (email = LISTED) => ({ paidOn: '2026-11-17', paidAt: serverTimestamp(), paidBy: email });
+
+describe('O1 – import solo per l’amministratore', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('autorizzato non amministratore: negato; amministratore: consentito', async () => {
+    const bySecretary = fullImport(2026, 1);
+    bySecretary['importBatches/2026-ACR'] = { ...bySecretary['importBatches/2026-ACR'], importedBy: SECRETARY };
+    await assertFails(commitAll(user(SECRETARY), bySecretary));
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 1)));
+  });
+});
+
+describe('O2 – pagamento alla conferma e all’iscrizione', () => {
+  beforeEach(() => seedRenewalBase('a', 'b'));
+
+  it('riconferma con pagamento: consentita (anche per un non amministratore)', async () => {
+    await assertSucceeds(setDoc(doc(user(SECRETARY), 'adhesions/2027_a'), { ...renewalFor('a', { renewedBy: SECRETARY }), ...paidBy(SECRETARY) }));
+  });
+
+  it('nuovo tesserato con pagamento: consentito', async () => {
+    await seedSchedules(2026);
+    await assertSucceeds(commitAll(user(LISTED), { 'persons/m9': manualPerson(), 'adhesions/2026_m9': { ...newAdhesion('m9'), ...paidBy() } }));
+  });
+
+  const bad: Record<string, Record<string, unknown>> = {
+    'data futura': { ...paidBy(), paidOn: '2999-01-01' },
+    'data non valida': { ...paidBy(), paidOn: '17/11/2026' },
+    'paidAt non del server': { ...paidBy(), paidAt: Timestamp.now() },
+    'paidBy di altri': paidBy('altro@example.org'),
+    'solo paidOn': { paidOn: '2026-11-17' },
+  };
+  for (const [name, extra] of Object.entries(bad)) {
+    it(`${name}: negato`, async () => {
+      await assertFails(setDoc(doc(user(LISTED), 'adhesions/2027_b'), { ...renewalFor('b'), ...extra }));
+    });
+  }
+});
+
+describe('O3/O4 – registra pagamento e familyOptOut', () => {
+  beforeEach(async () => {
+    await seedRenewalBase('a');
+    await seedRenewed('a');
+  });
+
+  it('O3: registra pagamento sui soli tre campi: consentito; con altri campi: negato', async () => {
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { ...paidBy(), list: 'ADULTI' }));
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { ...paidBy(), paidOn: '2999-01-01' }));
+    await assertSucceeds(updateDoc(doc(user(SECRETARY), 'adhesions/2027_a'), paidBy(SECRETARY)));
+  });
+
+  it('O4: familyOptOut booleano da solo: consentito; altrimenti negato', async () => {
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { familyOptOut: true }));
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { familyOptOut: false }));
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { familyOptOut: 'sì' }));
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { familyOptOut: true, sector: 'ADULTI' }));
+  });
+
+  it('O5: non autorizzati: nulla', async () => {
+    for (const db of [guest(), user(STRANGER)]) {
+      await assertFails(updateDoc(doc(db, 'adhesions/2027_a'), paidBy(STRANGER)));
+      await assertFails(updateDoc(doc(db, 'adhesions/2027_a'), { familyOptOut: true }));
+    }
   });
 });

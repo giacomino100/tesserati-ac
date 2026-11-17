@@ -16,8 +16,8 @@ import { FirestoreHouseholdFeesBackend } from './quote/firestore-fees-backend';
 import { FirestoreMembersBackend } from './tesserati/firestore-members-backend';
 import { FirestoreNewMemberBackend } from './nuovo-tesserato/firestore-new-member-backend';
 import { NEW_MEMBER_BACKEND } from './nuovo-tesserato/new-member-backend';
-import { FirestoreRenewalsBackend } from './riconferme/firestore-renewals-backend';
-import { RENEWALS_BACKEND } from './riconferme/renewals-backend';
+import { FirestoreYearBackend } from './tesserati/firestore-year-backend';
+import { YEAR_BACKEND } from './tesserati/year-backend';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,7 +30,7 @@ export const appConfig: ApplicationConfig = {
     { provide: FAMILIES_BACKEND, useFactory: () => new FirestoreFamiliesBackend() },
     { provide: HOUSEHOLD_FEES_BACKEND, useFactory: () => new FirestoreHouseholdFeesBackend() },
     { provide: NEW_MEMBER_BACKEND, useFactory: () => new FirestoreNewMemberBackend() },
-    { provide: RENEWALS_BACKEND, useFactory: () => new FirestoreRenewalsBackend() },
+    { provide: YEAR_BACKEND, useFactory: () => new FirestoreYearBackend() },
     { provide: SCHEDULE_USAGE, useFactory: () => new FirestoreScheduleUsage() },
   ],
 };
