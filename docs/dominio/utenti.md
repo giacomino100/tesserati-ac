@@ -15,3 +15,7 @@
 - **Da quali dispositivi**: PC e telefono (interfaccia utilizzabile anche su schermo piccolo).
 - **Privacy**: **TODO** — titolare del trattamento dei dati e informativa da definire con la parrocchia.
   I dati includono minori (constitution, principio III).
+- **Limiti noti di "nessuna traccia"** per chi non è in elenco: l'app cancella subito l'account creato dal
+  tentativo, ma (1) Google/Firebase possono conservare log tecnici propri; (2) se il browser si chiude a
+  metà dell'accesso negato, l'account resta finché non viene eliminato a mano dalla console. Da riprendere
+  nell'informativa privacy.

@@ -14,9 +14,20 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
 
 ## Stato attuale
 
-- Specifica in corso: **002 – Calcolo quota famiglia** (`specs/002-calcolo-quote-famiglia/`),
-  branch `002-calcolo-quote-famiglia`. Spec, plan, tasks e analyze completati e approvati.
-- Prossimo passo: `/speckit-implement` (29 task in `tasks.md`, test scritti prima del codice).
+- Fatte: **001 – Accesso riservato** (app Angular in `apps/web`, regole Firestore in `firebase/`) e
+  **002 – Calcolo quota famiglia** (`packages/fees`). App online su https://tesseramento-ac.web.app
+  (progetto Firebase `tesseramento-ac`).
+- Della 001 restano da eseguire i test delle regole e di integrazione sull'emulatore (serve un JDK,
+  non ancora installato): `npm run test:rules`, `npm run test:integration -w web`.
+- Prossima: **003 – Listino per anno** (roadmap in `docs/roadmap.md`).
+
+## Comandi
+
+- App in locale: `npm run emulators` (emulatori Auth/Firestore) e `npm start` (usa il progetto `demo-tesseramento`).
+- Test: `npm test` (tutti i workspace); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`.
+- Controllo tipi: `npm run typecheck`. Test regole: `npm run test:rules` (richiede JDK).
+- Rilascio: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac` solo dopo test verdi.
+- Elenco email autorizzate: collezione Firestore `allowedEmails`, ID documento = email in minuscolo.
 
 ## Regole pratiche
 
