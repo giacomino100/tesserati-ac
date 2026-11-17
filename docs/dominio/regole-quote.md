@@ -17,6 +17,8 @@ I casi che il PDF non prevede non vengono calcolati: l'app li **segnala** (vedi 
 
 - La quota scontata è **quella scritta nella colonna "Percentuale del 20%"** del PDF: l'app non calcola il 20%, legge il valore dal listino.
 - ✅ **Età = anno associativo − anno di nascita** (es. 2026/27: nato nel 1996 → 30 anni → Adulto).
+- La quota dipende solo dall'età, anche quando l'elenco dell'adesione è stato forzato a mano (es. un 15enne lasciato in
+  ACR paga da Giovanissimo): il PDF non prevede eccezioni sulla quota per elenco (confermato il 2026-11-17, specifica 011).
 - La fascia segue le età del PDF. **Attenzione**: l'export mette i trentenni nella fascia `26/30` (GIOVANI), il PDF li considera Adulti → l'app ricalcola la fascia dall'età e non usa la colonna `Fasce d'età` dell'export.
 - Il listino è legato all'anno associativo: ogni anno si carica il nuovo PDF/listino.
 

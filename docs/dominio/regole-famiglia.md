@@ -53,4 +53,6 @@ L'export **contiene già i nuclei familiari**:
   Adulti; sotto l'età minima resta ACR con l'avviso "non previsto dal listino". Confermato il 2026-11-17 (specifica 008).
 - ✅ Alla riconferma `Legame` e `N. Legame` si copiano dall'anno precedente, così le famiglie vengono di nuovo
   suggerite (e vanno riconfermate) nel nuovo anno. Confermato il 2026-11-17 (specifica 008).
-- Si può forzare a mano (es. un ragazzo che resta in ACR un anno in più)? **TODO** (specifica 011)
+- ✅ Si può forzare a mano l'elenco di un'adesione (es. un ragazzo che resta in ACR un anno in più), sempre con una
+  **nota obbligatoria**; l'eccezione vale per quell'anno (alla riconferma si ricalcola dall'età). Le adesioni con un
+  elenco diverso da quello dell'età si possono allineare all'età (una o tutte). Confermato il 2026-11-17 (specifica 011).
