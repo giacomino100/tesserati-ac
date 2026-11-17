@@ -24,6 +24,9 @@ L'export **contiene già i nuclei familiari**:
   dell'anno solo dopo la conferma di una persona, che può anche correggerla (aggiungere o togliere componenti, creare
   una famiglia a mano). Chi non ha `N. Legame` né una famiglia confermata è un nucleo da 1. Le famiglie valgono per
   un anno associativo. Confermato il 2026-11-17 (specifica 007).
+- ✅ Dalla specifica 013 la famiglia si conferma mentre le persone pagano: in Tesserati, confermando una persona con lo
+  stesso `N. Legame` di un altro iscritto dell'anno, la famiglia nasce o si aggiorna da sola (resta correggibile a mano;
+  una persona tolta a mano non viene riaggiunta). Confermato il 2026-11-17.
 - Il `N. Legame` resta lo stesso da un anno all'altro? **TODO** (servirebbe l'export dell'anno precedente per verificarlo)
 - ✅ Un nuovo tesserato (es. un figlio che si iscrive per la prima volta) entra senza famiglia: lo collega al nucleo **a
   mano la segreteria**, in "Famiglie" con "Correggi" sulla famiglia confermata. Confermato il 2026-11-17 (specifica 009).

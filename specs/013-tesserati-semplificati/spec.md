@@ -15,6 +15,12 @@ dell'amministratore. Corregge le specifiche 008, 009 e 011.
 aggiornato il 2026-11-17); `docs/dominio/utenti.md` (import riservato all'amministratore — aggiornato il 2026-11-17);
 `docs/dominio/regole-famiglia.md` §1–§3; specifiche 004–011; constitution, principi I, III, IV e V.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Quando confermi una persona con altri componenti dello stesso N. Legame già confermati, la famiglia dell'anno si aggiorna da sola o solo con "Conferma famiglia"? → A: da sola: alla seconda conferma con lo stesso N. Legame la famiglia dell'anno nasce, dalla terza in poi la persona si aggiunge; nel pannello si vede la famiglia aggiornata e si possono togliere o aggiungere componenti.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Confermare chi paga in un solo elenco (Priority: P1)
@@ -51,14 +57,15 @@ MORETTI CARLA lo stato diventa "Pagato il 17/11/2026" e il filtro "Iscritti" mos
 ### User Story 2 - Vedere e sistemare la famiglia di chi si conferma (Priority: P1)
 
 Confermando una persona che ha una famiglia (famiglia confermata dell'anno, o lo stesso `N. Legame` dell'anno prima),
-si apre il pannello "Famiglia": i componenti con il loro stato (Da confermare / Pagato il …), "Conferma" per ciascuno,
-"Togli" e "Aggiungi un tesserato", e "Conferma famiglia" per l'anno.
+la famiglia dell'anno si aggiorna da sola (alla seconda persona confermata con lo stesso `N. Legame` nasce, poi ogni
+nuova conferma vi si aggiunge) e si apre il pannello "Famiglia": i componenti con il loro stato (Da confermare / Pagato
+il …), "Conferma" per ciascuno, "Togli" e "Aggiungi un tesserato" per correggerla.
 
 **Why this priority**: la quota dipende dalla famiglia; sistemarla mentre la persona paga evita un secondo giro in
 "Famiglie".
 
-**Independent Test**: confermando GALLO LUCA (`N. Legame` 900003) il pannello mostra i 4 GALLO/CONTI: confermati gli
-altri 3 e premuto "Conferma famiglia", la famiglia 900003 del 2027/28 è confermata con 4 componenti.
+**Independent Test**: confermando GALLO LUCA (`N. Legame` 900003) il pannello mostra i 4 GALLO/CONTI; confermando dal
+pannello gli altri 3, la famiglia 900003 del 2027/28 risulta confermata con 4 componenti senza altri passaggi.
 
 **Acceptance Scenarios**:
 
@@ -66,10 +73,11 @@ altri 3 e premuto "Conferma famiglia", la famiglia 900003 del 2027/28 è conferm
    900003" con GALLO LUCA "Pagato il …" e CONTI MARTA, GALLO TOMMASO, GALLO GIULIA "Da confermare".
 2. **Given** il pannello, **When** si conferma CONTI MARTA, **Then** il suo stato nel pannello e nell'elenco diventa
    "Pagato il …".
-3. **Given** 2 componenti iscritti nel pannello, **When** si preme "Conferma famiglia", **Then** la famiglia del 2027/28
-   è confermata con i soli componenti iscritti; chi non ha ancora pagato si potrà aggiungere dopo dal pannello.
+3. **Given** GALLO LUCA confermato, **When** si conferma CONTI MARTA, **Then** nasce la famiglia 900003 del 2027/28 con
+   i 2 iscritti; confermando GALLO TOMMASO, lui si aggiunge (3 componenti).
 4. **Given** una famiglia già confermata, **When** si apre il pannello di un componente, **Then** si vedono i componenti
-   effettivi e si possono togliere o aggiungere tesserati iscritti dell'anno, salvando con "Conferma famiglia".
+   effettivi e si possono togliere ("Togli") o aggiungere ("Aggiungi un tesserato") iscritti dell'anno; una persona
+   tolta resta fuori anche se si confermano altri componenti.
 5. **Given** una persona senza `N. Legame` e senza famiglia, **When** si conferma, **Then** il pannello dice "Nessuna
    famiglia" e permette "Crea famiglia" aggiungendo altri iscritti.
 
@@ -138,10 +146,13 @@ l'indirizzo /importa porta alla home; le regole rifiutano un import fatto da un 
   MUST NOT essere possibile.
 - **FR-003**: "Annulla conferma" MUST togliere l'adesione confermata (riconferma o nuovo), con conferma, solo se la persona
   non è in una famiglia confermata dell'anno.
-- **FR-004**: Dopo "Conferma" di una persona con famiglia, la pagina MUST aprire il pannello "Famiglia" con i componenti
-  (famiglia confermata dell'anno o stesso `N. Legame` dell'anno prima) e il loro stato; dal pannello MUST potersi
-  confermare ogni componente, togliere o aggiungere tesserati iscritti dell'anno e confermare la famiglia dell'anno
-  (almeno 2 iscritti, una famiglia per persona per anno, come la 007).
+- **FR-004**: "Conferma" di una persona con `N. Legame` MUST aggiornare da sola la famiglia dell'anno: se c'è già una
+  famiglia confermata dell'anno con quel `N. Legame` la persona vi si aggiunge; altrimenti, se un altro iscritto
+  dell'anno ha lo stesso `N. Legame` e non è in una famiglia, nasce la famiglia con i due (una famiglia per persona per
+  anno, come la 007). Una persona tolta a mano da quella famiglia non vi viene riaggiunta da sola.
+- **FR-004b**: Dopo "Conferma" la pagina MUST aprire il pannello "Famiglia" con i componenti (famiglia confermata
+  dell'anno e chi ha lo stesso `N. Legame` dell'anno prima) e il loro stato; dal pannello MUST potersi confermare ogni
+  componente e togliere o aggiungere iscritti dell'anno.
 - **FR-005**: Il pannello MUST potersi aprire anche dalla riga di un iscritto ("Famiglia") e, per chi non ha famiglia,
   permettere "Crea famiglia".
 - **FR-006**: "Nuovo tesserato" (009) MUST stare nella pagina Tesserati e salvare anche la data di pagamento; il rimando
