@@ -16,6 +16,7 @@ import { AuthService } from '../../core/auth.service';
     </mat-toolbar>
     <main class="content">
       <a mat-flat-button routerLink="/importa">Importa Excel</a>
+      <a mat-flat-button routerLink="/riconferme">Riconferme</a>
       <a mat-flat-button routerLink="/tesserati">Tesserati</a>
       <a mat-flat-button routerLink="/famiglie">Famiglie</a>
       <a mat-flat-button routerLink="/quote">Quote</a>

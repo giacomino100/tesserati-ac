@@ -59,5 +59,10 @@ export const routes: Routes = [
     canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./quote/pages/fees/fees-page').then((m) => m.FeesPage),
   },
+  {
+    path: 'riconferme',
+    canActivate: [requireState('allowed')],
+    loadComponent: () => import('./riconferme/pages/renewals/renewals-page').then((m) => m.RenewalsPage),
+  },
   { path: '**', redirectTo: '' },
 ];

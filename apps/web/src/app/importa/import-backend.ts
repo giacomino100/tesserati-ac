@@ -13,6 +13,8 @@ export interface YearContext {
   readonly archive: readonly ArchivedPerson[];
   /** Adesioni dell'anno: ID persona → elenco da cui proviene. */
   readonly adhesions: ReadonlyMap<string, AdhesionList>;
+  /** Persone con un'adesione dell'anno nata da una riconferma (specifica 008). */
+  readonly renewedIds?: ReadonlySet<string>;
 }
 
 /** Quell'elenco dell'anno è già stato importato. */

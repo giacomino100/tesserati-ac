@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import {
+  listOfAdhesion,
   listOfImportId,
   type AdhesionList,
   type ArchivedPerson,
@@ -63,14 +64,19 @@ export class FirestoreImportBackend implements ImportBackend {
       .filter((l): l is AdhesionList => l !== undefined);
 
     const yearAdhesions = new Map<string, AdhesionList>();
+    const renewedIds = new Set<string>();
     const lastAdhesion = new Map<string, { year: number; list: AdhesionList }>();
     for (const adhesion of adhesions.docs) {
       const data = adhesion.data();
-      const list = listOfImportId(String(data['importId']));
+      const list = listOfAdhesion(
+        typeof data['importId'] === 'string' ? data['importId'] : undefined,
+        typeof data['list'] === 'string' ? data['list'] : undefined,
+      );
       const personId = String(data['personId']);
       const adhesionYear = Number(data['associationYear']);
       if (!list || !Number.isInteger(adhesionYear)) continue;
       if (adhesionYear === year) yearAdhesions.set(personId, list);
+      if (adhesionYear === year && data['origin'] === 'riconferma') renewedIds.add(personId);
       const last = lastAdhesion.get(personId);
       if (!last || adhesionYear > last.year) lastAdhesion.set(personId, { year: adhesionYear, list });
     }
@@ -98,6 +104,7 @@ export class FirestoreImportBackend implements ImportBackend {
       importedLists,
       archive,
       adhesions: yearAdhesions,
+      renewedIds,
     };
   }
 

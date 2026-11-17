@@ -308,7 +308,7 @@ export class ImportService {
       else this.state.set({ kind: 'preview', parsed, context, list, listMessage: message, decisions });
       return;
     }
-    const plan = planImport(parsed, list, context.archive, context.adhesions, decisions);
+    const plan = planImport(parsed, list, context.archive, context.adhesions, decisions, context.renewedIds);
     // Righe tutte saltate (e nessun doppione ancora da decidere): niente da importare.
     if (plan.adhesions === 0 && plan.pendingDuplicates === 0) {
       this.reject(IMPORT_MESSAGES.allRowsSkipped, plan.skipped, false, year);

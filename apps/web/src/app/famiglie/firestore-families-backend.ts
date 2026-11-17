@@ -9,8 +9,9 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 import type { ConfirmedFamily, YearMember } from '@tesseramento/families';
-import { listOfImportId } from '@tesseramento/import';
+import { listOfAdhesion } from '@tesseramento/import';
 import { db } from '../core/firebase';
+import { memberYears } from '../core/member-years';
 import { MemberInOtherFamilyError, type FamiliesBackend, type FamilyDraft } from './families-backend';
 
 const membershipId = (year: number, personId: string) => `${year}_${personId}`;
@@ -21,13 +22,12 @@ function text(value: unknown): string | undefined {
 
 /** Famiglie in Cloud Firestore (specifica 007, contracts/firestore-families.md). Nessun nome nei log. */
 export class FirestoreFamiliesBackend implements FamiliesBackend {
+  /** Anni con tesserati: importati o riconfermati (specifica 008). */
   async importedYears(): Promise<number[]> {
-    const snapshot = await getDocs(collection(db, 'importBatches'));
-    const years = snapshot.docs.map((d) => d.data()['associationYear']).filter((y): y is number => typeof y === 'number');
-    return [...new Set(years)];
+    return memberYears();
   }
 
-  /** Adesioni dell'anno unite alle persone, con l'elenco ricavato dal segno di import (research R5). */
+  /** Adesioni dell'anno unite alle persone, con l'elenco del segno di import o della riconferma (008, R2). */
   async yearMembers(year: number): Promise<YearMember[]> {
     const [adhesions, persons] = await Promise.all([
       getDocs(query(collection(db, 'adhesions'), where('associationYear', '==', year))),
@@ -39,7 +39,7 @@ export class FirestoreFamiliesBackend implements FamiliesBackend {
       const a = adhesion.data();
       const personId = String(a['personId']);
       const person = byId.get(personId);
-      const list = listOfImportId(String(a['importId']));
+      const list = listOfAdhesion(text(a['importId']), text(a['list']));
       if (!person || !list) continue;
       const bond = text(a['bond']);
       const bondId = text(a['bondId']);
@@ -51,6 +51,7 @@ export class FirestoreFamiliesBackend implements FamiliesBackend {
         list,
         ...(bond ? { bond } : {}),
         ...(bondId ? { bondId } : {}),
+        ...(a['origin'] === 'riconferma' ? { origin: 'riconferma' as const } : {}),
       });
     }
     return members;

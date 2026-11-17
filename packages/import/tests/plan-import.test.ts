@@ -178,3 +178,19 @@ describe('planImport – codice fiscale (D8, D9, specifica 006)', () => {
     expect(p.taxCodeMatches[0]?.sameKey).toBe(true);
   });
 });
+
+describe('planImport – persone già riconfermate (008, I2–I3)', () => {
+  const archive = () => [person('p-due', 'DUE', 'ALFA', '2016-04-09'), person('p-quattro', 'QUATTRO', 'ALFA', '2016-04-09')];
+
+  it('salta le righe delle persone riconfermate con il motivo alreadyRenewed', () => {
+    const plan = planImport(base(), 'ACR', archive(), new Map([['p-due', 'ACR']]), new Map(), new Set(['p-due']));
+    expect(plan.reusedPersons.map((r) => r.personId)).toEqual(['p-quattro']);
+    expect(plan.skipped[0]).toMatchObject({ rowNumber: 3, reason: 'alreadyRenewed', lastName: 'DUE', firstName: 'ALFA' });
+    expect(plan.adhesions).toBe(2);
+  });
+
+  it('senza persone riconfermate il comportamento non cambia', () => {
+    const plan = planImport(base(), 'ACR', archive(), new Map([['p-due', 'GIOVANI']]));
+    expect(plan.skipped[0]).toMatchObject({ rowNumber: 3, reason: 'alreadyInYear', fromList: 'GIOVANI' });
+  });
+});

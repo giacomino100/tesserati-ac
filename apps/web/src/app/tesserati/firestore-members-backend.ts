@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../core/firebase';
+import { memberYears } from '../core/member-years';
 import type { MemberRow, MembersBackend } from './members-backend';
 
 function text(value: unknown): string | undefined {
@@ -8,12 +9,9 @@ function text(value: unknown): string | undefined {
 
 /** Lettura dei tesserati in Cloud Firestore (contracts/firestore-import.md, "Lettura per la pagina Tesserati"). */
 export class FirestoreMembersBackend implements MembersBackend {
+  /** Anni con tesserati: importati o riconfermati (specifica 008). */
   async importedYears(): Promise<number[]> {
-    const snapshot = await getDocs(collection(db, 'importBatches'));
-    const years = snapshot.docs
-      .map((d) => d.data()['associationYear'])
-      .filter((y): y is number => typeof y === 'number');
-    return [...new Set(years)];
+    return memberYears();
   }
 
   /** Adesioni dell'anno unite in memoria con l'anagrafica (poche centinaia di persone). */

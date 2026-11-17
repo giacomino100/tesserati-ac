@@ -1,6 +1,7 @@
 # @tesseramento/families
 
-Logica **pura** delle famiglie per anno associativo (specifica 007) e dei nuclei con le loro quote (specifica 010).
+Logica **pura** delle famiglie per anno associativo (specifica 007), dei nuclei con le loro quote (specifica 010) e
+delle riconferme (specifica 008).
 Unica dipendenza: `@tesseramento/fees` (pura). Nessun accesso a rete, browser, data corrente o log. Regole: `docs/dominio/regole-famiglia.md` §0–§1.
 
 ## API
@@ -13,6 +14,8 @@ Unica dipendenza: `@tesseramento/fees` (pura). Nessun accesso a rete, browser, d
 | `householdsOfYear(yearFamilies)` | nuclei dell'anno (specifica 010): famiglie confermate (`f-{id}`) + ogni tesserato senza famiglia confermata (`p-{personId}`), e quante famiglie suggerite non sono confermate |
 | `householdFees(households, schedule)` | quota di ogni nucleo con **solo** `calculateHouseholdFee` di `@tesseramento/fees` e il listino dell'anno: calcolata, non prevista (con motivo) o errore interno |
 | `compareWithSaved(current, saved)`, `yearTotals`, `toSavedCalculated` | confronto con le quote salvate (`new` / `unchanged` / `changed` / `removed`, validità delle quote manuali) e totali dell'anno |
+| `renewalView({ year, previous, current, memberships, schedule? })` | riconferme (specifica 008): tesserati dell'anno precedente da decidere, raggruppati per `N. Legame` e poi singoli, con età ed elenco del nuovo anno dalle fasce del listino (`listForBand`), avvisi (cambio di elenco, sotto l'età minima, data incoerente) e già iscritti (annullabili se riconfermati e fuori da famiglie) |
+| `renewalDraft(candidate, year)` | adesione da creare: elenco del nuovo anno e legame dell'anno precedente, nessun dato anagrafico |
 
 ## Regole principali
 

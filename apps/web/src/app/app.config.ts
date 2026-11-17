@@ -14,6 +14,8 @@ import { FirestoreFamiliesBackend } from './famiglie/firestore-families-backend'
 import { HOUSEHOLD_FEES_BACKEND } from './quote/fees-backend';
 import { FirestoreHouseholdFeesBackend } from './quote/firestore-fees-backend';
 import { FirestoreMembersBackend } from './tesserati/firestore-members-backend';
+import { FirestoreRenewalsBackend } from './riconferme/firestore-renewals-backend';
+import { RENEWALS_BACKEND } from './riconferme/renewals-backend';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,6 +27,7 @@ export const appConfig: ApplicationConfig = {
     { provide: MEMBERS_BACKEND, useFactory: () => new FirestoreMembersBackend() },
     { provide: FAMILIES_BACKEND, useFactory: () => new FirestoreFamiliesBackend() },
     { provide: HOUSEHOLD_FEES_BACKEND, useFactory: () => new FirestoreHouseholdFeesBackend() },
+    { provide: RENEWALS_BACKEND, useFactory: () => new FirestoreRenewalsBackend() },
     { provide: SCHEDULE_USAGE, useFactory: () => new FirestoreScheduleUsage() },
   ],
 };

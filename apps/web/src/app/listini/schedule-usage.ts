@@ -7,13 +7,19 @@ export interface ScheduleUsage {
   isInUse(year: number): Promise<boolean>;
 }
 
-/** Un anno ha adesioni se almeno un suo elenco (ACR, Giovani, Adulti) è stato importato (specifica 005, R6). */
+/**
+ * Un anno ha adesioni se almeno un suo elenco (ACR, Giovani, Adulti) è stato importato (specifica 005, R6) o se ha
+ * almeno una riconferma (specifica 008).
+ */
 export class FirestoreScheduleUsage implements ScheduleUsage {
   async isInUse(year: number): Promise<boolean> {
-    const batches = await getDocs(
-      query(collection(db, 'importBatches'), where('associationYear', '==', year), limit(1)),
-    );
-    return !batches.empty;
+    const [batches, renewals] = await Promise.all([
+      getDocs(query(collection(db, 'importBatches'), where('associationYear', '==', year), limit(1))),
+      getDocs(
+        query(collection(db, 'adhesions'), where('associationYear', '==', year), where('origin', '==', 'riconferma'), limit(1)),
+      ),
+    ]);
+    return !batches.empty || !renewals.empty;
   }
 }
 

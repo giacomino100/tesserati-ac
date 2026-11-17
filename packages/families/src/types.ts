@@ -13,6 +13,8 @@ export interface YearMember {
   readonly bond?: string;
   /** N. Legame dell'export, es. "900002". */
   readonly bondId?: string;
+  /** Come è nata l'adesione dell'anno (specifica 008); assente = import. */
+  readonly origin?: 'import' | 'riconferma';
 }
 
 /** Famiglia confermata da una persona per un anno (regole-famiglia.md §1). */
@@ -161,4 +163,61 @@ export interface YearTotals {
   readonly missing: number;
   /** Nuclei da salvare o aggiornare (salvate diverse dal calcolo attuale, o non più presenti). */
   readonly toUpdate: number;
+}
+
+/* ---- Specifica 008: riconferma ---- */
+
+export type RenewalWarning =
+  /** L'elenco del nuovo anno è diverso da quello dell'anno precedente. */
+  | { readonly kind: 'listChange'; readonly from: FamilyList; readonly to: FamilyList }
+  /** Età sotto il minimo del listino: resta ACR, quota non prevista. */
+  | { readonly kind: 'underMinAge'; readonly minAge: number }
+  /** Data di nascita non valida o successiva all'anno: non riconfermabile. */
+  | { readonly kind: 'invalidBirthDate' };
+
+/** Tesserato dell'anno precedente senza adesione nell'anno nuovo. */
+export interface RenewalCandidate {
+  /** Come nell'anno precedente (elenco, legame). */
+  readonly member: YearMember;
+  /** Età nell'anno nuovo. */
+  readonly age: number;
+  /** Elenco del nuovo anno; assente se la data non è valida o manca il listino. */
+  readonly list?: FamilyList;
+  readonly warnings: readonly RenewalWarning[];
+  readonly renewable: boolean;
+}
+
+/** Tesserati dell'anno precedente con lo stesso N. Legame, dal più anziano. */
+export interface RenewalGroup {
+  readonly bondId: string;
+  readonly bond?: string;
+  readonly candidates: readonly RenewalCandidate[];
+}
+
+/** Tesserato dell'anno precedente già iscritto nell'anno nuovo. */
+export interface RenewedMember {
+  /** Come nell'anno nuovo. */
+  readonly member: YearMember;
+  readonly origin: 'import' | 'riconferma';
+  /** In una famiglia confermata dell'anno nuovo. */
+  readonly inFamily: boolean;
+  /** Solo riconferme fuori da famiglie confermate. */
+  readonly undoable: boolean;
+}
+
+export interface RenewalView {
+  readonly groups: readonly RenewalGroup[];
+  readonly singles: readonly RenewalCandidate[];
+  readonly renewed: readonly RenewedMember[];
+  readonly pendingCount: number;
+  readonly renewedCount: number;
+}
+
+/** Adesione da creare per una riconferma (solo ID, elenco e legame: nessun dato anagrafico). */
+export interface RenewalDraft {
+  readonly personId: string;
+  readonly associationYear: number;
+  readonly list: FamilyList;
+  readonly bond?: string;
+  readonly bondId?: string;
 }

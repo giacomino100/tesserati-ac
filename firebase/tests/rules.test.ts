@@ -12,10 +12,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import { SCHEDULE_2026_27 } from '@tesseramento/fees';
@@ -1202,5 +1204,146 @@ describe('K7/K8 – aggiornamento, cancellazione, molte quote insieme', () => {
     for (let i = 0; i < 120; i++) batch.set(doc(db, `householdFees/2026_p-${i}`), calculatedFee(`p-${i}`));
     await assertSucceeds(batch.commit());
     expect(await countFees()).toBe(120);
+  });
+});
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 008 – riconferme (contracts/firestore-renewals.md, L1–L10). Solo ID inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+function renewalFor(personId: string, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    personId,
+    associationYear: 2027,
+    origin: 'riconferma',
+    list: 'GIOVANI',
+    sector: 'GIOVANI',
+    bond: 'C3',
+    bondId: '900002',
+    renewedFrom: 2026,
+    renewedAt: serverTimestamp(),
+    renewedBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+/** Listini 2026 e 2027 e le adesioni 2026 (importate) delle persone date. */
+async function seedRenewalBase(...personIds: string[]): Promise<void> {
+  await seedSchedules(2026, 2027);
+  const docs: Docs = {};
+  for (const id of personIds) docs[`adhesions/2026_${id}`] = adhesionFor(id);
+  await seedDocs(docs);
+}
+
+async function seedRenewed(personId: string): Promise<void> {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `adhesions/2027_${personId}`), { ...renewalFor(personId), renewedAt: Timestamp.now() });
+  });
+}
+
+describe('L1 – riconferma: accesso', () => {
+  beforeEach(() => seedRenewalBase('a', 'b'));
+
+  it('autorizzato: crea; altri: nulla', async () => {
+    await assertSucceeds(setDoc(doc(user(LISTED), 'adhesions/2027_a'), renewalFor('a')));
+    for (const db of [guest(), user(STRANGER), user(LISTED, { verified: false })]) {
+      await assertFails(setDoc(doc(db, 'adhesions/2027_b'), renewalFor('b')));
+      await assertFails(getDoc(doc(db, 'adhesions/2027_a')));
+      await assertFails(deleteDoc(doc(db, 'adhesions/2027_a')));
+    }
+  });
+});
+
+describe('L2–L6 – forma della riconferma', () => {
+  beforeEach(() => seedRenewalBase('a'));
+
+  const invalid: Record<string, [string, Record<string, unknown>]> = {
+    'senza adesione dell’anno precedente': ['adhesions/2027_z', renewalFor('z')],
+    'anno precedente non consecutivo': ['adhesions/2028_a', renewalFor('a', { associationYear: 2028 })],
+    'renewedFrom sbagliato': ['adhesions/2027_a', renewalFor('a', { renewedFrom: 2025 })],
+    'settore incoerente': ['adhesions/2027_a', renewalFor('a', { sector: 'ADULTI' })],
+    'elenco non valido': ['adhesions/2027_a', renewalFor('a', { list: 'RAGAZZI', sector: 'RAGAZZI' })],
+    'campo in più': ['adhesions/2027_a', renewalFor('a', { lastName: 'ROSSI' })],
+    'con importId': ['adhesions/2027_a', renewalFor('a', { importId: '2027-GIOVANI' })],
+    'origine diversa': ['adhesions/2027_a', renewalFor('a', { origin: 'manuale' })],
+    'data non del server': ['adhesions/2027_a', renewalFor('a', { renewedAt: Timestamp.now() })],
+    'email di un altro': ['adhesions/2027_a', renewalFor('a', { renewedBy: 'altro@example.org' })],
+    'ID non coerente': ['adhesions/2027_b', renewalFor('a')],
+    'senza renewedBy': ['adhesions/2027_a', renewalFor('a', { renewedBy: undefined })],
+  };
+  for (const [name, [path, data]] of Object.entries(invalid)) {
+    it(`${name}: negato`, async () => {
+      await assertFails(setDoc(doc(user(LISTED), path), data));
+    });
+  }
+
+  it('senza legame e con elenco Adulti: consentito', async () => {
+    await assertSucceeds(
+      setDoc(doc(user(LISTED), 'adhesions/2027_a'), renewalFor('a', { list: 'ADULTI', sector: 'ADULTI', bond: undefined, bondId: undefined })),
+    );
+  });
+
+  it('L3 – senza listino dell’anno nuovo: negato', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await deleteDoc(doc(ctx.firestore(), 'feeSchedules/2027'));
+    });
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2027_a'), renewalFor('a')));
+  });
+
+  it('L4 – seconda adesione nello stesso anno (su riconferma o su import): negata', async () => {
+    await seedRenewed('a');
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2027_a'), renewalFor('a')));
+    await seedDocs({ 'adhesions/2026_c': adhesionFor('c'), 'adhesions/2027_c': adhesionFor('c', 2027) });
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2027_c'), renewalFor('c')));
+  });
+
+  it('modifica di una riconferma: negata', async () => {
+    await seedRenewed('a');
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2027_a'), { list: 'ADULTI', sector: 'ADULTI' }));
+  });
+});
+
+describe('L7 – un gruppo di 15 riconferme', () => {
+  it('15 riconferme in una sola scrittura: consentito', async () => {
+    const ids = Array.from({ length: 15 }, (_, i) => `r${i}`);
+    await seedRenewalBase(...ids);
+    const docs: Docs = {};
+    for (const id of ids) docs[`adhesions/2027_${id}`] = renewalFor(id);
+    await assertSucceeds(commitAll(user(LISTED), docs));
+  });
+});
+
+describe('L8/L9 – annullare', () => {
+  beforeEach(async () => {
+    await seedRenewalBase('a', 'b');
+    await seedRenewed('a');
+    await seedRenewed('b');
+    await seedDocs({ 'adhesions/2027_c': adhesionFor('c', 2027) });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'familyMemberships/2027_b'), { associationYear: 2027, personId: 'b', familyId: 'F' });
+    });
+  });
+
+  it('riconferma senza famiglia: cancellabile', async () => {
+    await assertSucceeds(deleteDoc(doc(user(LISTED), 'adhesions/2027_a')));
+  });
+
+  it('riconferma in una famiglia dell’anno: non cancellabile', async () => {
+    await assertFails(deleteDoc(doc(user(LISTED), 'adhesions/2027_b')));
+  });
+
+  it('adesione importata: non cancellabile', async () => {
+    await assertFails(deleteDoc(doc(user(LISTED), 'adhesions/2027_c')));
+    await assertFails(deleteDoc(doc(user(LISTED), 'adhesions/2026_a')));
+  });
+});
+
+describe('L10 – elenco delle riconferme', () => {
+  it('query per origine: consentita a chi è autorizzato, negata agli altri', async () => {
+    await seedRenewalBase('a');
+    await seedRenewed('a');
+    const q = (db: Db) => getDocs(query(collection(db, 'adhesions'), where('origin', '==', 'riconferma')));
+    expect((await assertSucceeds(q(user(LISTED)))).size).toBe(1);
+    await assertFails(q(user(STRANGER)));
   });
 });

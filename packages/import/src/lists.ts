@@ -30,6 +30,17 @@ export function listOfImportId(id: string): AdhesionList | undefined {
   return list && ADHESION_LISTS.includes(list) ? list : undefined;
 }
 
+/**
+ * Elenco di un'adesione (specifica 008): dal segno di import se c'è, altrimenti dal campo `list` di una riconferma.
+ */
+export function listOfAdhesion(importId?: string, list?: string): AdhesionList | undefined {
+  if (importId !== undefined) {
+    const fromImport = listOfImportId(importId);
+    if (fromImport) return fromImport;
+  }
+  return ADHESION_LISTS.find((l) => l === list);
+}
+
 function listOfSector(sector: string): AdhesionList | undefined {
   return ADHESION_LISTS.find((list) => SECTOR[list] === sector);
 }

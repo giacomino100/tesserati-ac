@@ -26,6 +26,7 @@ export {
   ADHESION_LISTS,
   importId,
   listLabel,
+  listOfAdhesion,
   listOfImportId,
   recognizeList,
   sectorOf,

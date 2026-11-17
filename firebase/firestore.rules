@@ -197,10 +197,35 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Riconferma (specifica 008, contracts/firestore-renewals.md): adesione dell'anno nuovo di chi aveva
+    // un'adesione nell'anno immediatamente precedente; l'anno nuovo deve avere un listino. Le regole leggono
+    // 2 documenti (adesione precedente + listino, uguale per tutte): l'app salva a gruppi di 15.
+    function validRenewal(d, adhesionId) {
+      return d.keys().hasOnly(['personId', 'associationYear', 'origin', 'list', 'sector', 'bond', 'bondId',
+                               'renewedFrom', 'renewedAt', 'renewedBy'])
+        && d.keys().hasAll(['personId', 'associationYear', 'origin', 'list', 'sector', 'renewedFrom',
+                            'renewedAt', 'renewedBy'])
+        && d.origin == 'riconferma'
+        && d.associationYear is int
+        && isNonEmptyString(d.personId)
+        && adhesionId == string(d.associationYear) + '_' + d.personId
+        && d.list in ['ACR', 'GIOVANI', 'ADULTI']
+        && d.sector == {'ACR': 'RAGAZZI', 'GIOVANI': 'GIOVANI', 'ADULTI': 'ADULTI'}[d.list]
+        && optionalText(d, 'bond')
+        && optionalText(d, 'bondId')
+        && d.renewedFrom == d.associationYear - 1
+        && d.renewedAt == request.time
+        && d.renewedBy == ownEmail()
+        && exists(/databases/$(database)/documents/adhesions/$(string(d.renewedFrom) + '_' + d.personId))
+        && exists(/databases/$(database)/documents/feeSchedules/$(string(d.associationYear)));
+    }
+
     // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno
-    // qualunque sia l'elenco (un `set` su un'adesione esistente è un update, vietato).
+    // qualunque sia l'elenco o l'origine (un `set` su un'adesione esistente è un update, vietato).
     match /adhesions/{adhesionId} {
       allow get, list: if isAllowed();
+
+      allow create: if isAllowed() && validRenewal(request.resource.data, adhesionId);
 
       allow create: if isAllowed()
         && request.resource.data.keys().hasOnly(['personId', 'associationYear', 'importId', 'sector',
@@ -217,7 +242,12 @@ service cloud.firestore {
         && optionalText(request.resource.data, 'bondId')
         && createdWithNewBatch(request.resource.data.importId);
 
-      allow update, delete: if false;
+      // Annullare una riconferma: solo se la persona non è in una famiglia dell'anno (stesso formato di ID).
+      allow delete: if isAllowed()
+        && resource.data.get('origin', '') == 'riconferma'
+        && !exists(/databases/$(database)/documents/familyMemberships/$(adhesionId));
+
+      allow update: if false;
     }
 
     // ---- Famiglie per anno (specifica 007, contracts/firestore-families.md) ----

@@ -52,3 +52,15 @@ describe('recognizeList (research R1)', () => {
     expect(recognizeList([undefined, undefined, 'ADULTI'])).toEqual({ kind: 'recognized', list: 'ADULTI' });
   });
 });
+
+describe('listOfAdhesion (008, I1)', () => {
+  it("elenco dall'import o dalla riconferma", async () => {
+    const { listOfAdhesion } = await import('../src/index');
+    expect(listOfAdhesion('2026-ACR', undefined)).toBe('ACR');
+    expect(listOfAdhesion(undefined, 'GIOVANI')).toBe('GIOVANI');
+    expect(listOfAdhesion('2026-ADULTI', 'ACR')).toBe('ADULTI');
+    expect(listOfAdhesion(undefined, 'RAGAZZI')).toBeUndefined();
+    expect(listOfAdhesion('boh', undefined)).toBeUndefined();
+    expect(listOfAdhesion(undefined, undefined)).toBeUndefined();
+  });
+});

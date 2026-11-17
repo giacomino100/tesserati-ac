@@ -42,7 +42,12 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   nuclei dell'anno (famiglie confermate + singoli) con quota da `calculateHouseholdFee`, quote manuali con nota per i
   casi non previsti, salvataggio e "Aggiorna tutte" / "Aggiorna questa quota". Logica pura in `packages/families`
   (`householdsOfYear`, `householdFees`, `compareWithSaved`); Firestore `householdFees/{anno}_{f-familyId|p-personId}`.
-- Poi: **008 – Riconferma adesione** (roadmap in `docs/roadmap.md`; da rivedere l'ordine 008–012).
+- **008 – Riconferma adesione**: implementata, **non ancora rilasciata** (servono regole + hosting). Pagina `/riconferme`:
+  tesserati dell'anno precedente raggruppati per `N. Legame`, elenco del nuovo anno ricalcolato dalle fasce del listino,
+  riconferma a gruppi di 15 (limite letture delle regole), "Annulla riconferma". Una riconferma è un'adesione con
+  `origin: 'riconferma'` e `list` (niente `importId`); elenco letto con `listOfAdhesion`; anni con tesserati da
+  `core/member-years.ts` (import + riconferme); l'import salta le persone riconfermate (`alreadyRenewed`).
+- Poi: **009 – Nuovo tesserato** (roadmap in `docs/roadmap.md`).
 
 ## Comandi
 

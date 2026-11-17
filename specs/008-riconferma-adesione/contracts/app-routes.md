@@ -14,12 +14,12 @@ La home ottiene la voce **"Riconferme"**.
 |---|---|
 | Scelta anno | "Anno associativo" con gli anni proposti (R9), etichetta "2027/28" |
 | Riepilogo | "Da decidere: 37 · Già iscritti nel 2027/28: 0" |
-| Avvisi | "Manca il listino 2027/28. Crealo nella sezione Listini." (+ link); "Nessun tesserato nel 2026/27 da riconfermare." |
+| Avvisi | "Manca il listino 2027/28. Crealo nella sezione Listini." (+ link); "Nessun tesserato nel 2026/27 da riconfermare."; nessun anno con tesserati: "Nessun tesserato da riconfermare: importa prima un anno." + link "Importa Excel" |
 | Azioni | casella "Seleziona tutti"; "Riconferma (N)" attivo con almeno 1 spunta e il listino |
 | Gruppi | "N. Legame 900003 · C4" con casella "tutto il nucleo"; righe "GALLO TOMMASO · 13 anni · ACR" |
 | Singoli | stesso formato, in ordine di cognome e nome |
 | Avvisi per riga | "Passa da ACR a Giovani", "Sotto l'età minima del listino (6 anni): quota non prevista", "Data di nascita incoerente: non si può riconfermare" |
-| Già iscritti | "MORETTI CARLA · Adulti · riconfermata il 17/11/2026 da …" + "Annulla riconferma"; per gli importati "importata"; con famiglia: "Prima togli questa persona dalla famiglia del 2027/28." |
+| Già iscritti | "MORETTI CARLA · Adulti · riconferma del 17/11/2026 (email)" + "Annulla riconferma"; per gli importati "· da import"; con famiglia: "Prima togli questa persona dalla famiglia del 2027/28." (testi neutri, senza genere) |
 
 ## Messaggi
 

@@ -83,6 +83,8 @@ export class FakeImportBackend implements ImportBackend {
   taxCodes = new Map<string, string>();
   /** Adesioni per anno: ID persona → elenco. */
   adhesions = new Map<number, Map<string, AdhesionList>>();
+  /** `${anno}_${personId}` delle adesioni riconfermate. */
+  renewed = new Set<string>();
   commits: FakeCommit[] = [];
   failCommitWith: Error | undefined;
   private gate: { promise: Promise<void>; resolve: () => void } | undefined;
@@ -106,6 +108,15 @@ export class FakeImportBackend implements ImportBackend {
     this.persons.set(identity, id);
     this.yearAdhesions(year).set(id, list);
     this.importedLists.add(importId(year, list));
+    return id;
+  }
+
+  /** Una persona già riconfermata nell'anno (specifica 008): adesione senza segno di import. */
+  addRenewed(year: number, identity: string, list: AdhesionList): string {
+    const id = this.persons.get(identity) ?? `p${this.nextId++}`;
+    this.persons.set(identity, id);
+    this.yearAdhesions(year).set(id, list);
+    this.renewed.add(`${year}_${id}`);
     return id;
   }
 
@@ -141,6 +152,7 @@ export class FakeImportBackend implements ImportBackend {
       importedLists: ADHESION_LISTS.filter((l) => this.importedLists.has(importId(year, l))),
       archive,
       adhesions: new Map(this.yearAdhesions(year)),
+      renewedIds: new Set([...this.renewed].filter((k) => k.startsWith(`${year}_`)).map((k) => k.slice(`${year}_`.length))),
     };
   }
 

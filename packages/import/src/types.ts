@@ -29,7 +29,9 @@ export type SkipReason =
   | 'invalidBirthDate'
   | 'duplicate'
   /** La persona ha già un'adesione nello stesso anno da un altro elenco (specifica 005). */
-  | 'alreadyInYear';
+  | 'alreadyInYear'
+  /** La persona è già stata riconfermata nell'anno (specifica 008). */
+  | 'alreadyRenewed';
 
 export interface SkippedRow {
   readonly rowNumber: number;

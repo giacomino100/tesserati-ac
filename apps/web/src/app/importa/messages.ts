@@ -71,6 +71,7 @@ export function skippedMessage(row: SkippedRow, year?: number): string {
     alreadyInYear: `già importata nell'elenco ${row.fromList ? listLabel(row.fromList) : '?'}${
       year === undefined ? '' : ` del ${labelFor(year)}`
     }`,
+    alreadyRenewed: "già presente nell'anno (riconferma)",
   }[row.reason];
   const name = [row.lastName, row.firstName].filter(Boolean).join(' ');
   return name ? `Riga ${row.rowNumber} (${name}): ${reason}` : `Riga ${row.rowNumber}: ${reason}`;

@@ -43,6 +43,11 @@ describe('Home', () => {
     expect(link?.textContent).toContain('Famiglie');
   });
 
+  it('ha il collegamento "Riconferme"', () => {
+    const link = setup().el.querySelector('a[href="/riconferme"]');
+    expect(link?.textContent).toContain('Riconferme');
+  });
+
   it('ha il collegamento "Quote"', () => {
     const link = setup().el.querySelector('a[href="/quote"]');
     expect(link?.textContent).toContain('Quote');

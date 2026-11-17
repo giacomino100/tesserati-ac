@@ -9,8 +9,9 @@ già estratte (l'app le legge con SheetJS) e restituisce righe pulite, righe sal
 | Funzione | Cosa fa |
 |---|---|
 | `parseAdhesionSheet({ sheetNames, rows, date1904 })` | foglio `ElencoAdesioniExcel` → `{ ok: true, associationYear, rows, skipped, totalRows }` oppure `{ ok: false, error }` |
-| `planImport(parsed, list, existingPersons, adhesionsOfYear?)` | righe valide + elenco + persone già archiviate (chiave → ID) + adesioni dell'anno (ID persona → elenco) → persone nuove, persone riusate, righe già importate nell'anno, numero di adesioni |
+| `planImport(parsed, list, existingPersons, adhesionsOfYear?, decisions?, renewedIds?)` | righe valide + elenco + persone già archiviate (chiave → ID) + adesioni dell'anno (ID persona → elenco) → persone nuove, persone riusate, righe già importate nell'anno, numero di adesioni; le persone già **riconfermate** nell'anno (specifica 008) sono saltate con il motivo `alreadyRenewed` |
 | `recognizeList(sectors)`, `ADHESION_LISTS`, `sectorOf`, `listLabel`, `importId`, `listOfImportId` | elenchi ACR / Giovani / Adulti (specifica 005): riconoscimento dal settore più frequente o parità, ID del segno ("2026-GIOVANI") |
+| `listOfAdhesion(importId?, list?)` | elenco di un'adesione: dal segno di import o, per una riconferma (specifica 008), dal campo `list` |
 | `cleanText`, `toIsoDate`, `parseAssociationYear`, `identityKey` | pulizia di una cella, data di nascita "AAAA-MM-GG", "Anno 2026" → 2026, chiave COGNOME\|NOME\|DATA |
 | `REQUIRED_COLUMNS`, `EXPECTED_SHEET`, `acrImportId` | colonne lette, nome del foglio, ID del segno di import ("2026-ACR") |
 
