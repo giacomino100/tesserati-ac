@@ -8,7 +8,19 @@
 |---|---|---|
 | `/importa` | Importa Excel ACR | stato `allowed` richiesto; `canDeactivate` chiede conferma solo durante il salvataggio |
 
-La pagina iniziale (`/`) ottiene la voce **"Importa Excel"** che porta a `/importa`.
+| `/tesserati` | Tesserati (sola lettura) | stato `allowed` richiesto; parametro di query `anno` facoltativo (predefinito: l'anno importato più recente) |
+
+La pagina iniziale (`/`) ottiene le voci **"Importa Excel"** (`/importa`) e **"Tesserati"** (`/tesserati`).
+
+## Pagina Tesserati (FR-019)
+
+| Elemento | Contenuto |
+|---|---|
+| Scelta anno | elenco degli anni con un import (da `importBatches`), dal più recente, mostrati come "2026/27" |
+| Tabella | Cognome e nome · Data di nascita (GG/MM/AAAA) · Settore · Fascia d'età (export) · Legame (`C3 · 900002`, vuoto se assente); ordinata per cognome, nome |
+| Totale | "15 tesserati nel 2026/27" |
+| Vuoto | "Nessun tesserato importato. Usa Importa Excel." (link a `/importa`) |
+| Azioni | nessuna: niente modifica né cancellazione |
 
 ## Stati della schermata
 
@@ -17,9 +29,9 @@ La pagina iniziale (`/`) ottiene la voce **"Importa Excel"** che porta a `/impor
 | `idle` | testo "Scegli il file ElencoAdesioni_ACR.xlsx esportato dal sistema nazionale." e pulsante "Scegli file" (`.xlsx`) |
 | `reading` | indicatore "Lettura del file…" |
 | `rejected` | messaggio d'errore (tabella sotto) e pulsante "Scegli un altro file"; nulla salvato |
-| `preview` | "Anno associativo 2026/27"; "15 righe nel file, 15 da importare"; tabella delle prime 10 righe (Cognome e nome, Data di nascita GG/MM/AAAA, Fascia, Legame `C3 · 900002`); se ci sono righe saltate: elenco "Riga 7: manca la data di nascita"; pulsanti "Importa" e "Annulla" |
+| `preview` | "Anno associativo 2026/27"; "15 righe nel file, 15 da importare"; tabella delle prime 10 righe (Cognome e nome, Data di nascita GG/MM/AAAA, Fascia d'età (export), Legame `C3 · 900002`); se ci sono righe saltate: elenco "Riga 7: manca la data di nascita"; pulsanti "Importa" e "Annulla" |
 | `saving` | "Salvataggio in corso…", pulsanti disattivati |
-| `done` | "Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti." + righe saltate; pulsante "Torna alla home" |
+| `done` | "Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti." + righe saltate; pulsanti "Vedi i tesserati" (`/tesserati?anno=2026`) e "Torna alla home" |
 | `saveFailed` | messaggio d'errore; si può riprovare (nulla salvato a metà) |
 
 ## Messaggi

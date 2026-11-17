@@ -12,13 +12,19 @@ Base: regole della 001 (`isAllowed()`) e della 003 (`feeSchedules`).
 
 Le persone esistenti (riconosciute da `identityKey`, lette prima con una query su `persons`) non vengono scritte.
 
+## Lettura per la pagina Tesserati
+
+- anni importati: `getDocs(importBatches)` → `associationYear` distinti;
+- tesserati di un anno: `query(adhesions, where('associationYear', '==', Y))` + persone corrispondenti
+  (`getDocs(persons)`, poche centinaia), unite in memoria su `personId`. Nessun indice composito necessario.
+
 ## Matrice di accesso delle regole
 
 | Collezione | get / list | create | update | delete |
 |---|---|---|---|---|
-| `importBatches/{id}` | `isAllowed()` | `isAllowed()` ∧ `id == string(associationYear) + '-ACR'` ∧ `source == 'ACR'` ∧ campi esattamente quelli del data model ∧ conteggi interi validi ∧ `importedAt == request.time` ∧ `importedBy == email` ∧ `exists(feeSchedules/{associationYear})` | no | no |
+| `importBatches/{id}` | `isAllowed()` | `isAllowed()` ∧ `associationYear is int` ∧ `id == string(associationYear) + '-ACR'` ∧ `source == 'ACR'` ∧ campi esattamente quelli del data model ∧ conteggi interi validi ∧ `importedAt == request.time` ∧ `importedBy == email` ∧ `exists(feeSchedules/{associationYear})` | no | no |
 | `persons/{id}` | `isAllowed()` | `isAllowed()` ∧ campi ammessi (obbligatori + opzionali) ∧ tipi e formato data ∧ `!exists(importBatches/{createdInImport})` ∧ `existsAfter(importBatches/{createdInImport})` | no | no |
-| `adhesions/{id}` | `isAllowed()` | `isAllowed()` ∧ `id == string(associationYear) + '_' + personId` ∧ `importId == string(associationYear) + '-ACR'` ∧ campi ammessi ∧ `!exists(importBatches/{importId})` ∧ `existsAfter(importBatches/{importId})` | no | no |
+| `adhesions/{id}` | `isAllowed()` | `isAllowed()` ∧ `associationYear is int` ∧ `personId is string` ∧ `id == string(associationYear) + '_' + personId` ∧ `importId == string(associationYear) + '-ACR'` ∧ campi ammessi ∧ `!exists(importBatches/{importId})` ∧ `existsAfter(importBatches/{importId})` | no | no |
 
 Le regole leggono solo documenti condivisi da tutta la transazione (email autorizzata, segno di import,
 listino), per restare nel limite di chiamate `exists/get` per richiesta.

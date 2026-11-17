@@ -71,7 +71,7 @@ dell'implementazione e devono fallire prima di passare.
 - [ ] T014 [P] [US1] Write `packages/import/tests/parse-sheet.test.ts` (contract P1, P3, P8, P9, P11, P14) using synthetic rows built from the 33 headers of `docs/dominio/excel-esempio/README.md`: valid rows mapped to `ImportRow`; columns reordered + extra column → same result; row without `Nome` / without `Data Nascita` / with `'abc'` date → skipped with reason and Excel row number (header = row 1), other rows kept; `ROSSI  MARIO` and `rossi mario` same date → second skipped as `duplicate` with `duplicateOf`; `''`/`"''"`/`null` → absent fields; `N. Legame` 900002 → `'900002'`; tax code of 10 chars → absent; `Sesso` `'X'` → absent; each `ImportRow` has **only** the keys of the type (no `Indirizzo`, `Telefono`, `Pagato`, `MLAC`, `MSAC`, `SR`, `Incarico`…)
 - [ ] T015 [P] [US1] Write `packages/import/tests/sample-files.test.ts` reading `docs/dominio/excel-esempio/ElencoAdesioni_ACR.xlsx` with SheetJS (`XLSX.read(buffer, { type: 'buffer' })`, `sheet_to_json(ws, { header: 1, raw: true, defval: null })`, `date1904` from `wb.Workbook?.WBProps?.date1904`) → `ok`, year 2026, 15 rows, 0 skipped, `PELLEGRINO GIOVANNI` without trailing space, `GATTI MIA` (fascia `0/5`) included (FR-012), `VERDI SOFIA` with `bond 'C3'`, `bondId '900002'`, `birthDate '2016-04-09'`
 - [ ] T016 [P] [US1] Write `apps/web/src/app/importa/import.service.spec.ts` (preview part) with a fake workbook reader and `FakeImportBackend`: `idle → reading → preview` with year, totals, first 10 rows, skipped rows; `cancel()` returns to `idle`, clears the parsed rows from memory and no `commit` happens (FR-004, SC-003)
-- [ ] T017 [P] [US1] Write `apps/web/src/app/importa/pages/import/import-page.spec.ts` (preview part): file input accepts `.xlsx`; preview shows "Anno associativo 2026/27", "15 righe nel file, 15 da importare", table columns Cognome e nome / Data di nascita (GG/MM/AAAA) / Fascia / Legame (`C3 · 900002`), list "Riga 7: manca la data di nascita" when present, buttons "Importa" and "Annulla" (texts from `contracts/app-routes.md`)
+- [ ] T017 [P] [US1] Write `apps/web/src/app/importa/pages/import/import-page.spec.ts` (preview part): file input accepts `.xlsx`; preview shows "Anno associativo 2026/27", "15 righe nel file, 15 da importare", table columns Cognome e nome / Data di nascita (GG/MM/AAAA) / Fascia d'età (export) / Legame (`C3 · 900002`), list "Riga 7: manca la data di nascita" when present, buttons "Importa" and "Annulla" (texts from `contracts/app-routes.md`)
 
 ### Implementation for User Story 1
 
@@ -79,7 +79,7 @@ dell'implementazione e devono fallire prima di passare.
 - [ ] T019 [P] [US1] Implement `apps/web/src/app/importa/workbook-reader.ts`: `readWorkbook(file: File): Promise<{ sheetNames; rows; date1904 }>` with `await import('xlsx')` (lazy chunk), `XLSX.read(await file.arrayBuffer(), { type: 'array', dense: true })`, rows of sheet `ElencoAdesioniExcel` via `sheet_to_json(ws, { header: 1, raw: true, defval: null })` (empty `rows` if the sheet is missing); throw `UnreadableFileError` on parse failure; no logging of contents
 - [ ] T020 [US1] Implement `apps/web/src/app/importa/import.service.ts` (signals): states `idle | reading | rejected | preview | saving | done | saveFailed` (data-model.md); `chooseFile(file)` → reader → `parseAdhesionSheet` → `preview`; `cancel()`; computed `firstRows` (10), `skippedMessages`; inject reader via token so specs can fake it — until T016 passes
 - [ ] T021 [US1] Implement `apps/web/src/app/importa/pages/import/import-page.ts` (standalone, Angular Material, Italian texts from `contracts/app-routes.md`, date shown GG/MM/AAAA, layout without horizontal scroll at 360 px) until T017 passes
-- [ ] T022 [US1] Add route `importa` (guard `allowed`, as `/listini`) in `apps/web/src/app/app.routes.ts`; provide the Firestore backend for `IMPORT_BACKEND` in `apps/web/src/app/app.config.ts` (stub file for now); add "Importa Excel" link in `apps/web/src/app/pages/home/home.ts` and its spec `apps/web/src/app/pages/home/home.spec.ts`
+- [ ] T022 [US1] Add route `importa` (guard `allowed`, as `/listini`) in `apps/web/src/app/app.routes.ts`; provide `IMPORT_BACKEND` in `apps/web/src/app/app.config.ts` with a stub class in `apps/web/src/app/importa/firestore-import-backend.ts` whose methods throw `new Error('non implementato')` (replaced in T029, never reached in US1 because the preview needs no backend until T038); add "Importa Excel" link in `apps/web/src/app/pages/home/home.ts` and its spec `apps/web/src/app/pages/home/home.spec.ts`
 
 **Checkpoint**: US1 provabile in locale con il file finto (solo anteprima, nessun salvataggio)
 
@@ -89,7 +89,7 @@ dell'implementazione e devono fallire prima di passare.
 
 **Goal**: alla conferma si salvano in un'unica transazione segno di import, persone nuove e adesioni; riepilogo finale.
 
-**Independent Test**: sugli emulatori, import del file finto → 15 `adhesions/2026_*`, 15 `persons`, `importBatches/2026-ACR`; messaggio "Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti."
+**Independent Test**: sugli emulatori, import del file finto → 15 `adhesions/2026_*`, 15 `persons`, `importBatches/2026-ACR`; messaggio "Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti."; "Tesserati" mostra le 15 righe del 2026/27 a un'altra persona autorizzata.
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
@@ -101,11 +101,18 @@ dell'implementazione e devono fallire prima di passare.
 ### Implementation for User Story 2
 
 - [ ] T027 [US2] Implement `planImport(parsed, existing)` in `packages/import/src/plan-import.ts` and export it until T023 passes
-- [ ] T028 [US2] Add rules in `firebase/firestore.rules` **before** the final deny-all, per contracts/firestore-import.md: `match /importBatches/{batchId}` (get/list `isAllowed()`; create with `batchId == string(d.associationYear) + '-ACR'`, `source == 'ACR'`, `keys().hasOnly/hasAll` of `associationYear, source, importedAt, importedBy, adhesionCount, newPersonCount, skippedRowCount`, `adhesionCount` int > 0, other counts int ≥ 0, `importedAt == request.time`, `importedBy == ownEmail()`, `exists(feeSchedules/$(string(d.associationYear)))`; update/delete false); `match /persons/{personId}` (create: required `lastName, firstName, birthDate, identityKey, createdInImport` non-empty strings, `birthDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')`, optional `sex in ['M','F']`, optional `taxCode.matches('^[A-Z0-9]{16}$')`, `hasOnly` of these 7 keys, `!exists(importBatches/$(d.createdInImport))` and `existsAfter(...)`; update/delete false); `match /adhesions/{adhesionId}` (create: `adhesionId == string(d.associationYear) + '_' + d.personId`, `importId == string(d.associationYear) + '-ACR'`, `sector` non-empty, optional `exportAgeBand, bond, bondId` strings, `hasOnly` of `personId, associationYear, importId, sector, exportAgeBand, bond, bondId`, `!exists`/`existsAfter` of the batch; update/delete false) — until T024 passes (`npm run test:rules`)
+- [ ] T028 [US2] Add rules in `firebase/firestore.rules` **before** the final deny-all, per contracts/firestore-import.md: `match /importBatches/{batchId}` (get/list `isAllowed()`; create with `d.associationYear is int`, `batchId == string(d.associationYear) + '-ACR'`, `source == 'ACR'`, `keys().hasOnly/hasAll` of `associationYear, source, importedAt, importedBy, adhesionCount, newPersonCount, skippedRowCount`, `adhesionCount` int > 0, other counts int ≥ 0, `importedAt == request.time`, `importedBy == ownEmail()`, `exists(feeSchedules/$(string(d.associationYear)))`; update/delete false); `match /persons/{personId}` (create: required `lastName, firstName, birthDate, identityKey, createdInImport` non-empty strings, `birthDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')`, optional `sex in ['M','F']`, optional `taxCode.matches('^[A-Z0-9]{16}$')`, `hasOnly` of these 7 keys, `!exists(importBatches/$(d.createdInImport))` and `existsAfter(...)`; update/delete false); `match /adhesions/{adhesionId}` (create: `d.associationYear is int`, `d.personId is string`, `adhesionId == string(d.associationYear) + '_' + d.personId`, `importId == string(d.associationYear) + '-ACR'`, `sector` non-empty, optional `exportAgeBand, bond, bondId` strings, `hasOnly` of `personId, associationYear, importId, sector, exportAgeBand, bond, bondId`, `!exists`/`existsAfter` of the batch; update/delete false) — until T024 passes (`npm run test:rules`)
 - [ ] T029 [US2] Implement `apps/web/src/app/importa/firestore-import-backend.ts`: `existingPersons()` = `getDocs(collection(db, 'persons'))` → map `identityKey → id`; `commit(plan, email)` = `runTransaction`: `get` batch (exists → `AlreadyImportedError`), `get` `feeSchedules/{year}` (missing → `NoFeeScheduleError`), `set` batch with `serverTimestamp()` and lowercase email, `set` each new person on `doc(collection(db, 'persons'))` with `createdInImport`, `set` each adhesion on `adhesions/{year}_{personId}`; omit `undefined` fields; map Firestore errors to these classes without logging data — until T025 passes; wire it in `apps/web/src/app/app.config.ts`
 - [ ] T030 [US2] Extend `import.service.ts` (`confirm()`: `existingPersons` → `planImport` → `commit` with the user's email from `AuthService` → `done`/`saveFailed`) and `import-page.ts` (summary, "Torna alla home"); add `canDeactivate` on `/importa` that asks confirmation only in `saving` (reuse pattern of `apps/web/src/app/listini/unsaved-changes.guard.ts`) — until T026 passes
 - [ ] T031 [US2] Make `apps/web/src/app/listini/schedule-usage.ts` real (research R10): `isInUse(year)` = existence of `importBatches/{year}-ACR`; remove the 003 test indicator from the listini detail page and update `apps/web/src/app/listini/**/*.spec.ts` accordingly
-- [ ] T032 [US2] Add the new emulator test to the `test:integration` script in `apps/web/package.json` (third chained `ng test --include **/firestore-import-backend.emulator.test.ts`, runs in series)
+- [ ] T032 [US2] Add the new emulator tests to the `test:integration` script in `apps/web/package.json` (chained `ng test --include **/firestore-import-backend.emulator.test.ts` and `--include **/firestore-members-backend.emulator.test.ts`, run in series)
+
+#### Sezione "Tesserati" in sola lettura (FR-019, SC-003) — ID aggiunti dopo `/speckit-analyze` (C1)
+
+- [ ] T046 [P] [US2] Write `apps/web/src/app/tesserati/pages/members/members-page.spec.ts` with a fake `MembersBackend` (contract app-routes.md "Pagina Tesserati"): year selector lists imported years newest first as "2026/27"; default = newest, or `?anno=2026`; table Cognome e nome / Data di nascita (GG/MM/AAAA) / Settore / Fascia d'età (export) / Legame (`C3 · 900002`, empty if absent), sorted by last name then first name; total "15 tesserati nel 2026/27"; empty state "Nessun tesserato importato. Usa Importa Excel." with link to `/importa`; no edit/delete buttons
+- [ ] T047 [P] [US2] Write `apps/web/src/app/tesserati/firestore-members-backend.emulator.test.ts` (seed via REST "Bearer owner"): `importedYears()` returns `[2026]` after seeding `importBatches/2026-ACR`, `[]` when empty; `membersOfYear(2026)` joins `adhesions` (where `associationYear == 2026`) with `persons` on `personId` and returns only the fields of the table; an adhesion of 2027 is not returned for 2026
+- [ ] T048 [US2] Create `apps/web/src/app/tesserati/members-backend.ts` (interface `MembersBackend` with `importedYears(): Promise<number[]>` and `membersOfYear(year): Promise<MemberRow[]>`, `MemberRow` = `lastName, firstName, birthDate, sector, exportAgeBand?, bond?, bondId?`; token `MEMBERS_BACKEND`) and `apps/web/src/app/tesserati/firestore-members-backend.ts` (`getDocs(collection(db, 'importBatches'))`, `getDocs(query(collection(db, 'adhesions'), where('associationYear', '==', year)))` + `getDocs(collection(db, 'persons'))`, join in memory; no logging) until T047 passes; provide it in `apps/web/src/app/app.config.ts`
+- [ ] T049 [US2] Implement `apps/web/src/app/tesserati/pages/members/members-page.ts` (standalone, Angular Material, signals, query param `anno`, layout without horizontal scroll at 360 px) until T046 passes; add route `tesserati` (guard `allowed`) in `apps/web/src/app/app.routes.ts`, link "Tesserati" in `apps/web/src/app/pages/home/home.ts` (+ `home.spec.ts`), and button "Vedi i tesserati" (`/tesserati?anno={year}`) in the `done` state of `apps/web/src/app/importa/pages/import/import-page.ts` (+ its spec)
 
 **Checkpoint**: `npm run test:rules` and `npm run test:integration -w web` green; US1 + US2 = import completo del file finto
 
@@ -140,7 +147,7 @@ dell'implementazione e devono fallire prima di passare.
 - [ ] T041 [P] Privacy check (SC-006): search `apps/web/src/app/importa` and `packages/import/src` for `console.` and for logging of rows; confirm no network request carries the file (only Firestore writes of the allowed fields); document the result in the PR
 - [ ] T042 Run full suite from repo root: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web` (check SheetJS is in a lazy chunk, not in the initial bundle)
 - [ ] T043 [P] Update `docs/roadmap.md` (004 ✅ when released) and `CLAUDE.md` "Stato attuale" (004 done, commands for `@tesseramento/import`, next 005)
-- [ ] T044 Manual scenarios M1–M9 of `specs/004-import-excel-acr/quickstart.md` in the browser on the emulators (360 px included); mark results in the PR
+- [ ] T044 Manual scenarios M1–M9 of `specs/004-import-excel-acr/quickstart.md` in the browser on the emulators (360 px included; measure the preview time for SC-001 ≤ 5 s); mark results in the PR
 - [ ] T045 Release only after all tests are green: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`; the first real import is done by the secretary from the app (the real file never enters the repository)
 
 ---
@@ -160,14 +167,15 @@ dell'implementazione e devono fallire prima di passare.
 
 - Test prima, devono fallire; poi tipi → funzioni pure → backend → servizio → pagina
 - Le regole (T028) prima del backend Firestore (T029)
-- Stesso file = in sequenza (es. `import.service.ts` T020 → T030 → T038; `parse-sheet.ts` T018 → T037)
+- Stesso file = in sequenza (es. `import.service.ts` T020 → T030 → T038; `parse-sheet.ts` T018 → T037; `import-page.ts` T021 → T030 → T049 → T038)
+- T046–T049 (Tesserati) si eseguono dopo T030 e prima di T031–T032; gli ID non sono in ordine perché aggiunti dopo l'analisi
 
 ### Parallel Opportunities
 
 - Setup: T003 in parallelo dopo T001–T002
 - Foundational: T004–T006 insieme; T008–T010 insieme; T012–T013 insieme
 - US1: T014–T017 insieme; T019 in parallelo a T018
-- US2: T023–T026 insieme
+- US2: T023–T026 insieme; T046–T047 insieme (dopo T029 per avere dati reali nell'emulatore, ma indipendenti nei file)
 - US3: T033–T036 insieme
 - Polish: T040, T041, T043 insieme
 

@@ -38,7 +38,7 @@ per regole (`npm run test:rules`) e integrazione (`npm run test:integration -w w
 **Constraints**: il file non lascia il dispositivo; nessun dato personale nei log; solo colonne necessarie;
 nessuna Cloud Function né piano Blaze; transazione ≤ 500 scritture (ACR reale: 89 adesioni + ≤ 89 persone + 1)
 
-**Scale/Scope**: 2–5 utenti, un import ACR all'anno, 1 schermata nuova
+**Scale/Scope**: 2–5 utenti, un import ACR all'anno, 2 schermate nuove (Importa, Tesserati in sola lettura)
 
 ## Constitution Check
 
@@ -100,9 +100,13 @@ apps/web/src/app/
 │   ├── testing.ts                  # backend finto
 │   ├── pages/import/               # scelta file, anteprima, riepilogo
 │   └── firestore-import-backend.emulator.test.ts
+├── tesserati/                      # FR-019: elenco in sola lettura dei tesserati di un anno
+│   ├── members-backend.ts          # interfaccia + token; Firestore: anni importati, adesioni ⨝ persone
+│   ├── firestore-members-backend.ts
+│   └── pages/members/              # scelta anno + tabella
 ├── listini/schedule-usage.ts       # ora reale: esiste un import per l'anno?
-├── pages/home/home.ts              # + link "Importa Excel"
-└── app.routes.ts                   # + /importa (canDeactivate durante il salvataggio)
+├── pages/home/home.ts              # + link "Importa Excel" e "Tesserati"
+└── app.routes.ts                   # + /importa (canDeactivate durante il salvataggio), /tesserati
 ```
 
 **Structure Decision**: la trasformazione delle righe è pura e in un pacchetto a parte come `fees`, così si

@@ -18,9 +18,11 @@ nel PATH), dipendenze installate (`npm install`, include SheetJS dal CDN ufficia
 1. `npm run emulators` e `npm start`; accedi con un utente autorizzato dell'emulatore.
 2. Crea il listino 2026 (seed sull'emulatore: `node firebase/scripts/seed-fee-schedule.cjs --emulator --email prova@example.org`).
 3. **M1** Importa → scegli `ElencoAdesioni_ACR.xlsx` → anteprima "2026/27", 15 righe, nessuna saltata.
-4. **M2** Annulla → nell'emulatore nessun documento in `persons`, `adhesions`, `importBatches`.
-5. **M3** Ripeti e conferma → "15 adesioni, 15 persone nuove"; in Firestore 15 `adhesions/2026_*`, nessun campo
-   escluso (indirizzo, telefono, Pagato, MLAC/MSAC…).
+4. **M2** Annulla → "Tesserati" mostra "Nessun tesserato importato"; nell'emulatore nessun documento in `persons`,
+   `adhesions`, `importBatches`.
+5. **M3** Ripeti e conferma (misura: anteprima entro 5 s, SC-001) → "15 adesioni, 15 persone nuove"; "Vedi i
+   tesserati" → 15 righe del 2026/27; in Firestore 15 `adhesions/2026_*`, nessun campo escluso (indirizzo,
+   telefono, Pagato, MLAC/MSAC…).
 6. **M4** Ricarica lo stesso file → "già stato importato".
 7. **M5** Carica `ElencoAdesioni_Giovani.xlsx` → "non sembra l'elenco ACR".
 8. **M6** Copia del file ACR con `Data Nascita` rinominata → "mancano le colonne: Data Nascita".
