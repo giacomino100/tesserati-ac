@@ -34,12 +34,12 @@ legame. Finché non conferma, nulla viene salvato.
 **Why this priority**: è il cuore della funzione e dà alla segreteria la possibilità di controllare il file prima
 di scrivere dati.
 
-**Independent Test**: caricare il file finto dell'ACR e verificare che l'anteprima mostri "2026", 89 righe e le
+**Independent Test**: caricare il file finto dell'ACR e verificare che l'anteprima mostri "2026", 15 righe e le
 prime righe; annullare e verificare che non sia stato salvato nulla.
 
 **Acceptance Scenarios**:
 
-1. **Given** un utente autorizzato e il file ACR finto, **When** sceglie il file, **Then** vede l'anno 2026, 89
+1. **Given** un utente autorizzato e il file ACR finto, **When** sceglie il file, **Then** vede l'anno 2026, 15
    righe e le prime righe con nome, data di nascita, fascia e legame.
 2. **Given** l'anteprima mostrata, **When** l'utente annulla, **Then** non viene salvato alcun tesserato né alcuna
    adesione.
@@ -56,12 +56,12 @@ e la sua adesione dell'anno. A fine import mostra quante persone e quante adesio
 **Why this priority**: senza il salvataggio i dati restano solo nell'Excel e non si possono fare riconferme,
 famiglie e quote.
 
-**Independent Test**: con il file ACR finto confermare l'import e verificare 89 adesioni per il 2026 e il numero
+**Independent Test**: con il file ACR finto confermare l'import e verificare 15 adesioni per il 2026 e il numero
 di persone mostrato; ripetere con un'altra persona autorizzata e verificare che i dati siano visibili.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'anteprima del file ACR finto, **When** l'utente conferma, **Then** vengono salvate 89 adesioni
+1. **Given** l'anteprima del file ACR finto, **When** l'utente conferma, **Then** vengono salvate 15 adesioni
    dell'anno 2026 e il numero di persone e di adesioni è mostrato a fine import.
 2. **Given** una persona che compare in un anno con adesione, **When** in un anno successivo si importa un altro
    file con la stessa persona, **Then** l'anagrafica resta una sola e si aggiunge solo l'adesione del nuovo anno.
@@ -149,7 +149,7 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
   parzialmente importato.
 - **FR-015**: Solo gli utenti autorizzati MUST poter leggere e scrivere tesserati e adesioni; tutti gli altri MUST
   essere rifiutati.
-- **FR-016**: Con i dati finti di `docs/dominio/excel-esempio/` l'import dell'ACR MUST dare 89 adesioni dell'anno 2026.
+- **FR-016**: Con i dati finti di `docs/dominio/excel-esempio/` l'import dell'ACR MUST dare 15 adesioni dell'anno 2026 (il file finto ha 15 righe; le 89 righe sono dell'export reale).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -163,8 +163,8 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
 
 ### Measurable Outcomes
 
-- **SC-001**: Con il file ACR finto l'anteprima mostra anno 2026 e 89 righe entro 5 secondi dalla scelta del file.
-- **SC-002**: Dopo la conferma risultano 89 adesioni 2026 e il totale di persone coincide con quello mostrato.
+- **SC-001**: Con il file ACR finto l'anteprima mostra anno 2026 e 15 righe entro 5 secondi dalla scelta del file.
+- **SC-002**: Dopo la conferma risultano 15 adesioni 2026 e il totale di persone coincide con quello mostrato.
 - **SC-003**: Annullando dall'anteprima, 0 dati vengono salvati (verificabile dall'elenco dopo l'annullamento).
 - **SC-004**: Il 100% dei file con colonne mancanti o non Excel viene rifiutato con un messaggio che indica il
   problema, senza salvare nulla.

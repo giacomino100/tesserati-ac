@@ -27,7 +27,7 @@ e quote. Servono dati puliti e per anno, senza dover ricopiare a mano 89 righe (
   escluse (Frazione, SR, LM, A–E, Incarico) non vengono lette né salvate.
 - Dopo la conferma, per ogni riga si salva la persona (anagrafica condivisa tra gli anni) e la sua adesione
   dell'anno; il numero di persone e di adesioni salvate è mostrato a fine import.
-- Con i dati finti di `docs/dominio/excel-esempio/` l'import dell'ACR dà 89 adesioni dell'anno 2026.
+- Con i dati finti di `docs/dominio/excel-esempio/` l'import dell'ACR dà 15 adesioni dell'anno 2026 (l'export reale ne ha 89).
 - Solo gli utenti autorizzati leggono e scrivono tesserati e adesioni (regole di sicurezza testate).
 **Fuori ambito:**
 - Import degli Excel Giovani e Adulti (specifica 005: stessa struttura, riuso della 004).
