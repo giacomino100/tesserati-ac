@@ -270,6 +270,48 @@ service cloud.firestore {
             || !getAfter(familyPath(resource.data.familyId)).data.memberIds.hasAny([resource.data.personId]));
     }
 
+    // ---- Quote dei nuclei per anno (specifica 010, contracts/firestore-fees.md) ----
+
+    function isNonNegativeInt(v) {
+      return v is int && v >= 0;
+    }
+
+    // Quota salvata: calcolata (righe del calcolo della 002) o manuale (importo del nucleo + nota obbligatoria).
+    function validHouseholdFee(d, feeId) {
+      return d.keys().hasOnly(['associationYear', 'householdKey', 'memberIds', 'kind', 'lines', 'acrPackageCents',
+                               'manualCents', 'note', 'reason', 'totalCents', 'savedAt', 'savedBy'])
+        && d.keys().hasAll(['associationYear', 'householdKey', 'memberIds', 'kind', 'totalCents', 'savedAt', 'savedBy'])
+        && d.associationYear is int
+        && d.householdKey is string
+        && d.householdKey.matches('(f|p)-.+')
+        && feeId == string(d.associationYear) + '_' + d.householdKey
+        && d.memberIds is list
+        && d.memberIds.size() >= 1
+        && d.memberIds.size() <= 20
+        && isNonNegativeInt(d.totalCents)
+        && d.savedAt == request.time
+        && d.savedBy == ownEmail()
+        && (
+          (d.kind == 'calculated'
+            && d.lines is list
+            && !d.keys().hasAny(['manualCents', 'note', 'reason'])
+            && (!('acrPackageCents' in d) || isNonNegativeInt(d.acrPackageCents)))
+          || (d.kind == 'manual'
+            && !d.keys().hasAny(['lines', 'acrPackageCents'])
+            && isNonNegativeInt(d.manualCents)
+            && d.manualCents == d.totalCents
+            && d.note is string
+            && d.note.trim().size() > 0
+            && d.reason in ['householdTooLarge', 'memberUnderMinAge', 'invalidInput'])
+        );
+    }
+
+    match /householdFees/{feeId} {
+      allow get, list: if isAllowed();
+      allow create, update: if isAllowed() && validHouseholdFee(request.resource.data, feeId);
+      allow delete: if isAllowed();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

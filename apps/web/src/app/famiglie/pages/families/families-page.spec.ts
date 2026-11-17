@@ -60,6 +60,8 @@ describe('FamiliesPage', () => {
     button(card(el, 'N. Legame 900001'), 'Conferma')!.click();
     await settle();
     expect(card(el, 'ROSSI MARIO').textContent).toContain('Confermata il 17/11/2026 da segreteria@example.org');
+    const link = card(el, 'ROSSI MARIO').querySelector<HTMLAnchorElement>('a[href^="/quote"]');
+    expect(link?.getAttribute('href')).toBe(`/quote?anno=2026&nucleo=f-${backend.families[0]!.id}`);
     button(el, 'Conferma tutte')!.click();
     await settle();
     expect(backend.families).toHaveLength(2);

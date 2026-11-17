@@ -38,6 +38,10 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   letture delle regole), correzioni, famiglie a mano, scioglimento. Pacchetto puro `packages/families`. Firestore:
   `families/{id}` + `familyMemberships/{anno}_{personId}` (l'appartenenza è la fonte di verità: una famiglia per persona
   per anno).
+- **010 – Quote nella famiglia**: implementata, **non ancora rilasciata** (servono regole + hosting). Pagina `/quote`:
+  nuclei dell'anno (famiglie confermate + singoli) con quota da `calculateHouseholdFee`, quote manuali con nota per i
+  casi non previsti, salvataggio e "Aggiorna tutte" / "Aggiorna questa quota". Logica pura in `packages/families`
+  (`householdsOfYear`, `householdFees`, `compareWithSaved`); Firestore `householdFees/{anno}_{f-familyId|p-personId}`.
 - Poi: **008 – Riconferma adesione** (roadmap in `docs/roadmap.md`; da rivedere l'ordine 008–012).
 
 ## Comandi

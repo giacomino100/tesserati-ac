@@ -43,6 +43,11 @@ describe('Home', () => {
     expect(link?.textContent).toContain('Famiglie');
   });
 
+  it('ha il collegamento "Quote"', () => {
+    const link = setup().el.querySelector('a[href="/quote"]');
+    expect(link?.textContent).toContain('Quote');
+  });
+
   it('il pulsante "Esci" chiama signOut()', () => {
     const { fake, el } = setup();
     const button = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Esci'));

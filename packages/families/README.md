@@ -1,7 +1,7 @@
 # @tesseramento/families
 
-Logica **pura** delle famiglie per anno associativo (specifica 007). Nessuna dipendenza di runtime, nessun accesso a
-rete, browser, data corrente o log. Regole: `docs/dominio/regole-famiglia.md` §0–§1.
+Logica **pura** delle famiglie per anno associativo (specifica 007) e dei nuclei con le loro quote (specifica 010).
+Unica dipendenza: `@tesseramento/fees` (pura). Nessun accesso a rete, browser, data corrente o log. Regole: `docs/dominio/regole-famiglia.md` §0–§1.
 
 ## API
 
@@ -10,6 +10,9 @@ rete, browser, data corrente o log. Regole: `docs/dominio/regole-famiglia.md` §
 | `suggestFamilies(members, confirmed, memberships)` | tesserati dell'anno + famiglie confermate + appartenenze (personId → familyId) → famiglie confermate con i componenti effettivi, famiglie **suggerite** dal `N. Legame`, **aggiunte proposte** alle famiglie confermate, tesserati **senza famiglia** |
 | `validateFamily(memberIds, members, memberships, familyId?)` | problemi di una famiglia da confermare: meno di 2 componenti, persona non tesserata nell'anno, persona già in un'altra famiglia |
 | `parseBond("C3")` | `{ kind: 'C', size: 3 }`: lettera e numero di componenti del `Legame` |
+| `householdsOfYear(yearFamilies)` | nuclei dell'anno (specifica 010): famiglie confermate (`f-{id}`) + ogni tesserato senza famiglia confermata (`p-{personId}`), e quante famiglie suggerite non sono confermate |
+| `householdFees(households, schedule)` | quota di ogni nucleo con **solo** `calculateHouseholdFee` di `@tesseramento/fees` e il listino dell'anno: calcolata, non prevista (con motivo) o errore interno |
+| `compareWithSaved(current, saved)`, `yearTotals`, `toSavedCalculated` | confronto con le quote salvate (`new` / `unchanged` / `changed` / `removed`, validità delle quote manuali) e totali dell'anno |
 
 ## Regole principali
 

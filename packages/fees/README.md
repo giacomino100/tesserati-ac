@@ -28,5 +28,8 @@ npm run typecheck -w @tesseramento/fees # TypeScript strict
 percentuali né arrotondamenti. Dalla specifica 003 i listini degli anni nuovi stanno in Firestore
 (`feeSchedules`) e si creano dall'app; `2026-27.ts` resta il riferimento dei test e del seed.
 
+Dalla specifica 010 il calcolo dei nuclei dell'anno passa da `@tesseramento/families` (`householdFees`), che usa solo
+`calculateHouseholdFee` e il listino salvato.
+
 I casi che il PDF non prevede (nucleo di più di 4 persone, componente sotto i 6 anni) non vengono
 calcolati: l'esito è `notCovered`.

@@ -79,3 +79,86 @@ export type FamilyIssue =
   | { readonly kind: 'tooFew' }
   | { readonly kind: 'notInYear'; readonly personId: string }
   | { readonly kind: 'inOtherFamily'; readonly personId: string; readonly familyId: string };
+
+/* ---- Specifica 010: nuclei dell'anno e quote ---- */
+
+/** Nucleo dell'anno: famiglia confermata (chiave "f-{familyId}") o tesserato senza famiglia ("p-{personId}"). */
+export interface Household {
+  readonly key: string;
+  readonly familyId?: string;
+  readonly bondId?: string;
+  /** Dal più anziano al più giovane. */
+  readonly members: readonly YearMember[];
+}
+
+export interface HouseholdsOfYear {
+  readonly households: readonly Household[];
+  /** Famiglie suggerite (con almeno 2 componenti) non ancora confermate: i loro componenti sono singoli. */
+  readonly unconfirmedSuggested: number;
+}
+
+/** Riga del calcolo di un componente, come la dà @tesseramento/fees. */
+export interface FeeLine {
+  readonly memberId: string;
+  readonly age: number;
+  readonly band: 'acr' | 'giovanissimi' | 'giovani' | 'adulti';
+  readonly fullCents: number;
+  readonly benefit: 'none' | 'discount20' | 'free' | 'inAcrPackage';
+  readonly amountCents?: number;
+}
+
+export type NotCoveredKind = 'householdTooLarge' | 'memberUnderMinAge' | 'invalidInput';
+
+export type FeeOutcome =
+  | {
+      readonly kind: 'calculated';
+      readonly lines: readonly FeeLine[];
+      readonly acrPackageCents?: number;
+      readonly totalCents: number;
+    }
+  /** Non previsto dal PDF (regole-quote.md §4): quota manuale del nucleo con nota. */
+  | { readonly kind: 'notCovered'; readonly reason: NotCoveredKind }
+  /** Errore interno (es. listino di un altro anno): non è un caso non previsto. */
+  | { readonly kind: 'error' };
+
+export interface HouseholdFee {
+  readonly household: Household;
+  readonly outcome: FeeOutcome;
+}
+
+/** Quota salvata di un nucleo (istantanea per anno). */
+export interface SavedHouseholdFee {
+  readonly key: string;
+  readonly associationYear: number;
+  readonly memberIds: readonly string[];
+  readonly kind: 'calculated' | 'manual';
+  readonly lines?: readonly FeeLine[];
+  readonly acrPackageCents?: number;
+  readonly manualCents?: number;
+  readonly note?: string;
+  readonly reason?: NotCoveredKind;
+  readonly totalCents: number;
+  readonly savedAt: Date;
+  readonly savedBy: string;
+}
+
+export interface FeeComparison {
+  readonly key: string;
+  readonly status: 'new' | 'unchanged' | 'changed' | 'removed';
+  readonly current?: HouseholdFee;
+  readonly saved?: SavedHouseholdFee;
+  /** Non previsto senza una quota manuale valida. */
+  readonly needsManual: boolean;
+}
+
+export interface YearTotals {
+  /** Calcolo attuale + quote manuali valide. */
+  readonly totalCents: number;
+  /** Somma delle quote salvate dei nuclei presenti. */
+  readonly savedTotalCents: number;
+  readonly calculated: number;
+  readonly manual: number;
+  readonly missing: number;
+  /** Nuclei da salvare o aggiornare (salvate diverse dal calcolo attuale, o non più presenti). */
+  readonly toUpdate: number;
+}

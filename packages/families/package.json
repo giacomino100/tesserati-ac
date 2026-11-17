@@ -9,6 +9,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
+  "dependencies": {
+    "@tesseramento/fees": "*"
+  },
   "devDependencies": {
     "@tesseramento/import": "*",
     "@types/node": "^22.20.5",

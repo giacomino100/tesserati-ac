@@ -1089,3 +1089,118 @@ describe('J11 – un gruppo di "Conferma tutte"', () => {
     expect(await countFamilyDocs()).toEqual({ families: 8, familyMemberships: 16 });
   });
 });
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 010 – quote dei nuclei (contracts/firestore-fees.md, K1–K8). Solo ID inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+function calculatedFee(key: string, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    associationYear: 2026,
+    householdKey: key,
+    memberIds: ['a', 'b'],
+    kind: 'calculated',
+    lines: [
+      { memberId: 'a', age: 46, band: 'adulti', fullCents: 2600, benefit: 'none', amountCents: 2600 },
+      { memberId: 'b', age: 44, band: 'adulti', fullCents: 2600, benefit: 'none', amountCents: 2600 },
+    ],
+    totalCents: 5200,
+    savedAt: serverTimestamp(),
+    savedBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+function manualFee(key: string, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    associationYear: 2026,
+    householdKey: key,
+    memberIds: ['a', 'b', 'c', 'd', 'e'],
+    kind: 'manual',
+    manualCents: 14000,
+    note: 'Deciso dal consiglio',
+    reason: 'householdTooLarge',
+    totalCents: 14000,
+    savedAt: serverTimestamp(),
+    savedBy: LISTED,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+async function countFees(): Promise<number> {
+  let n = 0;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    n = (await getDocs(collection(ctx.firestore(), 'householdFees'))).size;
+  });
+  return n;
+}
+
+describe('K1/K2 – quote: accesso', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'householdFees/2026_f-x'), { ...calculatedFee('f-x'), savedAt: Timestamp.now() });
+    });
+  });
+
+  it('non autorizzato: nulla; autorizzato: lettura', async () => {
+    for (const db of [guest(), user(STRANGER), user(LISTED, { verified: false })]) {
+      await assertFails(getDoc(doc(db, 'householdFees/2026_f-x')));
+      await assertFails(getDocs(collection(db, 'householdFees')));
+      await assertFails(setDoc(doc(db, 'householdFees/2026_f-y'), calculatedFee('f-y')));
+      await assertFails(deleteDoc(doc(db, 'householdFees/2026_f-x')));
+    }
+    await assertSucceeds(getDoc(doc(user(LISTED), 'householdFees/2026_f-x')));
+    await assertSucceeds(getDocs(collection(user(LISTED), 'householdFees')));
+  });
+});
+
+describe('K3–K6 – forma delle quote', () => {
+  it('quota calcolata, quota manuale e quota manuale zero: consentite', async () => {
+    const db = user(LISTED);
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_f-a'), calculatedFee('f-a')));
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_f-big'), manualFee('f-big')));
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_p-gatti'), manualFee('p-gatti', { memberIds: ['g'], manualCents: 0, totalCents: 0, reason: 'memberUnderMinAge' })));
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_f-acr'), calculatedFee('f-acr', { acrPackageCents: 2500, totalCents: 2500 })));
+  });
+
+  const invalid: Record<string, [string, Record<string, unknown>]> = {
+    'manuale senza nota': ['f-big', manualFee('f-big', { note: undefined })],
+    'manuale con nota vuota': ['f-big', manualFee('f-big', { note: '   ' })],
+    'manualCents diverso dal totale': ['f-big', manualFee('f-big', { manualCents: 100 })],
+    'motivo sconosciuto': ['f-big', manualFee('f-big', { reason: 'altro' })],
+    'manuale con righe': ['f-big', manualFee('f-big', { lines: [] })],
+    'calcolata con nota': ['f-a', calculatedFee('f-a', { note: 'x' })],
+    'totale negativo': ['f-a', calculatedFee('f-a', { totalCents: -1 })],
+    'totale non intero': ['f-a', calculatedFee('f-a', { totalCents: 52.5 })],
+    'tipo sconosciuto': ['f-a', calculatedFee('f-a', { kind: 'altro' })],
+    'campo in più': ['f-a', calculatedFee('f-a', { extra: 1 })],
+    'nessun componente': ['f-a', calculatedFee('f-a', { memberIds: [] })],
+    'ID incoerente': ['f-zzz', calculatedFee('f-a')],
+    'chiave non valida': ['x-a', calculatedFee('x-a')],
+    'email di un altro': ['f-a', calculatedFee('f-a', { savedBy: 'altro@example.org' })],
+    'data del client': ['f-a', calculatedFee('f-a', { savedAt: Timestamp.fromDate(new Date('2026-01-01')) })],
+  };
+  for (const [name, [key, data]] of Object.entries(invalid)) {
+    it(`${name}: negato`, async () => {
+      await assertFails(setDoc(doc(user(LISTED), `householdFees/2026_${key}`), data));
+      expect(await countFees()).toBe(0);
+    });
+  }
+});
+
+describe('K7/K8 – aggiornamento, cancellazione, molte quote insieme', () => {
+  it('aggiornare e cancellare: consentito', async () => {
+    const db = user(LISTED);
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_f-a'), calculatedFee('f-a')));
+    await assertSucceeds(setDoc(doc(db, 'householdFees/2026_f-a'), calculatedFee('f-a', { totalCents: 5400 })));
+    await assertSucceeds(deleteDoc(doc(db, 'householdFees/2026_f-a')));
+  });
+
+  it('120 quote in una sola scrittura: consentito', async () => {
+    const db = user(LISTED);
+    const batch = writeBatch(db);
+    for (let i = 0; i < 120; i++) batch.set(doc(db, `householdFees/2026_p-${i}`), calculatedFee(`p-${i}`));
+    await assertSucceeds(batch.commit());
+    expect(await countFees()).toBe(120);
+  });
+});

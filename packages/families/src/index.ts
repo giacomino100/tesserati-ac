@@ -3,6 +3,15 @@ export type {
   ConfirmedFamily,
   ConfirmedFamilyView,
   ElsewhereMember,
+  FeeComparison,
+  FeeLine,
+  FeeOutcome,
+  Household,
+  HouseholdFee,
+  HouseholdsOfYear,
+  NotCoveredKind,
+  SavedHouseholdFee,
+  YearTotals,
   FamilyIssue,
   FamilyList,
   FamilyWarning,
@@ -14,3 +23,5 @@ export type {
 export { parseBond } from './bond';
 export { suggestFamilies } from './suggest';
 export { validateFamily } from './validate';
+export { householdsOfYear } from './households';
+export { compareWithSaved, householdFees, toSavedCalculated, yearTotals } from './household-fees';

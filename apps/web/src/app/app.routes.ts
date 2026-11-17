@@ -53,5 +53,11 @@ export const routes: Routes = [
     canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./famiglie/pages/families/families-page').then((m) => m.FamiliesPage),
   },
+  {
+    path: 'quote',
+    canActivate: [requireState('allowed')],
+    canDeactivate: [unsavedChangesGuard],
+    loadComponent: () => import('./quote/pages/fees/fees-page').then((m) => m.FeesPage),
+  },
   { path: '**', redirectTo: '' },
 ];

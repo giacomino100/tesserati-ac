@@ -3,8 +3,8 @@
 ## R1. Nuclei dell'anno
 
 - **Decision**: `householdsOfYear(families: YearFamilies)` → per ogni famiglia confermata un nucleo con chiave
-  `f:{familyId}` e i componenti effettivi (007, R8); per ogni tesserato fuori da una famiglia confermata (anche se in
-  una famiglia **suggerita**) un nucleo da 1 con chiave `p:{personId}`. Conteggio delle famiglie suggerite
+  `f-{familyId}` e i componenti effettivi (007, R8); per ogni tesserato fuori da una famiglia confermata (anche se in
+  una famiglia **suggerita**) un nucleo da 1 con chiave `p-{personId}`. Conteggio delle famiglie suggerite
   confermabili per l'avviso.
 - **Rationale**: FR-002 e decisione 1 del brief; la chiave stabile permette di confrontare con le quote salvate.
 
@@ -12,8 +12,11 @@
 
 - **Decision**: `householdFees(households, schedule)` chiama `calculateHouseholdFee({ associationYear, members,
   schedule })` per ogni nucleo; esito `calculated` (righe, pacchetto ACR, totale), `notCovered` (motivi) o
-  `invalidInput` (trattato come non previsto con motivo "data di nascita incoerente", `regole-quote.md` §4). Il totale
-  dell'anno somma solo i calcolati e le quote manuali valide.
+  `invalidInput`: solo gli errori sulle date (`invalidBirthDate`, `birthDateAfterYear`) diventano "non previsto, data
+  di nascita incoerente" (`regole-quote.md` §4); gli altri (es. listino di un altro anno) sono un **errore interno**
+  ("Impossibile calcolare: dati incoerenti, contatta chi gestisce il progetto."), senza quota manuale. Il totale
+  dell'anno somma i calcolati e le quote manuali valide; se ci sono quote salvate e il loro totale è diverso, la pagina
+  mostra anche "Totale salvato" (analisi A1/U1, decise in implementazione).
 - **Rationale**: principio II: un solo calcolo, quello della 002.
 
 ## R3. Confronto con le quote salvate

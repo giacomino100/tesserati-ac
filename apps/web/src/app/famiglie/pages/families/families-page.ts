@@ -119,6 +119,7 @@ import { FamiliesService } from '../../families.service';
                 </button>
               }
               <div class="actions">
+                <a mat-stroked-button routerLink="/quote" [queryParams]="{ anno: service.year(), nucleo: 'f-' + c.family.id }">Vedi la quota</a>
                 <button mat-stroked-button type="button" (click)="service.startEditConfirmed(c)">Correggi</button>
                 <button mat-stroked-button type="button" (click)="dissolving.set(c.family.id)">Sciogli famiglia</button>
               </div>

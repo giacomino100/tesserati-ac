@@ -111,6 +111,10 @@ ricalcolare" e i totali salvati restano quelli di prima; dopo "Aggiorna tutte" i
   da ricalcolare; una quota manuale non si applica più a un nucleo diventato calcolabile, e viceversa.
 - Tesserato in un nucleo confermato ma senza più l'adesione dell'anno: non compare; il nucleo è da ricalcolare.
 - Importi sempre in euro con due decimali, interi in centesimi; nessun arrotondamento.
+- Una famiglia sciolta e ricreata è un nucleo nuovo: la quota salvata della vecchia sparisce con "Aggiorna tutte".
+- Due persone aggiornano lo stesso nucleo quasi insieme: vale l'ultimo salvataggio.
+- Errore di calcolo che non riguarda le date (es. listino di un altro anno): non è un caso non previsto; la pagina
+  mostra "Impossibile calcolare: dati incoerenti, contatta chi gestisce il progetto." e nessuna quota manuale.
 - Il calcolo non usa mai la colonna `Fasce d'età` dell'export: l'età viene dalla data di nascita.
 - Utente non autorizzato: nessun accesso.
 
