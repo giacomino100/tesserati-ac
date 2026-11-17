@@ -16,6 +16,13 @@ Legame`), §2 (identità), §3 (settore ricalcolato sempre in automatico con le 
 e `N. Legame` copiati — aggiornato il 2026-11-17); `docs/dominio/regole-quote.md` (fasce, età minima); specifiche 003,
 004–006 (persone e adesioni; una sola adesione per persona per anno), 007, 010; constitution, principi I, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Nella pagina "Riconferme", come devono comparire le persone da decidere? → A: raggruppate per `N. Legame` (ogni gruppo con la casella "tutto il nucleo"), poi i singoli in ordine di cognome e nome.
+- Q: Si può annullare la riconferma di una persona per cui in "Quote" è già salvata una quota del nuovo anno? → A: sì, con un avviso nella conferma ("La quota salvata del suo nucleo andrà ricalcolata in Quote."); poi in "Quote" il nucleo risulta da ricalcolare.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vedere chi può rinnovare (Priority: P1)
@@ -34,7 +41,10 @@ l'avviso "non previsto dal listino".
 **Acceptance Scenarios**:
 
 1. **Given** i dati finti del 2026 e il listino 2027/28, **When** si apre "Riconferme" 2027/28, **Then** compaiono 37
-   persone da decidere, ordinate per cognome e nome, ciascuna con età ed elenco del 2027.
+   persone da decidere: 9 gruppi per `N. Legame` (900001–900009, 27 persone) e poi 10 singoli in ordine di
+   cognome e nome, ciascuna con età ed elenco del 2027.
+7. **Given** il gruppo `N. Legame` 900003 (4 persone), **When** si spunta "tutto il nucleo", **Then** risultano
+   spuntati tutti e 4 i componenti; togliendo la spunta a uno, la casella del nucleo non è più piena.
 2. **Given** RINALDI PIETRO (nato nel 2012, ACR nel 2026), **When** compare nell'elenco, **Then** ha 15 anni, elenco
    Giovani e l'avviso "Passa da ACR a Giovani".
 3. **Given** RIZZO VALERIA (nata nel 1997, Giovani nel 2026), **When** compare nell'elenco, **Then** ha 30 anni, elenco
@@ -94,7 +104,10 @@ importare un Excel ACR del 2027: le righe di quelle persone sono saltate come "g
    **Then** "Annulla riconferma" non è disponibile e compare "Prima togli questa persona dalla famiglia del 2027/28."
 3. **Given** una persona del 2027 nata da un import, **When** compare tra gli iscritti, **Then** non ha "Annulla
    riconferma".
-4. **Given** persone riconfermate per il 2027, **When** si importa un Excel del 2027 che le contiene, **Then** le loro
+4. **Given** MORETTI CARLA riconfermata e la sua quota 2027 già salvata in "Quote", **When** si preme "Annulla
+   riconferma", **Then** la conferma avvisa "La quota salvata del suo nucleo andrà ricalcolata in Quote."; dopo
+   l'annullamento, in "Quote" 2027/28 il suo nucleo risulta da ricalcolare e la quota salvata non cambia da sola.
+5. **Given** persone riconfermate per il 2027, **When** si importa un Excel del 2027 che le contiene, **Then** le loro
    righe sono saltate come "già presente nell'anno (riconferma)" e le adesioni riconfermate non cambiano.
 
 ---
@@ -120,8 +133,9 @@ importare un Excel ACR del 2027: le righe di quelle persone sono saltate come "g
 - **FR-001**: Gli utenti autorizzati MUST poter aprire una pagina "Riconferme" e scegliere l'anno nuovo (un anno con
   tesserati nell'anno immediatamente precedente, o quello successivo all'ultimo anno con tesserati).
 - **FR-002**: La pagina MUST elencare i tesserati dell'anno immediatamente precedente senza adesione nell'anno nuovo
-  ("da decidere"), ordinati per cognome e nome, e a parte quelli già iscritti nell'anno nuovo, con il conteggio di
-  entrambi.
+  ("da decidere"), raggruppati per `N. Legame` dell'anno precedente (gruppi in ordine di `N. Legame`, componenti dal
+  più anziano) con una casella "tutto il nucleo" per gruppo, poi chi non ha `N. Legame` in ordine di cognome e nome;
+  a parte quelli già iscritti nell'anno nuovo; con il conteggio di entrambi.
 - **FR-003**: Per ogni persona MUST mostrare età nell'anno nuovo (anno associativo − anno di nascita) ed elenco del
   nuovo anno ricavato dalle fasce del listino del nuovo anno (ACR → ACR; Giovanissimi e Giovani → Giovani; Adulti →
   Adulti; sotto l'età minima → ACR), con l'avviso se l'elenco cambia rispetto all'anno precedente o se l'età è sotto il
@@ -134,7 +148,8 @@ importare un Excel ACR del 2027: le righe di quelle persone sono saltate come "g
   nuovo MUST essere rifiutata, anche se avviene in contemporanea da due utenti.
 - **FR-007**: La riconferma MUST NOT creare persone nuove né modificare anagrafiche o adesioni di altri anni.
 - **FR-008**: Una riconferma MUST potersi annullare ("Annulla riconferma", con conferma) solo se l'adesione è nata da
-  una riconferma e la persona non è in una famiglia confermata dell'anno nuovo.
+  una riconferma e la persona non è in una famiglia confermata dell'anno nuovo; se il suo nucleo ha una quota salvata
+  dell'anno nuovo (010), la conferma MUST avvisare che andrà ricalcolata, e la quota salvata MUST NOT cambiare da sola.
 - **FR-009**: L'import di un Excel dell'anno nuovo MUST saltare le righe delle persone già riconfermate, con il motivo
   "già presente nell'anno (riconferma)", senza cambiare la loro adesione.
 - **FR-010**: Le persone riconfermate MUST comparire in Tesserati, Famiglie (suggerite dal `N. Legame` copiato) e Quote
