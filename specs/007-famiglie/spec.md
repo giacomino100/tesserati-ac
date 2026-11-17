@@ -16,6 +16,14 @@ suggerimento, confermata da una persona; per anno; al massimo una famiglia per p
 2026-11-17); `docs/dominio/regole-quote.md` (il nucleo è la base dello sconto); `docs/dominio/glossario.md`;
 constitution, principi I, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Una famiglia confermata deve avere almeno 2 componenti, oppure si può confermare anche una famiglia di una sola persona? → A: almeno 2 componenti; una persona sola resta "senza famiglia" (nucleo da 1, come in `regole-famiglia.md` §1).
+
+- Q: Si deve poter sciogliere una famiglia già confermata, in modo che tutti i componenti tornino senza famiglia? → A: sì, con il pulsante "Sciogli famiglia" e una conferma ("Tutti i componenti resteranno senza famiglia"); persone e adesioni non cambiano.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vedere le famiglie suggerite dell'anno (Priority: P1)
@@ -87,6 +95,9 @@ contiene e lui risulta senza famiglia; creare una famiglia con due tesserati sen
    salvata è quella nuova, con data ed email aggiornate.
 5. **Given** una famiglia con un solo componente rimasto, **When** l'utente prova a confermarla, **Then** l'app non lo
    consente: una famiglia ha almeno 2 componenti.
+6. **Given** una famiglia confermata, **When** l'utente preme "Sciogli famiglia" e conferma l'avviso "Tutti i
+   componenti resteranno senza famiglia", **Then** la famiglia non è più salvata e i suoi componenti compaiono tra i
+   tesserati senza famiglia (o di nuovo come famiglia suggerita, se hanno un `N. Legame`).
 
 ---
 
@@ -99,6 +110,8 @@ contiene e lui risulta senza famiglia; creare una famiglia con due tesserati sen
   010.
 - Un tesserato della famiglia suggerita è già in un'altra famiglia confermata: non viene proposto due volte; la
   famiglia suggerita lo mostra come "già nella famiglia di …".
+- "Conferma tutte" conferma tutte le famiglie suggerite con almeno 2 componenti (anche quelle con avviso) e salta le
+  altre, dicendo quante e perché ("1 famiglia con un solo componente non confermata").
 - Due persone confermano la stessa famiglia quasi insieme: vale l'ultima conferma; nessuna famiglia duplicata.
 - I dati importati (persone, adesioni) non vengono mai modificati da questa sezione.
 - Utente non autorizzato: nessun accesso.
@@ -117,8 +130,8 @@ contiene e lui risulta senza famiglia; creare una famiglia con due tesserati sen
 - **FR-004**: Il sistema MUST mostrare i tesserati dell'anno senza famiglia (né suggerita né confermata).
 - **FR-005**: Gli utenti MUST poter confermare una famiglia suggerita, oppure tutte quelle suggerite insieme.
 - **FR-006**: Gli utenti MUST poter togliere un componente da una famiglia, aggiungere un tesserato dell'anno senza
-  famiglia, creare una famiglia con tesserati senza famiglia, e riaprire, correggere e riconfermare una famiglia
-  confermata.
+  famiglia, creare una famiglia con tesserati senza famiglia, riaprire, correggere e riconfermare una famiglia
+  confermata, e sciogliere una famiglia confermata dopo una conferma esplicita.
 - **FR-007**: Il sistema MUST impedire che una persona stia in più di una famiglia nello stesso anno e che si confermi
   una famiglia con meno di 2 componenti.
 - **FR-008**: Le famiglie confermate MUST essere salvate per anno associativo, con i componenti, l'origine

@@ -32,4 +32,4 @@
 ## Notes
 
 - Le sei decisioni del brief sono in FR-002…FR-009; `regole-famiglia.md` §1 aggiornato prima della spec.
-- Scelta di default da confermare in `/speckit-clarify`: una famiglia confermata ha almeno 2 componenti (FR-007).
+- Chiarito il 2026-11-17: una famiglia confermata ha almeno 2 componenti (FR-007).
