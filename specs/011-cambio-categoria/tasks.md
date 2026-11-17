@@ -112,7 +112,7 @@ pratica del progetto (logica pura testata prima del codice).
 - [X] T024 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web`
 - [X] T025 [P] Update `docs/roadmap.md` (011 🚧, ✅ when released) and `CLAUDE.md`
 - [ ] T026 Manual scenarios M1–M5 of `specs/011-cambio-categoria/quickstart.md`
-- [ ] T027 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
+- [X] T027 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
 
 ---
 
