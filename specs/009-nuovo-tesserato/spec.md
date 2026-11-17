@@ -15,6 +15,13 @@ tesserato" per iscrivere in un anno chi non era iscritto l'anno precedente, senz
 casi dubbi da far decidere), §3 (elenco dall'età con le fasce del listino); `docs/dominio/excel-esempio/README.md`
 (colonne ammesse); specifiche 004–006, 007, 008, 010; constitution, principi I, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Dove si trova "Annulla iscrizione" per le persone iscritte con il modulo? → A: in Riconferme, nella sezione "Nuovi tesserati del {anno}" con l'elenco degli iscritti a mano e "Annulla iscrizione" su ciascuno.
+- Q: Con cognome, nome e data identici a una persona in archivio, si usa sempre quella o si può scegliere "Persona diversa"? → A: sempre quella persona, senza chiedere, come nell'import (la chiave identifica la persona, §2).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Iscrivere una persona nuova (Priority: P1)
@@ -76,7 +83,8 @@ nel 2027/28: l'app dice "Ha un'adesione nel 2026/27: usa Riconferme." e non salv
 
 ### User Story 3 - Annullare un'iscrizione e importare dopo (Priority: P2)
 
-L'utente può annullare un'iscrizione fatta per errore ("Annulla iscrizione"), finché la persona non è in una famiglia
+In "Riconferme" la sezione "Nuovi tesserati del 2026/27" elenca gli iscritti a mano dell'anno; da lì l'utente può
+annullare un'iscrizione fatta per errore ("Annulla iscrizione"), finché la persona non è in una famiglia
 confermata dell'anno; la persona resta in archivio. Se poi si importa l'Excel dello stesso anno che la contiene, la
 riga è saltata come "già presente nell'anno (inserita a mano)". Nella pagina Quote, un anno senza listino (es. 2025/26)
 non invita più a creare un listino che non si può creare.
@@ -88,7 +96,8 @@ archivio senza adesioni.
 
 **Acceptance Scenarios**:
 
-1. **Given** BIANCO LUCA iscritto, **When** si preme "Annulla iscrizione" e si conferma, **Then** la sua adesione
+1. **Given** BIANCO LUCA iscritto, **When** in Riconferme 2026/27, sezione "Nuovi tesserati del 2026/27", si preme
+   "Annulla iscrizione" e si conferma, **Then** la sua adesione
    sparisce e compare "Iscrizione annullata."; con una quota salvata del suo nucleo la conferma avvisa "La quota salvata
    del suo nucleo andrà ricalcolata in Quote.".
 2. **Given** BIANCO LUCA aggiunto a una famiglia confermata, **When** si guarda la sua riga, **Then** "Annulla
@@ -108,7 +117,8 @@ archivio senza adesioni.
   mostra chiaramente prima di iscrivere.
 - Data di nascita successiva all'anno o più di 120 anni prima: rifiutata con "Data di nascita non valida".
 - Persona in archivio senza alcuna adesione (iscrizione annullata): riusata come le altre.
-- Due persone diverse con lo stesso nome e data (omonimi veri): "Persona diversa" crea una persona nuova.
+- Stessi cognome, nome e data di una persona in archivio: è sempre quella persona (come nell'import); "Stessa persona" /
+  "Persona diversa" si chiede solo per i casi simili di §2, non per i dati identici.
 - La persona iscritta a mano non ha `N. Legame`: le famiglie suggerite non la includono.
 - Utente non autorizzato: nessun accesso.
 
@@ -124,13 +134,14 @@ archivio senza adesioni.
   Giovani → Giovani, Adulti; sotto l'età minima → ACR con avviso); senza listino dell'anno MUST NOT permettere
   l'iscrizione.
 - **FR-004**: Prima di iscrivere, l'app MUST cercare la persona in archivio con le regole di `regole-famiglia.md` §2:
-  stessa chiave o stesso codice fiscale → si usa quella persona; persona simile → scelta obbligatoria "Stessa persona"
+  stessa chiave o stesso codice fiscale → si usa sempre quella persona, senza chiedere; persona simile → scelta obbligatoria "Stessa persona"
   / "Persona diversa"; adesione nell'anno precedente → rimando a "Riconferme" e nessuna iscrizione; adesione nell'anno →
   nessuna iscrizione.
 - **FR-005**: "Iscrivi" MUST creare, insieme o per niente, la persona (se nuova, con i soli dati del modulo puliti) e
   l'adesione dell'anno con origine "nuovo", elenco, settore, data ed email; MUST NOT modificare persone esistenti.
 - **FR-006**: Una persona MUST avere al massimo un'adesione per anno, anche con due iscrizioni contemporanee.
-- **FR-007**: "Annulla iscrizione" (con conferma) MUST cancellare solo adesioni con origine "nuovo" di persone non in
+- **FR-007**: La pagina "Riconferme" MUST mostrare la sezione "Nuovi tesserati del {anno}" con gli iscritti a mano
+  dell'anno; da lì "Annulla iscrizione" (con conferma) MUST cancellare solo adesioni con origine "nuovo" di persone non in
   una famiglia confermata dell'anno, avvisando se il nucleo ha una quota salvata; la persona MUST restare in archivio.
 - **FR-008**: L'import MUST saltare le righe delle persone iscritte a mano nell'anno, con il motivo "già presente
   nell'anno (inserita a mano)".
