@@ -15,6 +15,12 @@ PDF; elenco forzabile a mano con nota, l'eccezione vale un anno — aggiornato i
 `docs/dominio/regole-quote.md` (la quota dipende solo dall'età, anche con elenco forzato — aggiornato il 2026-11-17);
 specifiche 004–006, 008, 009, 010; constitution, principi I, III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Un'eccezione si può decidere già in Riconferme o solo dopo, in Tesserati? → A: solo in Tesserati: si riconferma con l'elenco per età, poi si cambia l'elenco con nota.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vedere chi non è nell'elenco della sua età (Priority: P1)
@@ -108,7 +114,7 @@ in ACR un anno in più"; la quota 2026/27 resta quella da Giovanissimo; "Allinea
 - **FR-002**: "Allinea all'età" MUST cambiare l'elenco (e il settore corrispondente) dell'adesione in quello dell'età.
 - **FR-003**: "Allinea tutte" MUST, dopo una conferma con il numero di adesioni, allineare tutte le adesioni non
   allineate dell'anno, escluse le eccezioni; tutto o niente per ogni gruppo di salvataggio.
-- **FR-004**: "Cambia elenco" MUST permettere di scegliere un altro elenco con una nota obbligatoria (testo non vuoto,
+- **FR-004**: "Cambia elenco" (solo in Tesserati; Riconferme non cambia l'elenco) MUST permettere di scegliere un altro elenco con una nota obbligatoria (testo non vuoto,
   al massimo 200 caratteri); l'adesione diventa un'eccezione mostrata con la nota.
 - **FR-005**: "Togli eccezione" MUST riportare l'elenco a quello dell'età (con il listino) o all'elenco precedente
   all'eccezione (senza listino).
