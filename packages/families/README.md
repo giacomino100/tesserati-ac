@@ -15,6 +15,7 @@ Unica dipendenza: `@tesseramento/fees` (pura). Nessun accesso a rete, browser, d
 | `householdFees(households, schedule)` | quota di ogni nucleo con **solo** `calculateHouseholdFee` di `@tesseramento/fees` e il listino dell'anno: calcolata, non prevista (con motivo) o errore interno |
 | `compareWithSaved(current, saved)`, `yearTotals`, `toSavedCalculated` | confronto con le quote salvate (`new` / `unchanged` / `changed` / `removed`, validità delle quote manuali) e totali dell'anno |
 | `renewalView({ year, previous, current, memberships, schedule? })` | riconferme (specifica 008): tesserati dell'anno precedente da decidere, raggruppati per `N. Legame` e poi singoli, con età ed elenco del nuovo anno dalle fasce del listino (`listForBand`), avvisi (cambio di elenco, sotto l'età minima, data incoerente) e già iscritti (annullabili se riconfermati e fuori da famiglie) |
+| `listForAge(birthDate, year, schedule)`, `listStatus(row, year, schedule?)`, `alignAllPlan(rows, year, schedule)` | elenco per età (specifica 011; usato anche da riconferma e iscrizione), stato dell'elenco di un'adesione (allineata / non allineata / eccezione / sconosciuto) e piano di "Allinea tutte" (escluse le eccezioni); `renewalView` avvisa con `previousException` chi era un'eccezione l'anno prima |
 | `YearMember.origin` | `'import'` (assente), `'riconferma'` (008) o `'nuovo'` (009) |
 | `renewalDraft(candidate, year)` | adesione da creare: elenco del nuovo anno e legame dell'anno precedente, nessun dato anagrafico |
 

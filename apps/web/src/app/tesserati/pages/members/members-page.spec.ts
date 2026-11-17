@@ -1,28 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { MEMBERS_BACKEND, type MemberRow, type MembersBackend } from '../../members-backend';
+import { FakeMembersBackend, memberRow, membersFixture } from '../../testing';
 import { MembersPage } from './members-page';
 
-class FakeMembers implements MembersBackend {
-  constructor(public byYear: Record<number, MemberRow[]> = {}) {}
-  async importedYears(): Promise<number[]> {
-    return Object.keys(this.byYear).map(Number);
-  }
-  async membersOfYear(year: number): Promise<MemberRow[]> {
-    return this.byYear[year] ?? [];
-  }
-}
+const FakeMembers = FakeMembersBackend;
 
-const member = (lastName: string, firstName: string, over: Partial<MemberRow> = {}): MemberRow => ({
-  lastName,
-  firstName,
-  birthDate: '2016-04-09',
-  sector: 'RAGAZZI',
-  exportAgeBand: '9/11',
-  bond: 'C3',
-  bondId: '900002',
-  ...over,
-});
+const member = (lastName: string, firstName: string, over: Partial<MemberRow> = {}): MemberRow => {
+  const sector = over.sector ?? 'RAGAZZI';
+  const list = sector === 'ADULTI' ? 'ADULTI' : sector === 'GIOVANI' ? 'GIOVANI' : 'ACR';
+  return memberRow(lastName, firstName, { list, ...over });
+};
 
 async function render(backend: MembersBackend, anno?: string) {
   TestBed.configureTestingModule({
@@ -42,7 +30,9 @@ async function render(backend: MembersBackend, anno?: string) {
 
 function rows(el: HTMLElement): string[][] {
   return Array.from(el.querySelectorAll('tbody tr')).map((tr) =>
-    Array.from(tr.querySelectorAll('td')).map((td) => td.textContent?.trim() ?? ''),
+    Array.from(tr.querySelectorAll('td'))
+      .slice(0, 5)
+      .map((td) => td.textContent?.trim() ?? ''),
   );
 }
 
@@ -62,11 +52,11 @@ describe('MembersPage (FR-019)', () => {
     const { el } = await render(backend);
     expect(el.textContent).toContain('3 tesserati nel 2026/27');
     const headers = Array.from(el.querySelectorAll('th')).map((th) => th.textContent?.trim());
-    expect(headers).toEqual(['Cognome e nome', 'Data di nascita', 'Settore', "Fascia d'età (export)", 'Legame']);
+    expect(headers).toEqual(['Cognome e nome', 'Data di nascita', 'Elenco', "Fascia d'età (export)", 'Legame', '']);
     expect(rows(el)).toEqual([
-      ['BIANCHI LIA', '09/04/2016', 'RAGAZZI', '9/11', ''],
-      ['ROSSI ANNA', '09/04/2016', 'RAGAZZI', '9/11', 'C3 · 900002'],
-      ['ROSSI MARIO', '09/04/2016', 'RAGAZZI', '9/11', 'C3 · 900002'],
+      ['BIANCHI LIA', '09/04/2016', 'ACR', '9/11', ''],
+      ['ROSSI ANNA', '09/04/2016', 'ACR', '9/11', 'C3 · 900002'],
+      ['ROSSI MARIO', '09/04/2016', 'ACR', '9/11', 'C3 · 900002'],
     ]);
   });
 
@@ -79,7 +69,7 @@ describe('MembersPage (FR-019)', () => {
     select.dispatchEvent(new Event('change'));
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(rows(el)).toEqual([['VECCHIO ANNO', '09/04/2016', 'RAGAZZI', '9/11', 'C3 · 900002']]);
+    expect(rows(el)).toEqual([['VECCHIO ANNO', '09/04/2016', 'ACR', '9/11', 'C3 · 900002']]);
     expect(el.textContent).toContain('1 tesserati nel 2025/26');
   });
 
@@ -109,10 +99,67 @@ describe('MembersPage (FR-019)', () => {
     expect(el.querySelector('[data-testid="totals"]')?.textContent?.trim()).toBe('Adulti 1');
   });
 
-  it('nessun pulsante di modifica o cancellazione', async () => {
+  it('nessun pulsante di cancellazione; "Cambia elenco" su ogni riga (011)', async () => {
     const { el } = await render(new FakeMembers({ 2026: [member('ROSSI', 'MARIO')] }));
-    expect(el.querySelectorAll('tbody button')).toHaveLength(0);
-    expect(el.textContent).not.toMatch(/Modifica|Elimina|Cancella/);
+    expect(el.textContent).not.toMatch(/Elimina|Cancella/);
+    expect(Array.from(el.querySelectorAll('tbody button')).map((b) => b.textContent?.trim())).toEqual(['Cambia elenco']);
+  });
+});
+
+describe('MembersPage – elenco ed età (011)', () => {
+  async function renderWithAuth(backend = membersFixture()) {
+    const { AuthService } = await import('../../../core/auth.service');
+    const { signal } = await import('@angular/core');
+    TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: { user: signal({ email: 'segreteria@example.org' }) } }] });
+    return render(backend);
+  }
+  const button = (root: Element, text: string) =>
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === text);
+  const rowOf = (el: HTMLElement, name: string) =>
+    Array.from(el.querySelectorAll<HTMLElement>('tbody tr')).find((tr) => tr.textContent?.includes(name))!;
+
+  it('avvisi, Allinea all’età e Allinea tutte con conferma', async () => {
+    const { el, fixture } = await renderWithAuth();
+    const settle = async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    expect(el.textContent).toContain('2 adesioni non allineate all’età');
+    expect(rowOf(el, 'ROSSI ELENA').textContent).toContain('Per età: Adulti');
+    button(rowOf(el, 'ROSSI ELENA'), 'Allinea all’età')!.click();
+    await settle();
+    expect(rowOf(el, 'ROSSI ELENA').textContent).toContain('Adulti (export: GIOVANI)');
+    button(el, 'Allinea tutte')!.click();
+    await settle();
+    const dialog = el.querySelector('[role="alertdialog"]')!;
+    expect(dialog.textContent).toContain('1 adesione cambierà elenco. Confermi?');
+    button(dialog, 'Allinea')!.click();
+    await settle();
+    expect(el.textContent).toContain('1 adesione allineata all’età.');
+    expect(el.textContent).not.toContain('non allineat');
+  });
+
+  it('Cambia elenco con nota', async () => {
+    const { el, fixture } = await renderWithAuth();
+    const settle = async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    button(rowOf(el, 'GRECO NICOLO'), 'Cambia elenco')!.click();
+    await settle();
+    const form = el.querySelector('[data-testid="list-edit"]')!;
+    const select = form.querySelector('select')!;
+    select.value = 'ACR';
+    select.dispatchEvent(new Event('change'));
+    const note = form.querySelector('textarea')!;
+    note.value = 'resta in ACR un anno in più';
+    note.dispatchEvent(new Event('input'));
+    button(form, 'Salva')!.click();
+    await settle();
+    expect(rowOf(el, 'GRECO NICOLO').textContent).toContain('ACR · eccezione: resta in ACR un anno in più');
+    expect(button(rowOf(el, 'GRECO NICOLO'), 'Togli eccezione')).toBeDefined();
   });
 });
 

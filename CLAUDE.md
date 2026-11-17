@@ -57,7 +57,11 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   (`validateNewMember`, `matchNewMember` in `packages/import`); persona manuale (`createdInYear/At/By`, solo insieme alla
   sua adesione) e adesione `origin: 'nuovo'`; sezione "Nuovi tesserati" in Riconferme con "Annulla iscrizione";
   l'import salta gli inseriti a mano (`alreadyAdded`); Quote non invita a creare un listino prima del primo.
-- Poi: **011 – Cambio categoria per età** (roadmap in `docs/roadmap.md`).
+- **011 – Cambio categoria per età**: implementata, **non ancora rilasciata** (servono regole + hosting). Tesserati
+  mostra l'elenco, "Per età: …" per le adesioni non allineate, "Allinea all'età" / "Allinea tutte", "Cambia elenco" con
+  nota (eccezione) e "Togli eccezione". Adesione aggiornabile solo in `list`, `sector`, `exportSector`, `listChange`;
+  `list` ha la precedenza sul segno di import. Le quote non dipendono dall'elenco.
+- Poi: **012 – Riepilogo ed export** (roadmap in `docs/roadmap.md`).
 
 ## Comandi
 

@@ -5,6 +5,7 @@
  */
 import { GoogleAuthProvider, signInWithCredential, signOut } from 'firebase/auth';
 import { auth } from '../core/firebase';
+import { FirestoreFamiliesBackend } from '../famiglie/firestore-families-backend';
 import { FirestoreMembersBackend } from './firestore-members-backend';
 
 const PROJECT = 'demo-tesseramento';
@@ -90,10 +91,52 @@ describe('FirestoreMembersBackend sugli emulatori', () => {
 
     expect((await backend.importedYears()).sort()).toEqual([2026, 2027]);
     expect(await backend.membersOfYear(2026)).toEqual([
-      { lastName: 'PROVA', firstName: 'ALFA', birthDate: '2016-04-09', sector: 'RAGAZZI', exportAgeBand: '9/11', bond: 'C3', bondId: '900002' },
+      {
+        adhesionId: '2026_a', personId: 'a', lastName: 'PROVA', firstName: 'ALFA', birthDate: '2016-04-09',
+        list: 'ACR', sector: 'RAGAZZI', imported: true, exportAgeBand: '9/11', bond: 'C3', bondId: '900002',
+      },
     ]);
     expect(await backend.membersOfYear(2027)).toEqual([
-      { lastName: 'PROVA', firstName: 'BETA', birthDate: '2015-01-01', sector: 'RAGAZZI' },
+      {
+        adhesionId: '2027_b', personId: 'b', lastName: 'PROVA', firstName: 'BETA', birthDate: '2015-01-01',
+        list: 'ACR', sector: 'RAGAZZI', imported: true,
+      },
     ]);
+  });
+
+  /* ---- Specifica 011: cambio di elenco (E1–E3) ---- */
+
+  async function seedThirty(): Promise<void> {
+    await put('persons/e', {
+      lastName: 'ROSSI', firstName: 'ELENA', birthDate: '1996-04-02', identityKey: 'ROSSI|ELENA|1996-04-02', createdInImport: '2026-GIOVANI',
+    });
+    await put('adhesions/2026_e', { personId: 'e', associationYear: 2026, importId: '2026-GIOVANI', sector: 'GIOVANI', exportAgeBand: '26/30' });
+  }
+
+  it('E1/E3 – allinea un’adesione importata: elenco, settore, settore dell’export, ultimo cambio', async () => {
+    await seedThirty();
+    await backend.changeList([{ adhesionId: '2026_e', to: 'ADULTI' }], 'Autorizzato@Example.org');
+    const [row] = await backend.membersOfYear(2026);
+    expect(row).toMatchObject({ list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI', imported: true });
+    expect(row!.listChange).toMatchObject({ from: 'GIOVANI', by: LISTED });
+    expect(row!.listChange?.note).toBeUndefined();
+    const members = await new FirestoreFamiliesBackend().yearMembers(2026);
+    expect(members[0]).toMatchObject({ list: 'ADULTI' });
+    expect(members[0]?.exception).toBeUndefined();
+  });
+
+  it('E2 – eccezione con nota e "Togli eccezione"', async () => {
+    await seedThirty();
+    await backend.changeList([{ adhesionId: '2026_e', to: 'ACR', note: 'prova di eccezione' }], LISTED);
+    let [row] = await backend.membersOfYear(2026);
+    expect(row).toMatchObject({ list: 'ACR', sector: 'RAGAZZI', exportSector: 'GIOVANI' });
+    expect(row!.listChange).toMatchObject({ from: 'GIOVANI', note: 'prova di eccezione' });
+    expect((await new FirestoreFamiliesBackend().yearMembers(2026))[0]?.exception).toBe(true);
+
+    await backend.changeList([{ adhesionId: '2026_e', to: 'ADULTI' }], LISTED);
+    [row] = await backend.membersOfYear(2026);
+    expect(row).toMatchObject({ list: 'ADULTI', exportSector: 'GIOVANI' });
+    expect(row!.listChange).toMatchObject({ from: 'ACR' });
+    expect(row!.listChange?.note).toBeUndefined();
   });
 });

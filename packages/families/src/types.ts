@@ -15,6 +15,8 @@ export interface YearMember {
   readonly bondId?: string;
   /** Come è nata l'adesione dell'anno (specifiche 008 e 009); assente = import. */
   readonly origin?: 'import' | 'riconferma' | 'nuovo';
+  /** L'elenco dell'anno è un'eccezione decisa a mano con nota (specifica 011). */
+  readonly exception?: true;
 }
 
 /** Famiglia confermata da una persona per un anno (regole-famiglia.md §1). */
@@ -173,7 +175,9 @@ export type RenewalWarning =
   /** Età sotto il minimo del listino: resta ACR, quota non prevista. */
   | { readonly kind: 'underMinAge'; readonly minAge: number }
   /** Data di nascita non valida o successiva all'anno: non riconfermabile. */
-  | { readonly kind: 'invalidBirthDate' };
+  | { readonly kind: 'invalidBirthDate' }
+  /** L'anno prima l'elenco era un'eccezione decisa a mano (specifica 011): ora vale di nuovo l'età. */
+  | { readonly kind: 'previousException'; readonly list: FamilyList };
 
 /** Tesserato dell'anno precedente senza adesione nell'anno nuovo. */
 export interface RenewalCandidate {
@@ -221,3 +225,13 @@ export interface RenewalDraft {
   readonly bond?: string;
   readonly bondId?: string;
 }
+
+/* ---- Specifica 011: elenco rispetto all'età ---- */
+
+export type ListStatus =
+  | { readonly kind: 'aligned' }
+  | { readonly kind: 'misaligned'; readonly expected: FamilyList }
+  /** Eccezione con nota; `expected` se c'è il listino. */
+  | { readonly kind: 'exception'; readonly expected?: FamilyList }
+  /** Senza listino o con data non valida. */
+  | { readonly kind: 'unknown' };

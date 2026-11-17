@@ -31,14 +31,14 @@ export function listOfImportId(id: string): AdhesionList | undefined {
 }
 
 /**
- * Elenco di un'adesione (specifica 008): dal segno di import se c'è, altrimenti dal campo `list` di una riconferma.
+ * Elenco di un'adesione: il campo `list` se c'è (riconferma, nuovo tesserato, cambio di elenco), altrimenti dal
+ * segno di import (specifiche 008 e 011).
  */
 export function listOfAdhesion(importId?: string, list?: string): AdhesionList | undefined {
-  if (importId !== undefined) {
-    const fromImport = listOfImportId(importId);
-    if (fromImport) return fromImport;
-  }
-  return ADHESION_LISTS.find((l) => l === list);
+  // L'elenco salvato (riconferma, nuovo tesserato o cambio di elenco della 011) ha la precedenza.
+  const saved = ADHESION_LISTS.find((l) => l === list);
+  if (saved) return saved;
+  return importId !== undefined ? listOfImportId(importId) : undefined;
 }
 
 function listOfSector(sector: string): AdhesionList | undefined {

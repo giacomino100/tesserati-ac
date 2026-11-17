@@ -150,6 +150,17 @@ describe('RenewalsService – riconferma (US2)', () => {
   });
 });
 
+describe('RenewalsService – eccezione dell’anno prima (011)', () => {
+  it('avviso "L’anno scorso era un’eccezione"', async () => {
+    const backend = renewalsFixture();
+    backend.members.set(2026, backend.members.get(2026)!.map((m) => (m.personId === 'rinaldi' ? { ...m, exception: true as const } : m)));
+    const { service } = setup(backend);
+    await service.load(2027);
+    const rinaldi = service.view().singles.find((c) => c.member.personId === 'rinaldi')!;
+    expect(service.warningTexts(rinaldi)).toContain("L'anno scorso era un'eccezione: ACR");
+  });
+});
+
 describe('RenewalsService – nuovi tesserati (009)', () => {
   it('sezione "Nuovi tesserati" con annullamento', async () => {
     const backend = renewalsFixture();

@@ -15,6 +15,7 @@ export type {
   FamilyIssue,
   FamilyList,
   FamilyWarning,
+  ListStatus,
   ProposedAddition,
   RenewalCandidate,
   RenewalDraft,
@@ -31,4 +32,5 @@ export { suggestFamilies } from './suggest';
 export { validateFamily } from './validate';
 export { householdsOfYear } from './households';
 export { compareWithSaved, householdFees, toSavedCalculated, yearTotals } from './household-fees';
-export { listForBand, renewalDraft, renewalView, type RenewalInput } from './renewals';
+export { renewalDraft, renewalView, type RenewalInput } from './renewals';
+export { alignAllPlan, listForAge, listForBand, listStatus } from './categories';

@@ -14,7 +14,7 @@ Stati: ⬜ da fare · 📝 brief pronto · 🔍 spec in revisione · 🚧 in svi
 | 010 | Quote nella famiglia | Apro una famiglia e vedo quote, sconto e totale | ✅ |
 | 008 | Riconferma adesione | Vedo i tesserati dell'anno scorso e spunto chi rinnova | ✅ |
 | 009 | Nuovo tesserato | Aggiungo chi non c'era l'anno scorso | ✅ |
-| 011 | Cambio categoria per età | Chi passa di fascia viene spostato e la quota ricalcolata | 🔍 |
+| 011 | Cambio categoria per età | Chi passa di fascia viene spostato e la quota ricalcolata | 🚧 |
 | 012 | Riepilogo ed export | Totali per categoria e incassi, export Excel | ⬜ |
 
 La lista è viva: va rivista dopo ogni 3–4 specifiche completate.

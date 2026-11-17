@@ -58,7 +58,9 @@ describe('listOfAdhesion (008, I1)', () => {
     const { listOfAdhesion } = await import('../src/index');
     expect(listOfAdhesion('2026-ACR', undefined)).toBe('ACR');
     expect(listOfAdhesion(undefined, 'GIOVANI')).toBe('GIOVANI');
-    expect(listOfAdhesion('2026-ADULTI', 'ACR')).toBe('ADULTI');
+    // 011: l'elenco salvato (cambiato a mano o allineato) ha la precedenza sul segno di import.
+    expect(listOfAdhesion('2026-ADULTI', 'ACR')).toBe('ACR');
+    expect(listOfAdhesion('2026-GIOVANI', 'ADULTI')).toBe('ADULTI');
     expect(listOfAdhesion(undefined, 'RAGAZZI')).toBeUndefined();
     expect(listOfAdhesion('boh', undefined)).toBeUndefined();
     expect(listOfAdhesion(undefined, undefined)).toBeUndefined();

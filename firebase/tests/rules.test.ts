@@ -1486,3 +1486,91 @@ describe('M6/M7 – annullare e cercare', () => {
     await assertFails(q(user(STRANGER)));
   });
 });
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 011 – cambio di elenco (contracts/firestore-list-change.md, N1–N6). Solo ID inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+function listChangeOf(from: string, over: Record<string, unknown> = {}) {
+  return withoutUndefined({ from, at: serverTimestamp(), by: LISTED, ...over }) as Record<string, unknown>;
+}
+
+/** Aggiornamento come lo fa l'app: elenco, settore, eventuale settore dell'export, ultimo cambio. */
+function align(list: string, sector: string, from: string, over: Record<string, unknown> = {}) {
+  return { list, sector, listChange: listChangeOf(from), ...over };
+}
+
+describe('N1 – allineare', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs({ 'adhesions/2026_imp': adhesionFor('imp', 2026, { sector: 'GIOVANI' }, 'GIOVANI') });
+    await seedRenewalBase('ric');
+    await seedRenewed('ric');
+  });
+
+  it('adesione importata (con settore dell’export) e riconfermata: consentito; non autorizzato: negato', async () => {
+    const imported = align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'GIOVANI' });
+    for (const db of [guest(), user(STRANGER), user(LISTED, { verified: false })]) {
+      await assertFails(updateDoc(doc(db, 'adhesions/2026_imp'), imported));
+    }
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), imported));
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2027_ric'), align('ADULTI', 'ADULTI', 'GIOVANI')));
+  });
+
+  it('N3 – cambiare altri campi: negato', async () => {
+    for (const extra of [{ personId: 'x' }, { associationYear: 2025 }, { importId: '2026-ACR' }, { bondId: '1' }, { origin: 'nuovo' }]) {
+      await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), { ...align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'GIOVANI' }), ...extra }));
+    }
+  });
+
+  it('N4 – settore incoerente, elenco non valido, chi/quando di altri, campi in più nel cambio: negati', async () => {
+    const bad = [
+      align('ADULTI', 'GIOVANI', 'GIOVANI', { exportSector: 'GIOVANI' }),
+      align('RAGAZZI', 'RAGAZZI', 'GIOVANI', { exportSector: 'GIOVANI' }),
+      { list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI', listChange: listChangeOf('GIOVANI', { by: 'altro@example.org' }) },
+      { list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI', listChange: listChangeOf('GIOVANI', { at: Timestamp.now() }) },
+      { list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI', listChange: listChangeOf('GIOVANI', { extra: 1 }) },
+      { list: 'ADULTI', sector: 'ADULTI', exportSector: 'GIOVANI', listChange: listChangeOf('BOH') },
+    ];
+    for (const data of bad) await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), data));
+  });
+
+  it('N5 – settore dell’export diverso da quello di prima o cambiato dopo: negato', async () => {
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'ADULTI' })));
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'GIOVANI' })));
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), align('ACR', 'RAGAZZI', 'ADULTI', { exportSector: 'ADULTI' })));
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2026_imp'), align('ACR', 'RAGAZZI', 'ADULTI')));
+  });
+});
+
+describe('N2 – eccezione con nota', () => {
+  beforeEach(async () => {
+    await seedDocs({ 'adhesions/2026_greco': adhesionFor('greco', 2026, { sector: 'GIOVANI' }, 'GIOVANI') });
+  });
+
+  it('nota di 1–200 caratteri: consentita; vuota o di 201: negata', async () => {
+    const withNote = (note: string) => ({
+      list: 'ACR',
+      sector: 'RAGAZZI',
+      exportSector: 'GIOVANI',
+      listChange: listChangeOf('GIOVANI', { note }),
+    });
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_greco'), withNote('   ')));
+    await assertFails(updateDoc(doc(user(LISTED), 'adhesions/2026_greco'), withNote('x'.repeat(201))));
+    await assertSucceeds(updateDoc(doc(user(LISTED), 'adhesions/2026_greco'), withNote('resta in ACR un anno in più')));
+  });
+});
+
+describe('N6 – "Allinea tutte" in una sola scrittura', () => {
+  it('150 aggiornamenti: consentiti', async () => {
+    const docs: Docs = {};
+    for (let i = 0; i < 150; i++) docs[`adhesions/2026_p${i}`] = adhesionFor(`p${i}`, 2026, { sector: 'GIOVANI' }, 'GIOVANI');
+    await seedDocs(docs);
+    const db = user(LISTED);
+    const batch = writeBatch(db);
+    for (let i = 0; i < 150; i++) {
+      batch.update(doc(db, `adhesions/2026_p${i}`), align('ADULTI', 'ADULTI', 'GIOVANI', { exportSector: 'GIOVANI' }));
+    }
+    await assertSucceeds(batch.commit());
+  });
+});

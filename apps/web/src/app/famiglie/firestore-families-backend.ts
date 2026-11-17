@@ -52,6 +52,8 @@ export class FirestoreFamiliesBackend implements FamiliesBackend {
         ...(bond ? { bond } : {}),
         ...(bondId ? { bondId } : {}),
         ...(a['origin'] === 'riconferma' || a['origin'] === 'nuovo' ? { origin: a['origin'] as 'riconferma' | 'nuovo' } : {}),
+        // Eccezione decisa a mano (specifica 011): ultimo cambio di elenco con nota.
+        ...(text((a['listChange'] as Record<string, unknown> | undefined)?.['note']) ? { exception: true as const } : {}),
       });
     }
     return members;

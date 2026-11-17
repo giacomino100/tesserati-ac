@@ -176,6 +176,8 @@ export class RenewalsService {
           return `Sotto l'età minima del listino (${w.minAge} anni): quota non prevista`;
         case 'invalidBirthDate':
           return 'Data di nascita incoerente: non si può riconfermare';
+        case 'previousException':
+          return `L'anno scorso era un'eccezione: ${listLabel(w.list)}`;
       }
     });
   }

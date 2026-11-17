@@ -1,4 +1,5 @@
-import { ageFor, bandForAge, type AgeBand, type FeeSchedule } from '@tesseramento/fees';
+import { ageFor, type FeeSchedule } from '@tesseramento/fees';
+import { listForAge } from './categories';
 import type {
   FamilyList,
   RenewalCandidate,
@@ -9,18 +10,6 @@ import type {
   RenewedMember,
   YearMember,
 } from './types';
-
-const LIST_OF_BAND: Record<AgeBand, FamilyList> = {
-  acr: 'ACR',
-  giovanissimi: 'GIOVANI',
-  giovani: 'GIOVANI',
-  adulti: 'ADULTI',
-};
-
-/** Elenco del nuovo anno per una fascia del PDF (regole-famiglia.md §3, specifica 008). */
-export function listForBand(band: AgeBand): FamilyList {
-  return LIST_OF_BAND[band];
-}
 
 const byAge = (a: YearMember, b: YearMember) =>
   a.birthDate.localeCompare(b.birthDate) || a.lastName.localeCompare(b.lastName, 'it') || a.firstName.localeCompare(b.firstName, 'it');
@@ -33,11 +22,11 @@ function candidate(m: YearMember, year: number, schedule: FeeSchedule | undefine
     return { member: m, age: Number.isInteger(age) ? age : 0, warnings: [{ kind: 'invalidBirthDate' }], renewable: false };
   }
   if (!schedule) return { member: m, age, warnings: [], renewable: false };
-  const band = bandForAge(age, schedule);
+  const list = listForAge(m.birthDate, year, schedule) ?? 'ACR';
   const warnings: RenewalWarning[] = [];
-  const list = band ? listForBand(band) : 'ACR';
-  if (!band) warnings.push({ kind: 'underMinAge', minAge: schedule.minAge });
+  if (age < schedule.minAge) warnings.push({ kind: 'underMinAge', minAge: schedule.minAge });
   if (list !== m.list) warnings.push({ kind: 'listChange', from: m.list, to: list });
+  if (m.exception) warnings.push({ kind: 'previousException', list: m.list });
   return { member: m, age, list, warnings, renewable: true };
 }
 

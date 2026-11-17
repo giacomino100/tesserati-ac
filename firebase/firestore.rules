@@ -258,6 +258,28 @@ service cloud.firestore {
         && !exists(/databases/$(database)/documents/adhesions/$(string(d.associationYear - 1) + '_' + d.personId));
     }
 
+    // Cambio di elenco (specifica 011, contracts/firestore-list-change.md): cambiano solo elenco, settore coerente,
+    // settore dell'export (copiato una volta sola dalle adesioni importate) e ultimo cambio con chi/quando/nota.
+    // Nessuna lettura di altri documenti: "Allinea tutte" sta in una sola scrittura.
+    function validListChange(after, before) {
+      return after.diff(before).affectedKeys().hasOnly(['list', 'sector', 'exportSector', 'listChange'])
+        && after.list in ['ACR', 'GIOVANI', 'ADULTI']
+        && after.sector == {'ACR': 'RAGAZZI', 'GIOVANI': 'GIOVANI', 'ADULTI': 'ADULTI'}[after.list]
+        && after.listChange is map
+        && after.listChange.keys().hasOnly(['from', 'at', 'by', 'note'])
+        && after.listChange.keys().hasAll(['from', 'at', 'by'])
+        && after.listChange.from in ['ACR', 'GIOVANI', 'ADULTI']
+        && after.listChange.at == request.time
+        && after.listChange.by == ownEmail()
+        && (!('note' in after.listChange)
+            || (after.listChange.note is string
+                && after.listChange.note.trim().size() > 0
+                && after.listChange.note.size() <= 200))
+        && ('exportSector' in before
+            ? after.exportSector == before.exportSector
+            : (!('exportSector' in after) || after.exportSector == before.sector));
+    }
+
     // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno
     // qualunque sia l'elenco o l'origine (un `set` su un'adesione esistente è un update, vietato).
     match /adhesions/{adhesionId} {
@@ -288,7 +310,7 @@ service cloud.firestore {
         && resource.data.get('origin', '') in ['riconferma', 'nuovo']
         && !exists(/databases/$(database)/documents/familyMemberships/$(adhesionId));
 
-      allow update: if false;
+      allow update: if isAllowed() && validListChange(request.resource.data, resource.data);
     }
 
     // ---- Famiglie per anno (specifica 007, contracts/firestore-families.md) ----
