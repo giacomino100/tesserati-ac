@@ -114,7 +114,7 @@ progetto (logica pura testata prima del codice).
 - [X] T032 Update `docs/dominio/glossario.md` ("Anno N" = (N−1)/N), `docs/dominio/excel-esempio/README.md` and `genera_esempi.py`; relabel the three fake files to "Anno 2027" (= 2026/27, ages unchanged)
 - [X] T033 Tests first: `parseAssociationYear('Anno 2026')` → 2025 in `packages/import/tests/clean.test.ts`; sheet builders to "Anno 2027"; import without fee schedule allowed in `import.service.spec.ts`, `import-page.spec.ts`, `firestore-import-backend.emulator.test.ts`, rules test I6
 - [X] T034 `parseAssociationYear` returns N−1 in `packages/import/src/clean.ts`; import no longer requires the fee schedule (`import.service.ts`, `firestore-import-backend.ts`, `testing.ts`, `firestore.rules` importBatches); notice "Nessun listino 2025/26: niente controlli su età e settore."
-- [ ] T035 Production data already imported as 2026/27: plan and run the move to 2025/26 only with the user's explicit OK (admin access, real data never in logs or repository)
+- [X] T035 Production data already imported as 2026/27: plan and run the move to 2025/26 only with the user's explicit OK (admin access, real data never in logs or repository)
 
 ---
 
@@ -125,7 +125,7 @@ progetto (logica pura testata prima del codice).
 - [X] T028 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web`
 - [X] T029 [P] Update `docs/roadmap.md` (008 🚧, ✅ when released) and `CLAUDE.md`
 - [ ] T030 Manual scenarios M1–M7 of `specs/008-riconferma-adesione/quickstart.md` (M1 under 3 s, M3 under 10 s)
-- [ ] T031 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
+- [X] T031 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
 
 ---
 

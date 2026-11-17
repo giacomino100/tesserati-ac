@@ -42,7 +42,12 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   nuclei dell'anno (famiglie confermate + singoli) con quota da `calculateHouseholdFee`, quote manuali con nota per i
   casi non previsti, salvataggio e "Aggiorna tutte" / "Aggiorna questa quota". Logica pura in `packages/families`
   (`householdsOfYear`, `householdFees`, `compareWithSaved`); Firestore `householdFees/{anno}_{f-familyId|p-personId}`.
-- **008 – Riconferma adesione**: implementata, **non ancora rilasciata** (servono regole + hosting). Pagina `/riconferme`:
+- **Anno dell'export** (corretto il 2026-11-17): `Anno N` = anno associativo (N−1)/N; l'export reale "Anno 2026" è il
+  2025/26. L'import non richiede più il listino (un anno passato si importa senza avvisi d'età). I file finti
+  riportano "Anno 2027" (= 2026/27). In produzione i dati importati con la regola vecchia sono stati **cancellati il
+  2026-11-17** (importBatches, persons, adhesions, families, familyMemberships, householdFees; listini ed email intatti):
+  la segreteria deve reimportare i tre Excel (→ 2025/26) e riconfermare verso il 2026/27.
+- **008 – Riconferma adesione**: rilasciata il 2026-11-17 (regole + hosting). Pagina `/riconferme`:
   tesserati dell'anno precedente raggruppati per `N. Legame`, elenco del nuovo anno ricalcolato dalle fasce del listino,
   riconferma a gruppi di 15 (limite letture delle regole), "Annulla riconferma". Una riconferma è un'adesione con
   `origin: 'riconferma'` e `list` (niente `importId`); elenco letto con `listOfAdhesion`; anni con tesserati da
