@@ -36,5 +36,10 @@ export const routes: Routes = [
     canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./listini/pages/detail/detail').then((m) => m.ListinoDetail),
   },
+  {
+    path: 'importa',
+    canActivate: [requireState('allowed')],
+    loadComponent: () => import('./importa/pages/import/import-page').then((m) => m.ImportPage),
+  },
   { path: '**', redirectTo: '' },
 ];

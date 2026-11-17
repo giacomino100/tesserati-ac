@@ -15,6 +15,7 @@ import { AuthService } from '../../core/auth.service';
       <button mat-stroked-button type="button" (click)="signOut()">Esci</button>
     </mat-toolbar>
     <main class="content">
+      <a mat-flat-button routerLink="/importa">Importa Excel</a>
       <a mat-flat-button routerLink="/listini">Listini</a>
     </main>
   `,
@@ -35,6 +36,9 @@ import { AuthService } from '../../core/auth.service';
     }
     .content {
       padding: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
     }
   `,
 })

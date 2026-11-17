@@ -5,6 +5,8 @@ import { AUTH_BACKEND } from './core/auth-backend';
 import { FirebaseAuthBackend } from './core/firebase-auth-backend';
 import { FEE_SCHEDULE_BACKEND } from './listini/fee-schedule-backend';
 import { FirestoreFeeScheduleBackend } from './listini/firestore-fee-schedule-backend';
+import { IMPORT_BACKEND } from './importa/import-backend';
+import { FirestoreImportBackend } from './importa/firestore-import-backend';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,5 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     { provide: AUTH_BACKEND, useFactory: () => new FirebaseAuthBackend() },
     { provide: FEE_SCHEDULE_BACKEND, useFactory: () => new FirestoreFeeScheduleBackend() },
+    { provide: IMPORT_BACKEND, useFactory: () => new FirestoreImportBackend() },
   ],
 };
