@@ -16,6 +16,7 @@ import {
   setDoc,
   Timestamp,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { SCHEDULE_2026_27 } from '@tesseramento/fees';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -511,5 +512,294 @@ describe('F9 – gli altri anni non cambiano (creazione)', () => {
     const after = await readAll();
     expect(after['2026']).toEqual(before['2026']);
     expect(Object.keys(after).sort()).toEqual(['2026', '2027']);
+  });
+});
+
+/* ----------------------------------------------------------------------------------------
+ * Specifica 004 – import ACR: importBatches, persons, adhesions (contracts/firestore-import.md, I1–I11).
+ * Solo nomi inventati.
+ * ---------------------------------------------------------------------------------------- */
+
+type Db = ReturnType<typeof user>;
+type Docs = Record<string, Record<string, unknown>>;
+
+/** Segno di import valido dell'anno. */
+function batchFor(year: number, over: Record<string, unknown> = {}, count = 15) {
+  return withoutUndefined({
+    associationYear: year,
+    source: 'ACR',
+    importedAt: serverTimestamp(),
+    importedBy: LISTED,
+    adhesionCount: count,
+    newPersonCount: count,
+    skippedRowCount: 0,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+function personFor(i: number, year = 2026, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    lastName: `PROVA${i}`,
+    firstName: 'ALFA',
+    birthDate: '2016-04-09',
+    identityKey: `PROVA${i}|ALFA|2016-04-09`,
+    sex: 'F',
+    createdInImport: `${year}-ACR`,
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+function adhesionFor(personId: string, year = 2026, over: Record<string, unknown> = {}) {
+  return withoutUndefined({
+    personId,
+    associationYear: year,
+    importId: `${year}-ACR`,
+    sector: 'RAGAZZI',
+    exportAgeBand: '9/11',
+    bond: 'C3',
+    bondId: '900002',
+    ...over,
+  }) as Record<string, unknown>;
+}
+
+/** Documenti di un import completo: segno + n persone nuove + n adesioni. */
+function fullImport(year = 2026, n = 15): Docs {
+  const docs: Docs = { [`importBatches/${year}-ACR`]: batchFor(year, {}, n) };
+  for (let i = 1; i <= n; i++) {
+    docs[`persons/p${year}-${i}`] = personFor(i, year);
+    docs[`adhesions/${year}_p${year}-${i}`] = adhesionFor(`p${year}-${i}`, year);
+  }
+  return docs;
+}
+
+/** Scrive tutti i documenti in un'unica scrittura atomica (come la transazione dell'app). */
+function commitAll(db: Db, docs: Docs) {
+  const batch = writeBatch(db);
+  for (const [path, data] of Object.entries(docs)) batch.set(doc(db, path), data);
+  return batch.commit();
+}
+
+async function seedDocs(docs: Docs): Promise<void> {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const [path, data] of Object.entries(docs)) {
+      const plain = { ...data };
+      if ('importedAt' in plain) plain['importedAt'] = Timestamp.now();
+      await setDoc(doc(ctx.firestore(), path), plain);
+    }
+  });
+}
+
+async function countImportDocs(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const name of ['importBatches', 'persons', 'adhesions']) {
+      out[name] = (await getDocs(collection(ctx.firestore(), name))).size;
+    }
+  });
+  return out;
+}
+
+/** Un import minimo esistente: segno 2026, persona p1, adesione 2026_p1. */
+const EXISTING: Docs = {
+  'importBatches/2026-ACR': batchFor(2026, {}, 1),
+  'persons/p1': personFor(1),
+  'adhesions/2026_p1': adhesionFor('p1'),
+};
+
+/** Import di una sola riga per il 2026 con persona `p1` (ID fissi per le varianti). */
+function oneRowImport(): Docs {
+  return {
+    'importBatches/2026-ACR': batchFor(2026, {}, 1),
+    'persons/p1': personFor(1),
+    'adhesions/2026_p1': adhesionFor('p1'),
+  };
+}
+
+describe('I1 – import: senza accesso nulla è possibile', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026, 2027);
+    await seedDocs(EXISTING);
+  });
+
+  const who: [string, () => Db][] = [
+    ['non autenticato', () => guest()],
+    ['non in elenco', () => user(STRANGER)],
+    ['email non verificata', () => user(LISTED, { verified: false })],
+  ];
+
+  for (const [name, db] of who) {
+    it(`${name}: niente lettura né scrittura`, async () => {
+      const d = db();
+      for (const path of Object.keys(EXISTING)) await assertFails(getDoc(doc(d, path)));
+      for (const coll of ['importBatches', 'persons', 'adhesions']) await assertFails(getDocs(collection(d, coll)));
+      await assertFails(commitAll(d, fullImport(2027, 2)));
+      expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 1, adhesions: 1 });
+    });
+  }
+});
+
+describe('I2 – import: lettura da utente autorizzato', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs(EXISTING);
+  });
+
+  it('legge segni di import, persone e adesioni', async () => {
+    const db = user(LISTED);
+    for (const path of Object.keys(EXISTING)) await assertSucceeds(getDoc(doc(db, path)));
+    for (const coll of ['importBatches', 'persons', 'adhesions']) await assertSucceeds(getDocs(collection(db, coll)));
+  });
+});
+
+describe('I3/I4 – import completo in una sola scrittura', () => {
+  beforeEach(() => seedSchedules(2026, 2027));
+
+  it('15 persone + 15 adesioni + segno: consentito', async () => {
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 15)));
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 15, adhesions: 15 });
+  });
+
+  it('89 persone + 89 adesioni + segno (dimensione dell’export reale): consentito', async () => {
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2026, 89)));
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 89, adhesions: 89 });
+  });
+
+  it('anno successivo con una persona già presente: solo segno e adesione', async () => {
+    await seedDocs(EXISTING);
+    await assertSucceeds(
+      commitAll(user(LISTED), {
+        'importBatches/2027-ACR': batchFor(2027, { newPersonCount: 0 }, 1),
+        'adhesions/2027_p1': adhesionFor('p1', 2027),
+      }),
+    );
+    expect(await countImportDocs()).toEqual({ importBatches: 2, persons: 1, adhesions: 2 });
+  });
+
+  it('dati facoltativi assenti (sesso, fascia, legame): consentito', async () => {
+    const docs = oneRowImport();
+    docs['persons/p1'] = personFor(1, 2026, { sex: undefined });
+    docs['adhesions/2026_p1'] = adhesionFor('p1', 2026, { exportAgeBand: undefined, bond: undefined, bondId: undefined });
+    await assertSucceeds(commitAll(user(LISTED), docs));
+  });
+
+  it('codice fiscale di 16 caratteri: consentito', async () => {
+    const docs = oneRowImport();
+    docs['persons/p1'] = personFor(1, 2026, { taxCode: 'PRVLFA16D49G348X' });
+    await assertSucceeds(commitAll(user(LISTED), docs));
+  });
+
+  it('email con maiuscole nel token: consentito con email in minuscolo', async () => {
+    await assertSucceeds(commitAll(user('Autorizzato@Example.ORG'), oneRowImport()));
+  });
+});
+
+describe('I7 – persone e adesioni solo insieme a un nuovo segno di import', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('persona o adesione da sole: negato', async () => {
+    const db = user(LISTED);
+    await assertFails(setDoc(doc(db, 'persons/p1'), personFor(1)));
+    await assertFails(setDoc(doc(db, 'adhesions/2026_p1'), adhesionFor('p1')));
+  });
+
+  it('persona o adesione legate a un segno già esistente: negato', async () => {
+    await seedDocs({ 'importBatches/2026-ACR': batchFor(2026) });
+    const db = user(LISTED);
+    await assertFails(setDoc(doc(db, 'persons/p1'), personFor(1)));
+    await assertFails(setDoc(doc(db, 'adhesions/2026_p1'), adhesionFor('p1')));
+  });
+
+  it('persona legata a un segno diverso da quello scritto: negato', async () => {
+    const docs = oneRowImport();
+    docs['persons/p1'] = personFor(1, 2026, { createdInImport: '2025-ACR' });
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+});
+
+describe('I8 – campi in più o tipi errati', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  const variants: Record<string, (docs: Docs) => void> = {
+    'persona con indirizzo': (d) => (d['persons/p1'] = { ...personFor(1), address: 'VIA DI PROVA 1' }),
+    'persona con telefono': (d) => (d['persons/p1'] = { ...personFor(1), phone: '0910000000' }),
+    'adesione con Pagato': (d) => (d['adhesions/2026_p1'] = { ...adhesionFor('p1'), paid: true }),
+    'adesione con MLAC': (d) => (d['adhesions/2026_p1'] = { ...adhesionFor('p1'), mlac: 0 }),
+    'segno con campo in più': (d) => (d['importBatches/2026-ACR'] = { ...batchFor(2026, {}, 1), note: 'x' }),
+    'data di nascita numerica': (d) => (d['persons/p1'] = personFor(1, 2026, { birthDate: 19650312 })),
+    'data di nascita in altro formato': (d) => (d['persons/p1'] = personFor(1, 2026, { birthDate: '12/03/1965' })),
+    'sesso non valido': (d) => (d['persons/p1'] = personFor(1, 2026, { sex: 'X' })),
+    'codice fiscale corto': (d) => (d['persons/p1'] = personFor(1, 2026, { taxCode: 'ABC' })),
+    'cognome vuoto': (d) => (d['persons/p1'] = personFor(1, 2026, { lastName: '' })),
+    'chiave di identità assente': (d) => (d['persons/p1'] = personFor(1, 2026, { identityKey: undefined })),
+    'anno dell’adesione come testo': (d) => (d['adhesions/2026_p1'] = adhesionFor('p1', 2026, { associationYear: '2026' })),
+    'anno del segno come testo': (d) => (d['importBatches/2026-ACR'] = batchFor(2026, { associationYear: '2026' }, 1)),
+    'settore vuoto': (d) => (d['adhesions/2026_p1'] = adhesionFor('p1', 2026, { sector: '' })),
+    'N. legame numerico': (d) => (d['adhesions/2026_p1'] = adhesionFor('p1', 2026, { bondId: 900002 })),
+    'zero adesioni': (d) => (d['importBatches/2026-ACR'] = batchFor(2026, { adhesionCount: 0 }, 1)),
+    'conteggio negativo': (d) => (d['importBatches/2026-ACR'] = batchFor(2026, { skippedRowCount: -1 }, 1)),
+    'sorgente diversa': (d) => (d['importBatches/2026-ACR'] = batchFor(2026, { source: 'GIOVANI' }, 1)),
+  };
+
+  for (const [name, mutate] of Object.entries(variants)) {
+    it(`${name}: negato`, async () => {
+      const docs = oneRowImport();
+      mutate(docs);
+      await assertFails(commitAll(user(LISTED), docs));
+      expect(await countImportDocs()).toEqual({ importBatches: 0, persons: 0, adhesions: 0 });
+    });
+  }
+});
+
+describe('I9 – ID incoerenti', () => {
+  beforeEach(() => seedSchedules(2026, 2027));
+
+  it('ID dell’adesione diverso da {anno}_{persona}: negato', async () => {
+    const docs = oneRowImport();
+    delete docs['adhesions/2026_p1'];
+    docs['adhesions/2026_altro'] = adhesionFor('p1');
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+
+  it('importId diverso da {anno}-ACR: negato', async () => {
+    const docs = oneRowImport();
+    docs['adhesions/2026_p1'] = adhesionFor('p1', 2026, { importId: '2027-ACR' });
+    docs['importBatches/2027-ACR'] = batchFor(2027, {}, 1);
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+
+  it('ID del segno diverso da {anno}-ACR: negato', async () => {
+    await assertFails(setDoc(doc(user(LISTED), 'importBatches/2026'), batchFor(2026)));
+    await assertFails(setDoc(doc(user(LISTED), 'importBatches/2027-ACR'), batchFor(2026)));
+  });
+});
+
+describe('I10 – nessuna modifica né cancellazione', () => {
+  beforeEach(async () => {
+    await seedSchedules(2026);
+    await seedDocs(EXISTING);
+  });
+
+  it('modifica e cancellazione negate', async () => {
+    const db = user(LISTED);
+    await assertFails(updateDoc(doc(db, 'importBatches/2026-ACR'), { adhesionCount: 99 }));
+    await assertFails(updateDoc(doc(db, 'persons/p1'), { firstName: 'BETA' }));
+    await assertFails(updateDoc(doc(db, 'adhesions/2026_p1'), { sector: 'GIOVANI' }));
+    for (const path of Object.keys(EXISTING)) await assertFails(deleteDoc(doc(db, path)));
+  });
+});
+
+describe('I11 – chi e quando', () => {
+  beforeEach(() => seedSchedules(2026));
+
+  it('email diversa dall’utente: negato', async () => {
+    const docs = oneRowImport();
+    docs['importBatches/2026-ACR'] = batchFor(2026, { importedBy: 'altro@example.org' }, 1);
+    await assertFails(commitAll(user(LISTED), docs));
+  });
+
+  it('data scelta dal client invece dell’ora del server: negato', async () => {
+    const docs = oneRowImport();
+    docs['importBatches/2026-ACR'] = batchFor(2026, { importedAt: Timestamp.fromDate(new Date('2026-01-01')) }, 1);
+    await assertFails(commitAll(user(LISTED), docs));
   });
 });

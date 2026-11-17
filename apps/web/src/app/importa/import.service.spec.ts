@@ -67,3 +67,58 @@ describe('ImportService – anteprima (US1)', () => {
     expect(backend.commits).toEqual([]);
   });
 });
+
+describe('ImportService – salvataggio (US2)', () => {
+  it('"Importa" salva con l’email dell’utente e mostra il riepilogo', async () => {
+    const { service, backend } = setupImport();
+    await service.chooseFile(fakeFile());
+    await service.confirm();
+    expect(backend.commits).toHaveLength(1);
+    expect(backend.commits[0]?.email).toBe('Segreteria@Example.org');
+    expect(backend.commits[0]?.plan.adhesions).toBe(15);
+    expect(service.state().kind).toBe('done');
+    expect(service.summary()).toEqual({ year: 2026, yearLabel: '2026/27', adhesions: 15, newPersons: 15, reusedPersons: 0 });
+  });
+
+  it('riusa le persone già presenti', async () => {
+    const backend = new FakeImportBackend();
+    backend.persons.set('PROVA01|ALFA|2016-04-09', 'esistente');
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    await service.confirm();
+    expect(service.summary()).toMatchObject({ adhesions: 15, newPersons: 14, reusedPersons: 1 });
+  });
+
+  it('durante il salvataggio lo stato è "saving"', async () => {
+    const backend = new FakeImportBackend();
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    backend.pause();
+    const pending = service.confirm();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(service.state().kind).toBe('saving');
+    expect(service.isSaving()).toBe(true);
+    backend.release();
+    await pending;
+    expect(service.state().kind).toBe('done');
+    expect(service.isSaving()).toBe(false);
+  });
+
+  it('errore di rete: "saveFailed" con il messaggio e si può riprovare', async () => {
+    const backend = new FakeImportBackend();
+    backend.failCommitWith = Object.assign(new Error('offline'), { code: 'unavailable' });
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    await service.confirm();
+    const state = service.state();
+    expect(state.kind).toBe('saveFailed');
+    expect(state.kind === 'saveFailed' && state.message).toBe(
+      'Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.',
+    );
+    backend.failCommitWith = undefined;
+    await service.confirm();
+    expect(service.state().kind).toBe('done');
+    expect(backend.commits).toHaveLength(1);
+  });
+});

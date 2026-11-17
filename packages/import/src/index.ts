@@ -14,3 +14,4 @@ export { toIsoDate } from './date';
 export { identityKey } from './identity';
 export { EXPECTED_SHEET, REQUIRED_COLUMNS, type RequiredColumn } from './columns';
 export { parseAdhesionSheet } from './parse-sheet';
+export { acrImportId, planImport } from './plan-import';

@@ -125,6 +125,98 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- Import degli elenchi adesioni (specifica 004, contracts/firestore-import.md) ----
+
+    function isNonEmptyString(v) {
+      return v is string && v.size() > 0;
+    }
+
+    function isCount(v) {
+      return v is int && v >= 0;
+    }
+
+    // Campo facoltativo: assente, oppure testo non vuoto.
+    function optionalText(d, key) {
+      return !(key in d) || isNonEmptyString(d[key]);
+    }
+
+    function batchPath(id) {
+      return /databases/$(database)/documents/importBatches/$(id);
+    }
+
+    // Persone e adesioni si creano solo nella stessa scrittura che crea il loro segno di import:
+    // il segno non esiste prima e esiste dopo. Così un anno si importa una volta sola e tutto insieme.
+    function createdWithNewBatch(id) {
+      return isNonEmptyString(id) && !exists(batchPath(id)) && existsAfter(batchPath(id));
+    }
+
+    // Segno di import: ID "{anno}-ACR". Esiste = elenco ACR dell'anno già importato. L'anno deve
+    // avere un listino. Mai modificabile né cancellabile.
+    match /importBatches/{batchId} {
+      allow get, list: if isAllowed();
+
+      allow create: if isAllowed()
+        && request.resource.data.keys().hasOnly(['associationYear', 'source', 'importedAt', 'importedBy',
+                                                 'adhesionCount', 'newPersonCount', 'skippedRowCount'])
+        && request.resource.data.keys().hasAll(['associationYear', 'source', 'importedAt', 'importedBy',
+                                                'adhesionCount', 'newPersonCount', 'skippedRowCount'])
+        && request.resource.data.associationYear is int
+        && batchId == string(request.resource.data.associationYear) + '-ACR'
+        && request.resource.data.source == 'ACR'
+        && isPositiveInt(request.resource.data.adhesionCount)
+        && isCount(request.resource.data.newPersonCount)
+        && isCount(request.resource.data.skippedRowCount)
+        && request.resource.data.importedAt == request.time
+        && request.resource.data.importedBy == ownEmail()
+        && exists(/databases/$(database)/documents/feeSchedules/$(string(request.resource.data.associationYear)));
+
+      allow update, delete: if false;
+    }
+
+    // Anagrafica condivisa tra gli anni: solo le colonne necessarie (constitution III).
+    match /persons/{personId} {
+      allow get, list: if isAllowed();
+
+      allow create: if isAllowed()
+        && request.resource.data.keys().hasOnly(['lastName', 'firstName', 'birthDate', 'identityKey',
+                                                 'createdInImport', 'sex', 'taxCode'])
+        && request.resource.data.keys().hasAll(['lastName', 'firstName', 'birthDate', 'identityKey',
+                                                'createdInImport'])
+        && isNonEmptyString(request.resource.data.lastName)
+        && isNonEmptyString(request.resource.data.firstName)
+        && isNonEmptyString(request.resource.data.identityKey)
+        && request.resource.data.birthDate is string
+        && request.resource.data.birthDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && (!('sex' in request.resource.data) || request.resource.data.sex in ['M', 'F'])
+        && (!('taxCode' in request.resource.data)
+            || (request.resource.data.taxCode is string
+                && request.resource.data.taxCode.matches('[A-Z0-9]{16}')))
+        && createdWithNewBatch(request.resource.data.createdInImport);
+
+      allow update, delete: if false;
+    }
+
+    // Adesione di una persona in un anno: ID "{anno}_{personId}", una sola per persona e anno.
+    match /adhesions/{adhesionId} {
+      allow get, list: if isAllowed();
+
+      allow create: if isAllowed()
+        && request.resource.data.keys().hasOnly(['personId', 'associationYear', 'importId', 'sector',
+                                                 'exportAgeBand', 'bond', 'bondId'])
+        && request.resource.data.keys().hasAll(['personId', 'associationYear', 'importId', 'sector'])
+        && request.resource.data.associationYear is int
+        && isNonEmptyString(request.resource.data.personId)
+        && adhesionId == string(request.resource.data.associationYear) + '_' + request.resource.data.personId
+        && request.resource.data.importId == string(request.resource.data.associationYear) + '-ACR'
+        && isNonEmptyString(request.resource.data.sector)
+        && optionalText(request.resource.data, 'exportAgeBand')
+        && optionalText(request.resource.data, 'bond')
+        && optionalText(request.resource.data, 'bondId')
+        && createdWithNewBatch(request.resource.data.importId);
+
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

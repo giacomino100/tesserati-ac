@@ -4,18 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink } from '@angular/router';
 import type { ImportRow } from '@tesseramento/import';
+import type { HasUnsavedChanges } from '../../../listini/unsaved-changes.guard';
+import { bondLabel, italianDate } from '../../format';
 import { ImportService } from '../../import.service';
-
-/** "2016-04-09" → "09/04/2016". */
-export function italianDate(iso: string): string {
-  const [year, month, day] = iso.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-/** "C3 · 900002", solo la parte presente, vuoto senza legame. */
-export function bondLabel(row: { bond?: string; bondId?: string }): string {
-  return [row.bond, row.bondId].filter(Boolean).join(' · ');
-}
 
 @Component({
   selector: 'app-import-page',
@@ -38,9 +29,24 @@ export function bondLabel(row: { bond?: string; bondId?: string }): string {
           <p>Lettura del file…</p>
         }
         @case ('rejected') {
-          <p role="alert">{{ rejectedMessage() }}</p>
+          <p role="alert">{{ message() }}</p>
           <ng-container [ngTemplateOutlet]="skippedList" />
           <button mat-flat-button type="button" (click)="service.cancel()">Scegli un altro file</button>
+        }
+        @case ('done') {
+          @if (service.summary(); as s) {
+            <p role="status">
+              Import completato: {{ s.adhesions }} adesioni {{ s.yearLabel }}, {{ s.newPersons }} persone nuove,
+              {{ s.reusedPersons }} già presenti.
+            </p>
+          }
+          <ng-container [ngTemplateOutlet]="skippedList" />
+          <div class="actions">
+            <a mat-flat-button routerLink="/tesserati" [queryParams]="{ anno: service.summary()?.year }">
+              Vedi i tesserati
+            </a>
+            <a mat-stroked-button routerLink="/">Torna alla home</a>
+          </div>
         }
         @default {
           <h2>Anno associativo {{ service.yearLabel() }}</h2>
@@ -68,9 +74,19 @@ export function bondLabel(row: { bond?: string; bondId?: string }): string {
             </table>
           </div>
           <ng-container [ngTemplateOutlet]="skippedList" />
+          @if (service.state().kind === 'saving') {
+            <p role="status">Salvataggio in corso…</p>
+          }
+          @if (service.state().kind === 'saveFailed') {
+            <p role="alert">{{ message() }}</p>
+          }
           <div class="actions">
-            <button mat-flat-button type="button" (click)="confirm()">Importa</button>
-            <button mat-stroked-button type="button" (click)="service.cancel()">Annulla</button>
+            <button mat-flat-button type="button" [disabled]="service.isSaving()" (click)="confirm()">
+              {{ service.state().kind === 'saveFailed' ? 'Riprova' : 'Importa' }}
+            </button>
+            <button mat-stroked-button type="button" [disabled]="service.isSaving()" (click)="service.cancel()">
+              Annulla
+            </button>
           </div>
         }
       }
@@ -137,18 +153,29 @@ export function bondLabel(row: { bond?: string; bondId?: string }): string {
     }
   `,
 })
-export class ImportPage {
+export class ImportPage implements HasUnsavedChanges {
   protected readonly service = inject(ImportService);
   protected readonly date = italianDate;
   protected readonly bond = bondLabel;
+
+  constructor() {
+    // Il servizio vive per tutta la sessione: entrando nella pagina si riparte dalla scelta del file,
+    // tranne se un salvataggio è ancora in corso.
+    this.service.cancel();
+  }
+
+  /** Durante il salvataggio chiede conferma prima di uscire (route canDeactivate). */
+  hasUnsavedChanges(): boolean {
+    return this.service.isSaving();
+  }
 
   protected fullName(row: ImportRow): string {
     return `${row.lastName} ${row.firstName}`;
   }
 
-  protected rejectedMessage(): string {
+  protected message(): string {
     const state = this.service.state();
-    return state.kind === 'rejected' ? state.message : '';
+    return state.kind === 'rejected' || state.kind === 'saveFailed' ? state.message : '';
   }
 
   protected onFile(event: Event): void {
@@ -157,6 +184,6 @@ export class ImportPage {
   }
 
   protected confirm(): void {
-    // Salvataggio: specifica 004, storia 2.
+    void this.service.confirm();
   }
 }

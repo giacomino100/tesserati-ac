@@ -1,24 +1,46 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { labelFor } from '@tesseramento/fees';
-import { parseAdhesionSheet, type ImportRow, type ParsedImportOk, type SkippedRow } from '@tesseramento/import';
+import {
+  parseAdhesionSheet,
+  planImport,
+  type ImportRow,
+  type ParsedImportOk,
+  type SkippedRow,
+} from '@tesseramento/import';
+import { AuthService } from '../core/auth.service';
+import { IMPORT_BACKEND } from './import-backend';
 import { fileErrorMessage, IMPORT_MESSAGES, skippedMessage } from './messages';
 import { WORKBOOK_READER } from './workbook-reader';
 
 const PREVIEW_ROWS = 10;
 
+export interface ImportSummary {
+  readonly year: number;
+  readonly yearLabel: string;
+  readonly adhesions: number;
+  readonly newPersons: number;
+  readonly reusedPersons: number;
+}
+
 export type ImportState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'reading' }
   | { readonly kind: 'rejected'; readonly message: string; readonly skipped: readonly SkippedRow[] }
-  | { readonly kind: 'preview'; readonly parsed: ParsedImportOk };
+  | { readonly kind: 'preview'; readonly parsed: ParsedImportOk }
+  | { readonly kind: 'saving'; readonly parsed: ParsedImportOk }
+  | { readonly kind: 'saveFailed'; readonly parsed: ParsedImportOk; readonly message: string }
+  | { readonly kind: 'done'; readonly parsed: ParsedImportOk; readonly summary: ImportSummary };
 
 /**
  * Import dell'elenco ACR (specifica 004): lettura del file, anteprima, salvataggio.
  * Il file resta in memoria nel browser; nessun dato delle righe viene scritto nei log.
+ * L'autorizzazione vera sta nelle Security Rules.
  */
 @Injectable({ providedIn: 'root' })
 export class ImportService {
   private readonly reader = inject(WORKBOOK_READER);
+  private readonly backend = inject(IMPORT_BACKEND);
+  private readonly auth = inject(AuthService);
 
   readonly state = signal<ImportState>({ kind: 'idle' });
 
@@ -26,6 +48,8 @@ export class ImportService {
     const state = this.state();
     return 'parsed' in state ? state.parsed : undefined;
   });
+
+  readonly isSaving = computed(() => this.state().kind === 'saving');
 
   readonly yearLabel = computed(() => {
     const parsed = this.parsed();
@@ -43,6 +67,11 @@ export class ImportService {
     const state = this.state();
     const skipped = 'parsed' in state ? state.parsed.skipped : state.kind === 'rejected' ? state.skipped : [];
     return skipped.map(skippedMessage);
+  });
+
+  readonly summary = computed(() => {
+    const state = this.state();
+    return state.kind === 'done' ? state.summary : undefined;
   });
 
   /** Legge il file scelto e mostra l'anteprima o il motivo del rifiuto. */
@@ -63,8 +92,36 @@ export class ImportService {
     this.state.set({ kind: 'preview', parsed });
   }
 
+  /** Salva persone nuove e adesioni dell'anno in un colpo solo (FR-009, FR-014). */
+  async confirm(): Promise<void> {
+    const state = this.state();
+    if (state.kind !== 'preview' && state.kind !== 'saveFailed') return;
+    const { parsed } = state;
+    this.state.set({ kind: 'saving', parsed });
+    try {
+      const email = this.auth.user()?.email;
+      if (!email) throw new Error('no-user');
+      const plan = planImport(parsed, await this.backend.existingPersons());
+      await this.backend.commit(plan, email);
+      this.state.set({
+        kind: 'done',
+        parsed,
+        summary: {
+          year: plan.associationYear,
+          yearLabel: labelFor(plan.associationYear),
+          adhesions: plan.adhesions,
+          newPersons: plan.newPersons.length,
+          reusedPersons: plan.reusedPersons.length,
+        },
+      });
+    } catch {
+      this.state.set({ kind: 'saveFailed', parsed, message: IMPORT_MESSAGES.saveFailed });
+    }
+  }
+
   /** Torna alla scelta del file e dimentica le righe lette (FR-004). */
   cancel(): void {
+    if (this.isSaving()) return;
     this.state.set({ kind: 'idle' });
   }
 

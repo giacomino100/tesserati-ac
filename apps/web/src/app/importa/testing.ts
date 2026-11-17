@@ -64,9 +64,20 @@ export class FakeImportBackend implements ImportBackend {
   persons = new Map<string, string>();
   commits: FakeCommit[] = [];
   failCommitWith: Error | undefined;
-  /** Se impostato, `commit` resta in attesa finché non viene chiamato. */
-  hold: (() => void) | undefined;
+  private gate: { promise: Promise<void>; resolve: () => void } | undefined;
   private nextId = 1;
+
+  /** Da qui in poi `commit` resta in attesa finché non si chiama `release()`. */
+  pause(): void {
+    let resolve!: () => void;
+    const promise = new Promise<void>((r) => (resolve = r));
+    this.gate = { promise, resolve };
+  }
+
+  release(): void {
+    this.gate?.resolve();
+    this.gate = undefined;
+  }
 
   async yearStatus(year: number): Promise<YearStatus> {
     return { hasFeeSchedule: this.feeScheduleYears.has(year), alreadyImported: this.importedYears.has(year) };
@@ -77,7 +88,7 @@ export class FakeImportBackend implements ImportBackend {
   }
 
   async commit(plan: ImportPlan, email: string): Promise<void> {
-    if (this.hold) await new Promise<void>((resolve) => (this.hold = resolve));
+    if (this.gate) await this.gate.promise;
     if (this.failCommitWith) throw this.failCommitWith;
     if (this.importedYears.has(plan.associationYear)) throw new AlreadyImportedError();
     if (!this.feeScheduleYears.has(plan.associationYear)) throw new NoFeeScheduleError();

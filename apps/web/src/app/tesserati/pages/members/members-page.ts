@@ -1,0 +1,153 @@
+import { ChangeDetectionStrategy, Component, inject, OnInit, PendingTasks, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { labelFor } from '@tesseramento/fees';
+import { bondLabel, italianDate } from '../../../importa/format';
+import { MEMBERS_BACKEND, type MemberRow } from '../../members-backend';
+
+const LOAD_ERROR = 'Impossibile leggere i tesserati. Controlla la connessione e riprova.';
+
+function byName(a: MemberRow, b: MemberRow): number {
+  return a.lastName.localeCompare(b.lastName, 'it') || a.firstName.localeCompare(b.firstName, 'it');
+}
+
+/** Tesserati di un anno importato, in sola lettura (FR-019). */
+@Component({
+  selector: 'app-members-page',
+  imports: [MatButtonModule, MatToolbarModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <mat-toolbar>
+      <a mat-button routerLink="/">← Home</a>
+      <span class="title">Tesserati</span>
+    </mat-toolbar>
+    <main class="content">
+      @if (loading()) {
+        <p>Caricamento…</p>
+      } @else if (error(); as message) {
+        <p role="alert">{{ message }}</p>
+      } @else if (years().length === 0) {
+        <p>Nessun tesserato importato. Usa <a routerLink="/importa">Importa Excel</a>.</p>
+      } @else {
+        <label class="year">
+          Anno associativo
+          <select [value]="year()" (change)="onYear($event)">
+            @for (y of years(); track y) {
+              <option [value]="y" [selected]="y === year()">{{ label(y) }}</option>
+            }
+          </select>
+        </label>
+        <p>{{ members().length }} tesserati nel {{ label(year()) }}</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cognome e nome</th>
+                <th>Data di nascita</th>
+                <th>Settore</th>
+                <th>Fascia d'età (export)</th>
+                <th>Legame</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of members(); track $index) {
+                <tr>
+                  <td>{{ m.lastName }} {{ m.firstName }}</td>
+                  <td>{{ date(m.birthDate) }}</td>
+                  <td>{{ m.sector }}</td>
+                  <td>{{ m.exportAgeBand ?? '' }}</td>
+                  <td>{{ bond(m) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </main>
+  `,
+  styles: `
+    mat-toolbar {
+      gap: 12px;
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 64px;
+      padding: 8px 16px;
+    }
+    .title {
+      font-weight: 500;
+    }
+    .content {
+      padding: 16px;
+      max-width: 960px;
+    }
+    .year {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    select {
+      font: inherit;
+      padding: 4px 8px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th,
+    td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+      overflow-wrap: anywhere;
+    }
+  `,
+})
+export class MembersPage implements OnInit {
+  private readonly backend = inject(MEMBERS_BACKEND);
+  private readonly route = inject(ActivatedRoute);
+  private readonly pendingTasks = inject(PendingTasks);
+
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly years = signal<number[]>([]);
+  protected readonly year = signal(0);
+  protected readonly members = signal<MemberRow[]>([]);
+  protected readonly label = labelFor;
+  protected readonly date = italianDate;
+  protected readonly bond = bondLabel;
+
+  ngOnInit(): void {
+    // Registrato come attività in corso: l'app (e i test) restano "instabili" finché non finisce.
+    this.pendingTasks.run(() => this.load());
+  }
+
+  private async load(): Promise<void> {
+    try {
+      const years = [...(await this.backend.importedYears())].sort((a, b) => b - a);
+      this.years.set(years);
+      const requested = Number(this.route.snapshot.queryParamMap.get('anno'));
+      const first = years.includes(requested) ? requested : years[0];
+      if (first !== undefined) await this.show(first);
+    } catch {
+      this.error.set(LOAD_ERROR);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  protected onYear(event: Event): void {
+    const year = Number((event.target as HTMLSelectElement).value);
+    this.pendingTasks.run(() => this.show(year).catch(() => this.error.set(LOAD_ERROR)));
+  }
+
+  private async show(year: number): Promise<void> {
+    this.year.set(year);
+    this.members.set([...(await this.backend.membersOfYear(year))].sort(byName));
+  }
+}

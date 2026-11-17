@@ -33,6 +33,11 @@ describe('Home', () => {
     expect(link?.textContent).toContain('Importa Excel');
   });
 
+  it('ha il collegamento "Tesserati"', () => {
+    const link = setup().el.querySelector('a[href="/tesserati"]');
+    expect(link?.textContent).toContain('Tesserati');
+  });
+
   it('il pulsante "Esci" chiama signOut()', () => {
     const { fake, el } = setup();
     const button = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Esci'));

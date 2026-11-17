@@ -39,7 +39,13 @@ export const routes: Routes = [
   {
     path: 'importa',
     canActivate: [requireState('allowed')],
+    canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./importa/pages/import/import-page').then((m) => m.ImportPage),
+  },
+  {
+    path: 'tesserati',
+    canActivate: [requireState('allowed')],
+    loadComponent: () => import('./tesserati/pages/members/members-page').then((m) => m.MembersPage),
   },
   { path: '**', redirectTo: '' },
 ];

@@ -89,3 +89,58 @@ describe('ImportPage – scelta e anteprima (US1)', () => {
     expect(backend.commits).toEqual([]);
   });
 });
+
+describe('ImportPage – salvataggio (US2)', () => {
+  it('"Importa" mostra il riepilogo e i collegamenti', async () => {
+    const { fixture, el, backend } = await renderImport();
+    await chooseFile(fixture);
+    button(el, 'Importa')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(backend.commits).toHaveLength(1);
+    expect(el.textContent).toContain('Import completato: 15 adesioni 2026/27, 15 persone nuove, 0 già presenti.');
+    expect(button(el, 'Torna alla home')?.getAttribute('href')).toBe('/');
+    expect(button(el, 'Vedi i tesserati')?.getAttribute('href')).toBe('/tesserati?anno=2026');
+  });
+
+  it('durante il salvataggio i pulsanti sono disattivati', async () => {
+    const { fixture, el, backend } = await renderImport();
+    await chooseFile(fixture);
+    backend.pause();
+    button(el, 'Importa')!.click();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Salvataggio in corso…');
+    expect(Array.from(el.querySelectorAll('button')).every((b) => b.disabled)).toBe(true);
+    backend.release();
+    await fixture.whenStable();
+  });
+
+  it('errore di rete: messaggio e "Riprova"', async () => {
+    const { fixture, el, backend } = await renderImport();
+    backend.failCommitWith = new Error('offline');
+    await chooseFile(fixture);
+    button(el, 'Importa')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.');
+    backend.failCommitWith = undefined;
+    button(el, 'Riprova')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Import completato');
+  });
+
+  it('chiede conferma prima di uscire solo durante il salvataggio', async () => {
+    const { fixture, el, backend } = await renderImport();
+    const page = fixture.componentInstance;
+    expect(page.hasUnsavedChanges()).toBe(false);
+    await chooseFile(fixture);
+    expect(page.hasUnsavedChanges()).toBe(false);
+    backend.pause();
+    button(el, 'Importa')!.click();
+    expect(page.hasUnsavedChanges()).toBe(true);
+    backend.release();
+    await fixture.whenStable();
+    expect(page.hasUnsavedChanges()).toBe(false);
+  });
+});
