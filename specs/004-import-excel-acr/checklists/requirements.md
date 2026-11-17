@@ -32,5 +32,4 @@
 ## Notes
 
 - Il brief citava SheetJS; nella specifica la scelta di libreria è omessa (va nel piano).
-- Scelte di default da confermare in `/speckit-clarify`: righe con dati mancanti e duplicati nel file rifiutano
-  l'intero import (la 006 li gestirà in modo dettagliato).
+- Chiarito il 2026-11-17: righe con dati mancanti e duplicati nel file vengono saltate ed elencate, il resto si importa.

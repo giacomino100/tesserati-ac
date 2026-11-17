@@ -13,6 +13,16 @@ salvano i tesserati e le loro adesioni dell'anno.
 **Regole di riferimento**: `docs/dominio/excel-esempio/README.md` (struttura del file, colonne, difetti);
 `docs/dominio/glossario.md`; `docs/dominio/regole-famiglia.md` §0 e §2; constitution, principi III e IV.
 
+## Clarifications
+
+### Session 2026-11-17
+
+- Q: Se nel file ci sono righe con nome, cognome o data di nascita mancanti, oppure due righe della stessa persona, cosa deve fare l'import? → A: si importano le righe valide, quelle errate vengono saltate e sono elencate (numero di riga e motivo) in anteprima e nel riepilogo finale; per i duplicati si importa la prima riga e si saltano le successive.
+
+- Q: Se il file ha colonne extra o in ordine diverso rispetto alle 33 attese, l'import deve procedere? → A: sì, le colonne necessarie sono cercate per nome; ordine ed extra sono ignorati; si rifiuta solo se ne manca una necessaria.
+
+- Q: Se l'anno del file non ha un listino, l'import deve procedere? → A: no, è rifiutato con il messaggio di creare prima il listino di quell'anno nella sezione "Listini".
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Caricare il file e vedere l'anteprima (Priority: P1)
@@ -77,7 +87,9 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
    messaggio nomina la colonna mancante.
 2. **Given** un file che non è un Excel (o con foglio diverso da quello atteso), **When** viene caricato,
    **Then** viene rifiutato con un messaggio chiaro.
-3. **Given** l'anno 2026 con adesioni già importate, **When** si carica di nuovo il file del 2026, **Then**
+3. **Given** un file con anno 2030 e nessun listino per quell'anno, **When** viene caricato, **Then** l'import è
+   rifiutato con il messaggio di creare prima il listino.
+4. **Given** l'anno 2026 con adesioni già importate, **When** si carica di nuovo il file del 2026, **Then**
    l'import è rifiutato con un messaggio e i dati esistenti restano invariati.
 
 ---
@@ -86,14 +98,16 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
 
 - `Anno Associativo` non nella forma `Anno AAAA`, o righe con anni diversi nello stesso file: rifiutato con messaggio.
 - File senza righe di dati: rifiutato con messaggio.
-- Righe con nome, cognome o data di nascita mancanti: l'import è rifiutato indicando il numero di riga (la
-  segnalazione dettagliata e la gestione sono della specifica 006).
+- Righe con nome, cognome o data di nascita mancanti: la riga è saltata, il resto del file viene importato; numero
+  di riga e motivo sono elencati in anteprima e nel riepilogo finale (la revisione e la correzione delle righe
+  saltate sono della specifica 006).
 - Settore diverso da `RAGAZZI` o età fuori dall'ACR (es. oltre i 14): la riga viene importata comunque, il settore è
   quello dell'export; la verifica spetta alla specifica 006.
 - `N. Legame` vuoto: nessun legame; `N. Legame` presente: salvato così com'è, senza raggruppare in famiglie.
 - Codice fiscale assente (quasi sempre per i minori): ammesso, non è mai obbligatorio.
-- Due righe identiche per cognome, nome e data di nascita nello stesso file: segnalate come duplicate e l'import è
-  rifiutato (trattamento completo nella specifica 006).
+- Due righe con lo stesso cognome, nome e data di nascita (normalizzati) nello stesso file: si importa la prima, le
+  successive sono saltate ed elencate come duplicate (trattamento completo nella specifica 006).
+- File in cui tutte le righe sono da saltare: nessun dato salvato e messaggio chiaro, come per un file senza righe.
 - Utente non autorizzato: non vede la sezione né può leggere o scrivere i dati.
 - Il file non viene mai inviato fuori dal dispositivo e nessun dato personale compare nei log.
 
@@ -108,8 +122,11 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
   di righe e prime righe (nome, data di nascita, fascia, legame).
 - **FR-004**: Se l'utente annulla, il sistema MUST NOT salvare alcun dato.
 - **FR-005**: Il sistema MUST ricavare l'anno associativo dalla colonna `Anno Associativo` (`Anno 2026` → 2026).
-- **FR-006**: Il sistema MUST verificare che il foglio e le colonne attese esistano con il nome previsto; in caso
-  contrario MUST rifiutare l'import indicando quali colonne mancano.
+- **FR-018**: Se per l'anno del file non esiste un listino, il sistema MUST rifiutare l'import con un messaggio che
+  invita a creare prima il listino di quell'anno nella sezione "Listini"; nulla viene salvato.
+- **FR-006**: Il sistema MUST cercare per nome le colonne necessarie, a prescindere dall'ordine, e ignorare le
+  colonne in più; se manca una colonna necessaria o il foglio atteso, MUST rifiutare l'import indicando quali
+  colonne mancano.
 - **FR-007**: Il sistema MUST pulire i testi (spazi iniziali, finali e doppi), trattare celle vuote e stringa `''`
   come valore vuoto e normalizzare cognome e nome per riconoscere la persona.
 - **FR-008**: Il sistema MUST leggere e salvare solo le colonne necessarie: cognome, nome, sesso, data di nascita,
@@ -123,7 +140,11 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
 - **FR-011**: Se l'anno del file ha già adesioni importate, il sistema MUST rifiutare l'import con un messaggio e
   lasciare i dati invariati.
 - **FR-012**: Il sistema MUST importare anche le righe fuori dall'età ACR, con il settore indicato dall'export.
-- **FR-013**: A fine import il sistema MUST mostrare il numero di persone e di adesioni salvate.
+- **FR-013**: A fine import il sistema MUST mostrare il numero di persone e di adesioni salvate e l'elenco delle
+  righe saltate (numero di riga e motivo).
+- **FR-017**: Il sistema MUST saltare le righe senza cognome, nome o data di nascita e le righe duplicate (stessa
+  identità di una riga precedente), importare le altre ed elencare le righe saltate già in anteprima, con il
+  numero di righe che verranno importate.
 - **FR-014**: Un import MUST essere tutto-o-niente per l'anno: se il salvataggio non riesce, non resta un anno
   parzialmente importato.
 - **FR-015**: Solo gli utenti autorizzati MUST poter leggere e scrivere tesserati e adesioni; tutti gli altri MUST
@@ -147,6 +168,8 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
 - **SC-003**: Annullando dall'anteprima, 0 dati vengono salvati (verificabile dall'elenco dopo l'annullamento).
 - **SC-004**: Il 100% dei file con colonne mancanti o non Excel viene rifiutato con un messaggio che indica il
   problema, senza salvare nulla.
+- **SC-008**: Con un file che contiene righe senza data di nascita o duplicate, il 100% di queste righe è elencato
+  (riga e motivo) e le altre righe sono importate.
 - **SC-005**: Riimportando lo stesso anno, 0 adesioni vengono aggiunte o modificate.
 - **SC-006**: Nessun dato personale compare nei log e nessun file lascia il dispositivo.
 - **SC-007**: Gli utenti non autorizzati non riescono mai a leggere o scrivere tesserati e adesioni (verificato dai
@@ -161,5 +184,5 @@ importato; in tutti i casi nulla viene salvato e il messaggio è chiaro.
   una specifica che ne abbia bisogno.
 - `Pagato` e le colonne `MLAC`/`MSAC` non si salvano; il pagamento non è ancora una funzione dell'app.
 - Nel file ACR non ci sono duplicati con la chiave cognome + nome + data di nascita (verificato sull'export 2026);
-  i casi dubbi e i duplicati sono trattati dalla specifica 006.
+  in 004 i duplicati sono solo saltati ed elencati; i casi dubbi (nomi simili) e la loro revisione sono della 006.
 - Import di Giovani e Adulti (005), famiglie (007), riconferma e quote (008–010) sono fuori ambito.
