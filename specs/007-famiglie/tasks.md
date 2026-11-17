@@ -119,7 +119,7 @@ pura del raggruppamento (test prima del codice, devono fallire prima di passare)
 - [X] T031 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web`
 - [X] T032 [P] Update `docs/roadmap.md` (007 ✅ when released) and `CLAUDE.md`
 - [ ] T033 Manual scenarios M1–M7 of `specs/007-famiglie/quickstart.md` (measure "Conferma tutte" in M2: under 1 minute, SC-002)
-- [ ] T034 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
+- [X] T034 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
 
 ---
 

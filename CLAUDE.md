@@ -33,7 +33,7 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   (solo hosting: regole invariate). Anteprima con possibili doppioni da decidere ("Stessa persona" /
   "Persona diversa", regole in `regole-famiglia.md` §2), persone riconosciute dal codice fiscale, righe saltate con
   nome (solo a schermo), avvisi età/settore dal listino. `@tesseramento/import` ora dipende da `@tesseramento/fees`.
-- **007 – Famiglie**: implementata sul branch `007-famiglie`, non ancora rilasciata (regole + hosting). Pagina
+- **007 – Famiglie**: rilasciata il 2026-11-17 (regole + hosting). Pagina
   `/famiglie`: famiglie suggerite dal `N. Legame`, conferma (anche "Conferma tutte" a gruppi di 8 per il limite di
   letture delle regole), correzioni, famiglie a mano, scioglimento. Pacchetto puro `packages/families`. Firestore:
   `families/{id}` + `familyMemberships/{anno}_{personId}` (l'appartenenza è la fonte di verità: una famiglia per persona
