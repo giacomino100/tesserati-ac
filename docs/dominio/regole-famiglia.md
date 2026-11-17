@@ -20,11 +20,15 @@ L'export **contiene già i nuclei familiari**:
   26 su 43 hanno cognomi diversi (es. la madre mantiene il proprio).
 
 ## 1. Cos'è una famiglia
-- Proposta: **famiglia = nucleo con lo stesso `N. Legame`**; chi non ha `N. Legame` è una famiglia da 1.
+- ✅ **Famiglia = tesserati dello stesso anno con lo stesso `N. Legame`**, come **suggerimento**: diventa la famiglia
+  dell'anno solo dopo la conferma di una persona, che può anche correggerla (aggiungere o togliere componenti, creare
+  una famiglia a mano). Chi non ha `N. Legame` né una famiglia confermata è un nucleo da 1. Le famiglie valgono per
+  un anno associativo. Confermato il 2026-11-17 (specifica 007).
 - Il `N. Legame` resta lo stesso da un anno all'altro? **TODO** (servirebbe l'export dell'anno precedente per verificarlo)
 - Quando si aggiunge un nuovo tesserato (es. un figlio che si iscrive per la prima volta), chi lo collega al nucleo? L'app permette di farlo a mano? **TODO**
 - Il `N. Legame` viene creato dal sistema nazionale o dalla parrocchia? **TODO**
-- Una persona può stare in due nuclei (es. genitori separati)? Nei dati no. **TODO** confermare.
+- ✅ Una persona sta in **al massimo una famiglia per anno** (genitori separati: non gestito per ora, nei dati non
+  succede; servirà una specifica dedicata). Confermato il 2026-11-17 (specifica 007).
 
 ## 2. Riconoscere la stessa persona tra un anno e l'altro
 - Il codice fiscale è compilato solo nel 27% dei casi (1 su 89 in ACR): **non può essere la chiave**.
