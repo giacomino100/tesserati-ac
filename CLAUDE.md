@@ -25,7 +25,7 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   Pacchetto puro `packages/import` (lettura righe, pulizia, identità), schermate `/importa` e `/tesserati`,
   collezioni Firestore `importBatches` (`{anno}-ACR`), `persons`, `adhesions` (`{anno}_{personId}`).
   SheetJS 0.20.3 installato dal CDN ufficiale (non da npm). Il file finto ACR ha 15 righe (l'export reale 89).
-- **005 – Import Giovani e Adulti**: implementata sul branch `005-import-giovani-adulti`, non ancora rilasciata.
+- **005 – Import Giovani e Adulti**: rilasciata il 2026-11-17 (regole e hosting in produzione; nessun dato importato).
   Stessa schermata `/importa` per i tre elenchi (riconosciuti dal settore più frequente; in parità sceglie
   l'utente); segno di import `{anno}-{ACR|GIOVANI|ADULTI}`; una sola adesione per persona per anno (righe già
   importate da un altro elenco saltate). File finti: ACR 15, Giovani 8, Adulti 14 → 37 tesserati nel 2026.

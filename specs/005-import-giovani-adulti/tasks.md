@@ -125,7 +125,7 @@ del pacchetto `import` (test prima del codice, devono fallire prima di passare).
 - [X] T030 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web` (SheetJS still lazy, no budget warnings)
 - [X] T031 [P] Update `docs/roadmap.md` (005 ✅ when released) and `CLAUDE.md` "Stato attuale"
 - [ ] T032 Manual scenarios M1–M8 of `specs/005-import-giovani-adulti/quickstart.md` (360 px included)
-- [ ] T033 Release only after all tests are green and with the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
+- [X] T033 Release only after all tests are green and with the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
 
 ---
 
