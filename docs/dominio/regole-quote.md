@@ -97,3 +97,7 @@ L'app **non inventa la quota**: segnala il nucleo come "non previsto dal listino
 | Nucleo con almeno un bambino sotto i 6 anni (fascia `0/5` nell'export): **tutto il nucleo** è non previsto ✅ | 1 bambino |
 
 ✅ L'app mostra l'avviso e la segreteria **inserisce a mano la quota** del nucleo, con una **nota obbligatoria** che ne spiega il motivo.
+
+✅ Anche un nucleo con una **data di nascita incoerente** con l'anno associativo (es. nato dopo l'anno) non viene
+calcolato: si tratta come non previsto (quota manuale del nucleo con nota), mostrando il motivo. Confermato il
+2026-11-17 (specifica 010). La quota manuale è **un solo importo per il nucleo**.

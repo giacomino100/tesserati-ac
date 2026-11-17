@@ -11,10 +11,13 @@ Stati: ⬜ da fare · 📝 brief pronto · 🔍 spec in revisione · 🚧 in svi
 | 005 | Import Giovani e Adulti | Come 004 per gli altri elenchi | ✅ |
 | 006 | Errori e duplicati nell'import | Righe errate e persone già presenti vengono segnalate | ✅ |
 | 007 | Famiglie | Raggruppo i tesserati in famiglie (suggerimento + conferma) | ✅ |
+| 010 | Quote nella famiglia | Apro una famiglia e vedo quote, sconto e totale | 📝 |
 | 008 | Riconferma adesione | Vedo i tesserati dell'anno scorso e spunto chi rinnova | ⬜ |
 | 009 | Nuovo tesserato | Aggiungo chi non c'era l'anno scorso | ⬜ |
-| 010 | Quote nella famiglia | Apro una famiglia e vedo quote, sconto e totale | ⬜ |
 | 011 | Cambio categoria per età | Chi passa di fascia viene spostato e la quota ricalcolata | ⬜ |
 | 012 | Riepilogo ed export | Totali per categoria e incassi, export Excel | ⬜ |
 
 La lista è viva: va rivista dopo ogni 3–4 specifiche completate.
+
+- Revisione del 2026-11-17 (dopo 003–007): la **010** passa prima di 008–009, perché ha già tutto quello che le
+  serve e non dipende dai TODO aperti di `regole-famiglia.md` (`N. Legame` tra anni, collegamento dei nuovi tesserati).
