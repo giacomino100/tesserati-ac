@@ -21,9 +21,12 @@ export function cleanText(value: unknown): string | undefined {
   return cleaned;
 }
 
-/** "Anno 2026" → 2026; qualsiasi altra forma → `undefined`. */
+/**
+ * Anno associativo (anno di inizio) dalla colonna "Anno Associativo" dell'export: "Anno N" = (N−1)/N, quindi
+ * "Anno 2026" → 2025 (glossario, corretto il 2026-11-17, specifica 008). Qualsiasi altra forma → `undefined`.
+ */
 export function parseAssociationYear(value: unknown): number | undefined {
   if (typeof value !== 'string') return undefined;
   const match = /^Anno (\d{4})$/i.exec(cleanText(value) ?? '');
-  return match ? Number(match[1]) : undefined;
+  return match ? Number(match[1]) - 1 : undefined;
 }

@@ -50,7 +50,7 @@ describe('errori di file (P2, P4–P7, P10)', () => {
   });
 
   it('anni diversi nello stesso file', () => {
-    expect(parse([acrRow(), acrRow({ Nome: 'BETA', 'Anno Associativo': 'Anno 2027' })])).toEqual({
+    expect(parse([acrRow(), acrRow({ Nome: 'BETA', 'Anno Associativo': 'Anno 2028' })])).toEqual({
       ok: false,
       error: { kind: 'mixedYears' },
     });

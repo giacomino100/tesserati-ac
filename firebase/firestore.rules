@@ -151,7 +151,8 @@ service cloud.firestore {
     }
 
     // Segno di import: ID "{anno}-{ELENCO}" con ELENCO = ACR, GIOVANI o ADULTI (specifica 005).
-    // Esiste = quell'elenco dell'anno è già stato importato. L'anno deve avere un listino.
+    // Esiste = quell'elenco dell'anno è già stato importato. Il listino non serve (specifica 008: un anno passato,
+    // es. 2025/26, si importa senza listino).
     // Mai modificabile né cancellabile.
     match /importBatches/{batchId} {
       allow get, list: if isAllowed();
@@ -168,8 +169,7 @@ service cloud.firestore {
         && isCount(request.resource.data.newPersonCount)
         && isCount(request.resource.data.skippedRowCount)
         && request.resource.data.importedAt == request.time
-        && request.resource.data.importedBy == ownEmail()
-        && exists(/databases/$(database)/documents/feeSchedules/$(string(request.resource.data.associationYear)));
+        && request.resource.data.importedBy == ownEmail();
 
       allow update, delete: if false;
     }

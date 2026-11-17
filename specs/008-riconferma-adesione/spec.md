@@ -21,6 +21,8 @@ e `N. Legame` copiati — aggiornato il 2026-11-17); `docs/dominio/regole-quote.
 ### Session 2026-11-17
 
 - Q: Nella pagina "Riconferme", come devono comparire le persone da decidere? → A: raggruppate per `N. Legame` (ogni gruppo con la casella "tutto il nucleo"), poi i singoli in ordine di cognome e nome.
+- Q: L'export "Anno 2026" contiene i tesserati del 2025/26: "Anno N" vuol dire (N−1)/N? → A: sì; l'import salva l'export "Anno N" nell'anno associativo N−1 (glossario corretto); riconfermati, entrano nell'anno N (2026/27).
+- Q: Come si importa il 2025/26, che non ha un listino (il PDF è solo del 2026/27)? → A: l'import non richiede più il listino dell'anno: senza listino niente avvisi su età e settore e niente quote per quell'anno; la riconferma verso l'anno nuovo richiede invece il listino dell'anno nuovo.
 - Q: Si può annullare la riconferma di una persona per cui in "Quote" è già salvata una quota del nuovo anno? → A: sì, con un avviso nella conferma ("La quota salvata del suo nucleo andrà ricalcolata in Quote."); poi in "Quote" il nucleo risulta da ricalcolare.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -159,6 +161,8 @@ importare un Excel ACR del 2027: le righe di quelle persone sono saltate come "g
 - **FR-011**: Solo gli utenti autorizzati MUST poter leggere, creare e annullare riconferme; le regole di sicurezza
   MUST impedire riconferme di persone senza adesione nell'anno precedente, con anno non consecutivo, con data o email
   non di chi salva, e annullamenti di adesioni nate da un import.
+- **FR-013**: L'import MUST leggere l'export `Anno N` come anno associativo (N−1)/N e MUST accettare un anno senza
+  listino (senza avvisi su età e settore, con un avviso "Nessun listino 2025/26: niente controlli su età e settore.").
 - **FR-012**: Con i dati finti del 2026 e un listino 2027/28 la pagina 2027/28 MUST elencare 37 persone; riconfermate
   tutte, il 2027 MUST avere 14 ACR, 8 Giovani, 15 Adulti, con 2 cambi di elenco (RINALDI PIETRO, RIZZO VALERIA) e 1
   avviso di età minima (GATTI MIA).

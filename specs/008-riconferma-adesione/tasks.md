@@ -109,6 +109,15 @@ progetto (logica pura testata prima del codice).
 
 ---
 
+## Phase 5b: Correzione dell'anno dell'export (chiarimento del 2026-11-17, FR-013)
+
+- [X] T032 Update `docs/dominio/glossario.md` ("Anno N" = (N−1)/N), `docs/dominio/excel-esempio/README.md` and `genera_esempi.py`; relabel the three fake files to "Anno 2027" (= 2026/27, ages unchanged)
+- [X] T033 Tests first: `parseAssociationYear('Anno 2026')` → 2025 in `packages/import/tests/clean.test.ts`; sheet builders to "Anno 2027"; import without fee schedule allowed in `import.service.spec.ts`, `import-page.spec.ts`, `firestore-import-backend.emulator.test.ts`, rules test I6
+- [X] T034 `parseAssociationYear` returns N−1 in `packages/import/src/clean.ts`; import no longer requires the fee schedule (`import.service.ts`, `firestore-import-backend.ts`, `testing.ts`, `firestore.rules` importBatches); notice "Nessun listino 2025/26: niente controlli su età e settore."
+- [ ] T035 Production data already imported as 2026/27: plan and run the move to 2025/26 only with the user's explicit OK (admin access, real data never in logs or repository)
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T026 [P] Update `packages/families/README.md` (renewal API) and `packages/import/README.md` (`listOfAdhesion`, `alreadyRenewed`)

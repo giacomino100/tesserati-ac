@@ -12,7 +12,7 @@ già estratte (l'app le legge con SheetJS) e restituisce righe pulite, righe sal
 | `planImport(parsed, list, existingPersons, adhesionsOfYear?, decisions?, renewedIds?)` | righe valide + elenco + persone già archiviate (chiave → ID) + adesioni dell'anno (ID persona → elenco) → persone nuove, persone riusate, righe già importate nell'anno, numero di adesioni; le persone già **riconfermate** nell'anno (specifica 008) sono saltate con il motivo `alreadyRenewed` |
 | `recognizeList(sectors)`, `ADHESION_LISTS`, `sectorOf`, `listLabel`, `importId`, `listOfImportId` | elenchi ACR / Giovani / Adulti (specifica 005): riconoscimento dal settore più frequente o parità, ID del segno ("2026-GIOVANI") |
 | `listOfAdhesion(importId?, list?)` | elenco di un'adesione: dal segno di import o, per una riconferma (specifica 008), dal campo `list` |
-| `cleanText`, `toIsoDate`, `parseAssociationYear`, `identityKey` | pulizia di una cella, data di nascita "AAAA-MM-GG", "Anno 2026" → 2026, chiave COGNOME\|NOME\|DATA |
+| `cleanText`, `toIsoDate`, `parseAssociationYear`, `identityKey` | pulizia di una cella, data di nascita "AAAA-MM-GG", "Anno 2026" → 2025 (l'export `Anno N` è l'anno associativo (N−1)/N, specifica 008), chiave COGNOME\|NOME\|DATA |
 | `REQUIRED_COLUMNS`, `EXPECTED_SHEET`, `acrImportId` | colonne lette, nome del foglio, ID del segno di import ("2026-ACR") |
 
 Tipi e campi: `specs/004-import-excel-acr/data-model.md`; contratto e casi di prova P1–P14:

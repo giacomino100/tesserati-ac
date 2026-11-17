@@ -10,7 +10,7 @@ import { parseAdhesionSheet, planImport, type AdhesionList, type ImportPlan } fr
 import { auth, db } from '../core/firebase';
 import { scheduleToDocument } from '../listini/schedule-mapper';
 import { FirestoreScheduleUsage } from '../listini/schedule-usage';
-import { AlreadyImportedError, ImportContextChangedError, NoFeeScheduleError } from './import-backend';
+import { AlreadyImportedError, ImportContextChangedError } from './import-backend';
 import { FirestoreImportBackend } from './firestore-import-backend';
 import { fakeRow, sheetInput, type FakeRow } from './testing';
 
@@ -158,7 +158,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
 
   it('persona riusata che riceve un’adesione dell’anno dopo l’anteprima: ImportContextChangedError', async () => {
     await seedSchedule(2025);
-    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025' })]), LISTED);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2026' })]), LISTED);
     const adultsPlan = await planFor([rowOf('ADULTI', 1)]);
     expect(adultsPlan.reusedPersons).toHaveLength(1);
     // Nel frattempo la stessa persona viene importata nell'elenco Giovani del 2026.
@@ -171,7 +171,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
   it('anno successivo: riusa la persona e aggiunge solo l’adesione', async () => {
     await backend.commit(await planFor([rowOf('ACR', 1)]), LISTED);
     await seedSchedule(2027);
-    await backend.commit(await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2027' })]), LISTED);
+    await backend.commit(await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2028' })]), LISTED);
     expect(await size('persons')).toBe(1);
     expect((await getDoc(doc(db, 'importBatches', '2027-ACR'))).data()?.['newPersonCount']).toBe(0);
   });
@@ -184,11 +184,12 @@ describe('FirestoreImportBackend sugli emulatori', () => {
     expect((await getDocs(collection(db, 'persons'))).docs[0]!.data()).not.toHaveProperty('sex');
   });
 
-  it('anno senza listino: NoFeeScheduleError, nulla scritto', async () => {
-    const plan = await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2030' })]);
-    expect((await backend.yearContext(2030)).hasFeeSchedule).toBe(false);
-    await expect(backend.commit(plan, LISTED)).rejects.toBeInstanceOf(NoFeeScheduleError);
-    expect(await size('importBatches')).toBe(0);
+  it('anno senza listino ("Anno 2026" = 2025/26): si importa (008)', async () => {
+    const plan = await planFor([rowOf('ACR', 1, { 'Anno Associativo': 'Anno 2026' })]);
+    expect(plan.associationYear).toBe(2025);
+    expect((await backend.yearContext(2025)).hasFeeSchedule).toBe(false);
+    await backend.commit(plan, LISTED);
+    expect((await getDoc(doc(db, 'importBatches', '2025-ACR'))).exists()).toBe(true);
   });
 
   it('"anno con adesioni" dei listini vale per qualsiasi elenco (005, FR-011)', async () => {
@@ -200,7 +201,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
 
   it('archivio con l’ultima adesione di ogni persona e listino dell’anno (006)', async () => {
     await seedSchedule(2025);
-    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025' })]), LISTED);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2026' })]), LISTED);
     await backend.commit(await planFor([rowOf('ADULTI', 1)]), LISTED);
     const context = await backend.yearContext(2026);
     expect(context.feeSchedule?.associationYear).toBe(2026);
@@ -210,7 +211,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
 
   it('possibile doppione deciso "Stessa persona": nessuna persona nuova, anagrafica invariata (006)', async () => {
     await seedSchedule(2025);
-    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025', Nome: 'MARIA' })]), LISTED);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2026', Nome: 'MARIA' })]), LISTED);
     const parsed = parseAdhesionSheet(sheetInput([rowOf('ADULTI', 1, { Nome: 'MARIA GRAZIA' })]));
     if (!parsed.ok) throw new Error('foglio di prova non valido');
     const context = await backend.yearContext(2026);

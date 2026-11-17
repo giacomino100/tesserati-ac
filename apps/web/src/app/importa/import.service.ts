@@ -17,14 +17,13 @@ import {
   AlreadyImportedError,
   IMPORT_BACKEND,
   ImportContextChangedError,
-  NoFeeScheduleError,
   type YearContext,
 } from './import-backend';
 import {
   alreadyImportedMessage,
   fileErrorMessage,
   IMPORT_MESSAGES,
-  noFeeScheduleMessage,
+  noFeeScheduleNotice,
   skippedMessage,
   taxCodeNote,
   warningMessage,
@@ -159,7 +158,10 @@ export class ImportService {
   /** Avvisi non bloccanti su età e settore (006). */
   readonly warningMessages = computed(() => {
     const warnings = this.warnings();
-    return warnings ? warnings.list.map((w) => warningMessage(w, warnings.minAge)) : [];
+    if (warnings) return warnings.list.map((w) => warningMessage(w, warnings.minAge));
+    // Un anno senza listino (es. un anno passato) si importa lo stesso, senza controlli (specifica 008).
+    const parsed = this.parsed();
+    return parsed ? [noFeeScheduleNotice(parsed.associationYear)] : [];
   });
 
   readonly totals = computed(() => {
@@ -220,10 +222,6 @@ export class ImportService {
       this.reject(IMPORT_MESSAGES.yearCheckFailed);
       return;
     }
-    if (!context.hasFeeSchedule) {
-      this.reject(noFeeScheduleMessage(parsed.associationYear), [], true);
-      return;
-    }
     const recognized = parsed.recognition.kind === 'recognized' ? parsed.recognition.list : undefined;
     this.showPreview(parsed, context, recognized, new Map());
   }
@@ -276,7 +274,6 @@ export class ImportService {
       // Controlli ripetuti nella transazione: qualcun altro può aver importato o tolto il listino.
       const year = plan.associationYear;
       if (error instanceof AlreadyImportedError) this.reject(alreadyImportedMessage(year, error.list));
-      else if (error instanceof NoFeeScheduleError) this.reject(noFeeScheduleMessage(year), [], true);
       else if (error instanceof ImportContextChangedError) this.reject(IMPORT_MESSAGES.contextChanged);
       else
         this.state.set({ kind: 'saveFailed', parsed, context, list, plan, decisions, message: IMPORT_MESSAGES.saveFailed });

@@ -6,7 +6,7 @@ Completare le parti con **TODO**.
 | Termine | Definizione |
 |---|---|
 | Tesserato | Persona iscritta all'Azione Cattolica in almeno un anno associativo. |
-| Anno associativo | Periodo di validità di un'adesione. Nell'export `Anno 2026` = anno associativo **2026/27** ✅. **TODO**: da quale data a quale data vale? |
+| Anno associativo | Periodo di validità di un'adesione, indicato con l'anno di inizio (2025 = 2025/26). ✅ Nell'export `Anno N` = anno associativo **(N−1)/N**: l'export reale con `Anno 2026` contiene i tesserati del **2025/26** (corretto il 2026-11-17; prima era scritto 2026/27). **TODO**: da quale data a quale data vale? |
 | Adesione | Iscrizione di un tesserato per uno specifico anno associativo, con categoria e quota. |
 | Riconferma | Adesione di un tesserato che aveva un'adesione nell'anno associativo **immediatamente** precedente, creata nell'app spuntando chi rinnova (specifica 008). ✅ |
 | Nuova adesione | Adesione di una persona senza adesione nell'anno precedente. ✅ Chi torna dopo 2+ anni conta come **nuova adesione** (confermato il 2026-11-17, specifica 008). |

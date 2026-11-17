@@ -25,14 +25,6 @@ export class AlreadyImportedError extends Error {
   }
 }
 
-/** L'anno non ha un listino. */
-export class NoFeeScheduleError extends Error {
-  constructor() {
-    super('no-fee-schedule');
-    this.name = 'NoFeeScheduleError';
-  }
-}
-
 /** Tra anteprima e salvataggio una persona riusata ha ricevuto un'adesione dell'anno da un altro elenco. */
 export class ImportContextChangedError extends Error {
   constructor() {
@@ -46,7 +38,7 @@ export interface ImportBackend {
   yearContext(year: number): Promise<YearContext>;
   /**
    * Salva in un colpo solo segno di import, persone nuove e adesioni.
-   * Lancia `AlreadyImportedError`, `NoFeeScheduleError` o `ImportContextChangedError`;
+   * Lancia `AlreadyImportedError` o `ImportContextChangedError`;
    * qualsiasi altro errore = nulla salvato.
    */
   commit(plan: ImportPlan, email: string): Promise<void>;

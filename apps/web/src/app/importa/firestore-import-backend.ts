@@ -12,7 +12,6 @@ import { documentToStored } from '../listini/schedule-mapper';
 import {
   AlreadyImportedError,
   ImportContextChangedError,
-  NoFeeScheduleError,
   type ImportBackend,
   type YearContext,
 } from './import-backend';
@@ -109,17 +108,16 @@ export class FirestoreImportBackend implements ImportBackend {
   }
 
   /**
-   * Una sola transazione: rilegge segno dell'elenco, listino e adesioni dell'anno delle persone riusate,
+   * Una sola transazione: rilegge segno dell'elenco e adesioni dell'anno delle persone riusate (il listino non serve
+   * più, specifica 008),
    * poi crea segno, persone nuove e adesioni. O tutto o niente; senza connessione fallisce invece di
    * restare in coda.
    */
   async commit(plan: ImportPlan, email: string): Promise<void> {
     const batchRef = doc(db, 'importBatches', plan.importId);
-    const scheduleRef = doc(db, 'feeSchedules', String(plan.associationYear));
     const adhesionRef = (personId: string) => doc(db, 'adhesions', `${plan.associationYear}_${personId}`);
     await runTransaction(db, async (tx) => {
       if ((await tx.get(batchRef)).exists()) throw new AlreadyImportedError(plan.list);
-      if (!(await tx.get(scheduleRef)).exists()) throw new NoFeeScheduleError();
       for (const { personId } of plan.reusedPersons) {
         if ((await tx.get(adhesionRef(personId))).exists()) throw new ImportContextChangedError();
       }

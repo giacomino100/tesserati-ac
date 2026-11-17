@@ -16,7 +16,7 @@ export type RowValues = Partial<Record<Header, unknown>>;
 export function acrRow(over: RowValues = {}): RowValues {
   return {
     Associazione: 'S. GIOACCHINO - 440 ',
-    'Anno Associativo': 'Anno 2026',
+    'Anno Associativo': 'Anno 2027',
     Cognome: 'PROVA',
     Nome: 'ALFA',
     Sesso: 'F',

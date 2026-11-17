@@ -20,9 +20,10 @@ describe('cleanText', () => {
 });
 
 describe('parseAssociationYear', () => {
-  it('legge "Anno 2026"', () => {
-    expect(parseAssociationYear('Anno 2026')).toBe(2026);
-    expect(parseAssociationYear(' Anno  2026 ')).toBe(2026);
+  it('"Anno N" dell\'export = anno associativo (N−1)/N: "Anno 2026" → 2025 (glossario, corretto il 2026-11-17)', () => {
+    expect(parseAssociationYear('Anno 2026')).toBe(2025);
+    expect(parseAssociationYear(' Anno  2026 ')).toBe(2025);
+    expect(parseAssociationYear('Anno 2027')).toBe(2026);
   });
 
   it.each(['2026', 'Anno', '', null, 'Anno 26', 'Anno 2026/27', 2026])('rifiuta %j', (value) => {

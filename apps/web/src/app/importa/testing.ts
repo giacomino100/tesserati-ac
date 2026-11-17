@@ -12,7 +12,6 @@ import {
 import {
   AlreadyImportedError,
   ImportContextChangedError,
-  NoFeeScheduleError,
   type ImportBackend,
   type YearContext,
 } from './import-backend';
@@ -25,7 +24,7 @@ export type FakeRow = Partial<Record<(typeof REQUIRED_COLUMNS)[number], unknown>
 /** Riga ACR inventata; `over` sostituisce singole colonne. */
 export function fakeRow(n: number, over: FakeRow = {}): FakeRow {
   return {
-    'Anno Associativo': 'Anno 2026',
+    'Anno Associativo': 'Anno 2027',
     Cognome: `PROVA${String(n).padStart(2, '0')}`,
     Nome: 'ALFA',
     Sesso: 'F',
@@ -160,7 +159,6 @@ export class FakeImportBackend implements ImportBackend {
     if (this.gate) await this.gate.promise;
     if (this.failCommitWith) throw this.failCommitWith;
     if (this.importedLists.has(plan.importId)) throw new AlreadyImportedError(plan.list);
-    if (!this.feeScheduleYears.has(plan.associationYear)) throw new NoFeeScheduleError();
     const year = this.yearAdhesions(plan.associationYear);
     if (plan.reusedPersons.some(({ personId }) => year.has(personId))) throw new ImportContextChangedError();
     for (const row of plan.newPersons) {

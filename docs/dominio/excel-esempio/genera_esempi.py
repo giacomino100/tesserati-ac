@@ -3,7 +3,7 @@
 import sys, datetime as dt, openpyxl
 out = sys.argv[1]
 HDR = ['Associazione','Anno Associativo','Cognome','Nome','Sesso','Data Nascita','Città Nascita','Cod. Fiscale','Telefono','Cellulare','Indirizzo','CAP','Città','Prov.','Frazione','Settore',"Fasce d'età",'Legame','N. Legame','Ruolo','SR','LM','Pagato','A','B','C','D','E','Incarico','Professione','Stato Civile','MLAC','MSAC']
-ANNO = 2026
+ANNO = 2026   # anno associativo 2026/27; nell'export compare come "Anno 2027" (Anno N = (N-1)/N)
 def fascia(settore, y):
     age = ANNO - y
     if settore == 'ADULTI': return 'AD'
@@ -83,7 +83,7 @@ for fname, sett in files.items():
         if s != sett: continue
         adult = s == 'ADULTI'
         ws.append([
-            'S. GIOACCHINO - 440 ', f'Anno {ANNO}', p['cog'], p['nom'], p['s'], p['d'],
+            'S. GIOACCHINO - 440 ', f'Anno {ANNO + 1}', p['cog'], p['nom'], p['s'], p['d'],
             p.get('nascita', 'PALERMO' if y % 2 else 'PARTINICO'),
             cf(p['cog'], p['nom'], p['s'], p['d']) if p.get('cfok') else None,
             p.get('tel', '' if adult else None), p.get('cell'),

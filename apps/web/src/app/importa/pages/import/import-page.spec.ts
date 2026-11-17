@@ -158,13 +158,13 @@ describe('ImportPage – rifiuti (US3)', () => {
     expect(el.querySelector('input[type="file"]')).not.toBeNull();
   });
 
-  it('anno senza listino: collegamento ai Listini', async () => {
+  it('anno senza listino: anteprima con l\'avviso (008)', async () => {
     const backend = new FakeImportBackend();
     backend.feeScheduleYears.clear();
     const { fixture, el } = await renderImport(new FakeReader(), backend);
     await chooseFile(fixture);
-    expect(el.textContent).toContain('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
-    expect(el.querySelector('a[href="/listini"]')?.textContent).toContain('Listini');
+    expect(el.textContent).toContain('Nessun listino 2026/27: niente controlli su età e settore.');
+    expect(el.querySelector('table')).not.toBeNull();
   });
 });
 

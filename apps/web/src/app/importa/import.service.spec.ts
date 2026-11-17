@@ -172,7 +172,7 @@ describe('ImportService – rifiuti (US3)', () => {
     expect((await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { 'Anno Associativo': '2026' })])))).message).toBe(expected);
     TestBed.resetTestingModule();
     expect(
-      (await rejectedWith(new FakeReader(sheetInput([fakeRow(1), fakeRow(2, { 'Anno Associativo': 'Anno 2027' })])))).message,
+      (await rejectedWith(new FakeReader(sheetInput([fakeRow(1), fakeRow(2, { 'Anno Associativo': 'Anno 2028' })])))).message,
     ).toBe(expected);
   });
 
@@ -189,12 +189,16 @@ describe('ImportService – rifiuti (US3)', () => {
     expect(service.skippedMessages()).toEqual(['Riga 2 (PROVA01): manca il nome']);
   });
 
-  it('anno senza listino: messaggio con il collegamento ai Listini', async () => {
+  it('anno senza listino: si importa, con l\'avviso che mancano i controlli su età e settore (008)', async () => {
     const backend = new FakeImportBackend();
     backend.feeScheduleYears.clear();
-    const { service, message } = await rejectedWith(new FakeReader(), backend);
-    expect(message).toBe('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
-    expect(service.showListiniLink()).toBe(true);
+    const { service } = setupImport(new FakeReader(), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.state().kind).toBe('preview');
+    expect(service.warningMessages()).toEqual(['Nessun listino 2026/27: niente controlli su età e settore.']);
+    await service.confirm();
+    expect(service.state().kind).toBe('done');
+    expect(backend.commits).toHaveLength(1);
   });
 
   it('anno già importato', async () => {
@@ -216,14 +220,13 @@ describe('ImportService – rifiuti (US3)', () => {
     expect(backend.commits).toEqual([]);
   });
 
-  it('listino cancellato tra anteprima e conferma: rifiutato al salvataggio', async () => {
+  it('listino cancellato tra anteprima e conferma: l\'import riesce comunque (008)', async () => {
     const backend = new FakeImportBackend();
     const { service } = setupImport(new FakeReader(), backend);
     await service.chooseFile(fakeFile());
     backend.feeScheduleYears.clear();
     await service.confirm();
-    const state = service.state();
-    expect(state.kind === 'rejected' && state.message).toBe('Manca il listino 2026/27. Crealo prima nella sezione Listini.');
+    expect(service.state().kind).toBe('done');
   });
 });
 

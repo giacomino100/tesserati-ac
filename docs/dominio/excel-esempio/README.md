@@ -4,6 +4,10 @@ I file `ElencoAdesioni_ACR.xlsx`, `ElencoAdesioni_Giovani.xlsx`, `ElencoAdesioni
 contengono **dati finti** generati da `genera_esempi.py`, con la **stessa struttura e gli stessi difetti**
 dell'export reale (analizzato il 16/11/2026: 89 righe ACR, 15 Giovani, 60 Adulti, "Anno 2026").
 
+> **Anno**: nell'export `Anno N` = anno associativo (N−1)/N (glossario, corretto il 2026-11-17): l'export reale
+> "Anno 2026" è il **2025/26**. I file finti riportano "Anno 2027" e sono quindi tesserati del **2026/27** (età e
+> fasce calcolate con 2026 − anno di nascita), così le prove su quote e famiglie usano il listino 2026/27 del PDF.
+
 > I file reali contengono dati personali, anche di minori: non vanno mai nel repository
 > (`.gitignore` esclude la cartella `dati-reali/`).
 
@@ -18,7 +22,7 @@ dell'export reale (analizzato il 16/11/2026: 89 righe ACR, 15 Giovani, 60 Adulti
 | # | Colonna | Esempio | Compilata nel reale | Uso per l'app | Note |
 |---|---|---|---|---|---|
 | 1 | Associazione | `S. GIOACCHINO - 440 ` | 100% | controllo | sempre con **spazio finale** |
-| 2 | Anno Associativo | `Anno 2026` | 100% | **anno** | testo, non numero → estrarre l'anno |
+| 2 | Anno Associativo | `Anno 2026` | 100% | **anno** | testo, non numero → `Anno N` = anno associativo (N−1)/N |
 | 3 | Cognome | `ROSSI` | 100% | **identità** | maiuscolo; a volte spazi in più |
 | 4 | Nome | `MARIO` | 100% | **identità** | maiuscolo; a volte spazi in più |
 | 5 | Sesso | `M` / `F` | 100% | anagrafica | |

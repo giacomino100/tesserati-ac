@@ -820,12 +820,12 @@ describe('I5 – riimporto dello stesso anno', () => {
   });
 });
 
-describe('I6 – anno senza listino', () => {
+describe('I6 – anno senza listino (cambiato nella 008: un anno passato si importa senza listino)', () => {
   beforeEach(() => seedSchedules(2026));
 
-  it('import del 2030 senza feeSchedules/2030: negato', async () => {
-    await assertFails(commitAll(user(LISTED), fullImport(2030, 1)));
-    expect(await countImportDocs()).toEqual({ importBatches: 0, persons: 0, adhesions: 0 });
+  it('import del 2025 senza feeSchedules/2025: consentito', async () => {
+    await assertSucceeds(commitAll(user(LISTED), fullImport(2025, 1)));
+    expect(await countImportDocs()).toEqual({ importBatches: 1, persons: 1, adhesions: 1 });
   });
 });
 

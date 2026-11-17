@@ -33,8 +33,9 @@ export function missingColumnsMessage(columns: readonly string[]): string {
   return `Nel file mancano le colonne: ${columns.join(', ')}.`;
 }
 
-export function noFeeScheduleMessage(year: number): string {
-  return `Manca il listino ${labelFor(year)}. Crealo prima nella sezione Listini.`;
+/** Un anno senza listino si importa senza avvisi su età e settore (specifica 008). */
+export function noFeeScheduleNotice(year: number): string {
+  return `Nessun listino ${labelFor(year)}: niente controlli su età e settore.`;
 }
 
 export function alreadyImportedMessage(year: number, list: AdhesionList): string {
