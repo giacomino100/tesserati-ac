@@ -87,7 +87,7 @@ comunque con i dati dell'export.
 2. **Given** il file ACR finto, **When** si apre l'anteprima, **Then** compare 1 avviso per GATTI MIA (4 anni,
    sotto l'età minima di 6) e 15 righe sono da importare.
 3. **Given** una riga del 2026 nata nel 1996 con settore `GIOVANI`, **When** si apre l'anteprima, **Then** compare
-   l'avviso "30 anni: per il listino è un Adulto, nell'export è GIOVANI" e la riga è importata come `GIOVANI`.
+   l'avviso "30 anni: per il listino è Adulti, nell'export è GIOVANI" e la riga è importata come `GIOVANI`.
 
 ---
 
