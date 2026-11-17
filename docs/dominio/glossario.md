@@ -8,7 +8,7 @@ Completare le parti con **TODO**.
 | Tesserato | Persona iscritta all'Azione Cattolica in almeno un anno associativo. |
 | Anno associativo | Periodo di validità di un'adesione, indicato con l'anno di inizio (2025 = 2025/26). ✅ Nell'export `Anno N` = anno associativo **(N−1)/N**: l'export reale con `Anno 2026` contiene i tesserati del **2025/26** (corretto il 2026-11-17; prima era scritto 2026/27). **TODO**: da quale data a quale data vale? |
 | Adesione | Iscrizione di un tesserato per uno specifico anno associativo, con categoria e quota. |
-| Riconferma | Adesione di un tesserato che aveva un'adesione nell'anno associativo **immediatamente** precedente, creata nell'app spuntando chi rinnova (specifica 008). ✅ |
+| Riconferma | Adesione di un tesserato che aveva un'adesione nell'anno associativo **immediatamente** precedente. ✅ Si fa in Tesserati con "Conferma" quando la persona **paga**: conferma = pagato, con la data del pagamento (specifica 013, che sostituisce la pagina Riconferme della 008). |
 | Nuova adesione | Adesione di una persona senza adesione nell'anno precedente. ✅ Chi torna dopo 2+ anni conta come **nuova adesione** (confermato il 2026-11-17, specifica 008). |
 | Settore (categoria) | Nell'export: `RAGAZZI` (= ACR), `GIOVANI`, `ADULTI`. Determinato dall'età: ≤14 ACR, 15–30 Giovani, ≥31 Adulti. |
 | Fascia (per le quote) | Secondo il PDF: ACR 6–14, Giovanissimi 15–18, Giovani 19–29, Adulti 30+. Età = anno associativo − anno di nascita. |

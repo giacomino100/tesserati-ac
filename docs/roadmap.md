@@ -15,6 +15,7 @@ Stati: ⬜ da fare · 📝 brief pronto · 🔍 spec in revisione · 🚧 in svi
 | 008 | Riconferma adesione | Vedo i tesserati dell'anno scorso e spunto chi rinnova | ✅ |
 | 009 | Nuovo tesserato | Aggiungo chi non c'era l'anno scorso | ✅ |
 | 011 | Cambio categoria per età | Chi passa di fascia viene spostato e la quota ricalcolata | ✅ |
+| 013 | Tesserati semplificati | Apro i tesserati dell'anno, confermo chi paga e sistemo la sua famiglia | 🔍 |
 | 012 | Riepilogo ed export | Totali per categoria e incassi, export Excel | ⬜ |
 
 La lista è viva: va rivista dopo ogni 3–4 specifiche completate.
@@ -24,3 +25,5 @@ La lista è viva: va rivista dopo ogni 3–4 specifiche completate.
 - Revisione del 2026-11-17 (dopo 010, 008, 009 e la correzione dell'anno dell'export): ordine confermato 011 → 012. La
   011 si riduce: il ricalcolo dall'età alla riconferma e all'iscrizione è già fatto (008, 009) e le quote dipendono
   solo dall'età (010); restano elenchi non allineati all'età e le eccezioni decise a mano.
+- Revisione del 2026-11-17 (richiesta dell'utente): la **013** corregge 008, 009 e 011 (una sola pagina Tesserati,
+  conferma = pagato, famiglia nel pannello della persona, import solo per l'amministratore) e passa prima della 012.

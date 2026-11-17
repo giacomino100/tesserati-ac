@@ -4,9 +4,10 @@
 |---|---|---|---|
 | Utente autorizzato | Le persone della parrocchia che gestiscono il tesseramento (segreteria e referenti) | Tutto quello che l'app offre: import, riconferme, famiglie, quote, riepiloghi | Niente, finché non è in elenco |
 
-- **Un solo ruolo** nella prima versione: ogni utente autorizzato può fare tutto. Ruoli distinti
-  (amministratore, segreteria, responsabile di settore) si introdurranno con una specifica dedicata
-  se servirà.
+- **Un solo ruolo** nella prima versione: ogni utente autorizzato può fare tutto, **tranne l'import degli Excel**,
+  riservato all'**amministratore** (✅ specifica 013, 2026-11-17): un segno `admin` sulla sua email nell'elenco delle
+  email autorizzate, messo dalla console Firebase da chi mantiene il progetto. Altri ruoli (responsabile di settore)
+  si introdurranno con una specifica dedicata se servirà.
 - **Come si accede**: con un account Google. Entra solo chi ha l'indirizzo email nell'**elenco
   delle email autorizzate**; un account Google non in elenco non vede nessun dato.
 - **Chi gestisce l'elenco**: per ora la persona che mantiene il progetto, dalla console Firebase
