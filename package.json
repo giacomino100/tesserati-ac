@@ -1,10 +1,13 @@
 {
   "name": "tesseramento-ac",
   "private": true,
-  "workspaces": ["packages/*"],
-  "engines": { "node": ">=22.12" },
+  "workspaces": ["packages/*", "apps/*", "firebase"],
+  "engines": { "node": "^22.22.3 || ^24.15.0" },
   "scripts": {
     "test": "npm test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "emulators": "npm run emulators -w @tesseramento/rules",
+    "test:rules": "npm run test:rules -w @tesseramento/rules",
+    "start": "npm start -w web"
   }
 }
