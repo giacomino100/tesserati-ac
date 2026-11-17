@@ -1,5 +1,5 @@
 /** Testo per il confronto: maiuscolo, senza accenti, spazi singoli (regole-famiglia.md §2). */
-function normalize(text: string): string {
+export function normalize(text: string): string {
   return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

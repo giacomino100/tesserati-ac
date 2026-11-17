@@ -1,5 +1,17 @@
 import { labelFor } from '@tesseramento/fees';
-import { listLabel, type AdhesionList, type ImportError, type SkippedRow } from '@tesseramento/import';
+import {
+  ADHESION_LISTS,
+  listLabel,
+  sectorOf,
+  type AdhesionList,
+  type AgeWarning,
+  type ArchivedPerson,
+  type ImportError,
+  type ImportRow,
+  type SkippedRow,
+  type TaxCodeMatch,
+} from '@tesseramento/import';
+import { italianDate } from './format';
 
 /** Testi della schermata di import (contratti delle specifiche 004 e 005). Nessun dato personale. */
 export const IMPORT_MESSAGES = {
@@ -14,6 +26,7 @@ export const IMPORT_MESSAGES = {
   saveFailed: 'Impossibile salvare. Controlla la connessione e riprova. Non è stato salvato nulla.',
   yearCheckFailed: "Impossibile verificare l'anno associativo. Controlla la connessione e riprova.",
   contextChanged: 'Nel frattempo sono stati importati altri tesserati di questo anno. Ricarica il file e riprova.',
+  decideDuplicates: 'Decidi i possibili doppioni prima di importare.',
 } as const;
 
 export function missingColumnsMessage(columns: readonly string[]): string {
@@ -59,5 +72,41 @@ export function skippedMessage(row: SkippedRow, year?: number): string {
       year === undefined ? '' : ` del ${labelFor(year)}`
     }`,
   }[row.reason];
-  return `Riga ${row.rowNumber}: ${reason}`;
+  const name = [row.lastName, row.firstName].filter(Boolean).join(' ');
+  return name ? `Riga ${row.rowNumber} (${name}): ${reason}` : `Riga ${row.rowNumber}: ${reason}`;
+}
+
+/* ---- Specifica 006: doppioni, codice fiscale, avvisi (solo a schermo, mai nei log) ---- */
+
+/** "Riga 7: ROSSI MARIA GRAZIA, 12/03/1965". */
+export function duplicateRowLabel(row: ImportRow): string {
+  return `Riga ${row.rowNumber}: ${row.lastName} ${row.firstName}, ${italianDate(row.birthDate)}`;
+}
+
+/** "ROSSI MARIA, 12/03/1965 · ACR 2025/26", con "(già importata quest'anno)" se l'adesione è dell'anno in import. */
+export function candidateLabel(person: ArchivedPerson, year: number): string {
+  const base = `${person.lastName} ${person.firstName}, ${italianDate(person.birthDate)}`;
+  const last = person.lastAdhesion;
+  if (!last) return base;
+  const already = last.year === year ? " (già importata quest'anno)" : '';
+  return `${base} · ${listLabel(last.list)} ${labelFor(last.year)}${already}`;
+}
+
+/** "Riga 9: NERI ANA → NERI ANNA, 05/11/1982 (stesso codice fiscale)". */
+export function taxCodeNote(match: TaxCodeMatch): string {
+  const { row, person } = match;
+  return `Riga ${row.rowNumber}: ${row.lastName} ${row.firstName} → ${person.lastName} ${person.firstName}, ${italianDate(person.birthDate)} (stesso codice fiscale)`;
+}
+
+function groupLabel(sector: string): string {
+  const list = ADHESION_LISTS.find((l) => sectorOf(l) === sector);
+  return list ? listLabel(list) : sector;
+}
+
+/** Avviso su età e settore (FR-008). */
+export function warningMessage(warning: AgeWarning, minAge: number): string {
+  const { row, age } = warning;
+  const prefix = `Riga ${row.rowNumber} (${row.lastName} ${row.firstName})`;
+  if (warning.kind === 'belowMinimumAge') return `${prefix}: ${age} anni, sotto l'età minima di ${minAge} anni del listino`;
+  return `${prefix}: ${age} anni: per il listino è ${groupLabel(warning.expectedSector ?? '')}, nell'export è ${row.sector}`;
 }

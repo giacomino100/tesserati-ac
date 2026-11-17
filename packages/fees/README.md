@@ -9,7 +9,7 @@ Logica pura in TypeScript: nessuna dipendenza, nessun accesso a rete, archivi o 
 
 ## Funzioni
 
-- Calcolo: `calculateHouseholdFee`, `bandFor`, listino `SCHEDULE_2026_27`.
+- Calcolo: `calculateHouseholdFee`, `bandFor`, `ageFor`, `bandForAge` (esportate dalla 006 per gli avvisi dell'import), listino `SCHEDULE_2026_27`.
 - Importi (spec. 003): `parseEuros` (virgola o punto, al massimo due decimali, mai arrotondati) e `formatEuros` (2600 → "26,00").
 - Bozza del listino (spec. 003): `scheduleToDraft` / `draftToSchedule` (tutti gli errori di campo insieme, solo le quote cambiano), `validateFeeSchedule`.
 - Anni (spec. 003): `labelFor` (2027 → "2027/28"), `nextAssociationYear`, `copyForNextYear`.

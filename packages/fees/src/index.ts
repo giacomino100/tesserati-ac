@@ -14,7 +14,7 @@ export type {
   NotCoveredReason,
 } from './types';
 export { SCHEDULE_2026_27 } from './schedules/2026-27';
-export { bandFor } from './age-band';
+export { ageFor, bandFor, bandForAge } from './age-band';
 export { calculateHouseholdFee } from './household-fee';
 export { formatEuros, parseEuros } from './money';
 export type { MoneyErrorCode, ParseEurosResult } from './money';

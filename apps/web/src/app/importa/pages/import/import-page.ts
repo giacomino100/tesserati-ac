@@ -3,10 +3,17 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink } from '@angular/router';
-import { listLabel, type AdhesionList, type ImportRow } from '@tesseramento/import';
+import {
+  listLabel,
+  type AdhesionList,
+  type ArchivedPerson,
+  type ImportRow,
+  type PossibleDuplicate,
+} from '@tesseramento/import';
 import type { HasUnsavedChanges } from '../../../listini/unsaved-changes.guard';
 import { bondLabel, italianDate } from '../../format';
 import { ImportService } from '../../import.service';
+import { candidateLabel, duplicateRowLabel, IMPORT_MESSAGES } from '../../messages';
 
 @Component({
   selector: 'app-import-page',
@@ -44,6 +51,9 @@ import { ImportService } from '../../import.service';
               Import completato: elenco {{ s.listLabel }}, {{ s.adhesions }} adesioni {{ s.yearLabel }},
               {{ s.newPersons }} persone nuove, {{ s.reusedPersons }} già presenti.
             </p>
+            @if (extras(); as extra) {
+              <p>{{ extra }}</p>
+            }
           }
           <ng-container [ngTemplateOutlet]="skippedList" />
           <div class="actions">
@@ -101,7 +111,59 @@ import { ImportService } from '../../import.service';
               </tbody>
             </table>
           </div>
+          @if (service.duplicates().length > 0) {
+            <h3>Possibili doppioni ({{ service.pendingDuplicates() }} da decidere)</h3>
+            <ul class="duplicates">
+              @for (d of service.duplicates(); track d.row.rowNumber) {
+                <li>
+                  <p class="row-label">{{ rowLabel(d) }}</p>
+                  @for (c of d.candidates; track c.id) {
+                    <div class="candidate">
+                      <span>{{ candidate(c) }}</span>
+                      @if (d.decision === c.id) {
+                        <button mat-flat-button type="button" [disabled]="service.isSaving()" (click)="service.decide(d.row.rowNumber, c.id)">
+                          Stessa persona
+                        </button>
+                      } @else {
+                        <button mat-stroked-button type="button" [disabled]="service.isSaving()" (click)="service.decide(d.row.rowNumber, c.id)">
+                          Stessa persona
+                        </button>
+                      }
+                    </div>
+                  }
+                  @if (d.decision === 'new') {
+                    <button mat-flat-button type="button" [disabled]="service.isSaving()" (click)="service.decide(d.row.rowNumber, 'new')">
+                      Persona diversa
+                    </button>
+                  } @else {
+                    <button mat-stroked-button type="button" [disabled]="service.isSaving()" (click)="service.decide(d.row.rowNumber, 'new')">
+                      Persona diversa
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          }
+          @if (service.taxCodeNotes().length > 0) {
+            <h3>Riconosciute dal codice fiscale</h3>
+            <ul class="notes">
+              @for (note of service.taxCodeNotes(); track note) {
+                <li>{{ note }}</li>
+              }
+            </ul>
+          }
+          @if (service.warningMessages().length > 0) {
+            <h3>Avvisi</h3>
+            <ul class="notes">
+              @for (warning of service.warningMessages(); track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          }
           <ng-container [ngTemplateOutlet]="skippedList" />
+          @if (service.pendingDuplicates() > 0) {
+            <p role="status">{{ decideMessage }}</p>
+          }
           @if (service.state().kind === 'saving') {
             <p role="status">Salvataggio in corso…</p>
           }
@@ -180,9 +242,35 @@ import { ImportService } from '../../import.service';
       margin: 0;
       flex-basis: 100%;
     }
-    .skipped {
+    .skipped,
+    .notes {
       margin: 0;
       padding-left: 20px;
+    }
+    .duplicates {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .duplicates > li {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+    }
+    .row-label {
+      margin: 0;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+    .candidate {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      overflow-wrap: anywhere;
     }
     .actions {
       display: flex;
@@ -197,6 +285,29 @@ export class ImportPage implements HasUnsavedChanges {
   protected readonly date = italianDate;
   protected readonly bond = bondLabel;
   protected readonly label = (list: AdhesionList): string => listLabel(list);
+  protected readonly decideMessage = IMPORT_MESSAGES.decideDuplicates;
+
+  protected rowLabel(duplicate: PossibleDuplicate): string {
+    return duplicateRowLabel(duplicate.row);
+  }
+
+  protected candidate(person: ArchivedPerson): string {
+    const state = this.service.state();
+    return candidateLabel(person, 'parsed' in state ? state.parsed.associationYear : 0);
+  }
+
+  /** "1 riconosciute dal codice fiscale · 1 doppioni confermati · 1 avvisi" (solo i conteggi non nulli). */
+  protected extras(): string {
+    const s = this.service.summary();
+    if (!s) return '';
+    return [
+      s.byTaxCode ? `${s.byTaxCode} riconosciute dal codice fiscale` : '',
+      s.confirmedSame ? `${s.confirmedSame} doppioni confermati` : '',
+      s.warnings ? `${s.warnings} avvisi` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
 
   constructor() {
     // Il servizio vive per tutta la sessione: entrando nella pagina si riparte dalla scelta del file,

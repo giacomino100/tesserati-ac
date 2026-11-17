@@ -1,7 +1,7 @@
 # @tesseramento/import
 
 Trasformazione **pura** delle righe dell'elenco adesioni esportato dal sistema nazionale (specifica 004).
-Nessuna dipendenza di runtime, nessun accesso a rete, browser, data corrente o log: riceve le righe del foglio
+Unica dipendenza `@tesseramento/fees` (pura, dalla 006); nessun accesso a rete, browser, data corrente o log: riceve le righe del foglio
 già estratte (l'app le legge con SheetJS) e restituisce righe pulite, righe saltate o un errore di file.
 
 ## API
@@ -34,6 +34,13 @@ Tipi e campi: `specs/004-import-excel-acr/data-model.md`; contratto e casi di pr
   elenchi noti l'utente sceglie; le righe di altri settori si importano con il loro settore.
 - **Già nell'anno** (specifica 005): una persona che ha già un'adesione nello stesso anno da un altro elenco è
   saltata (`alreadyInYear`, con l'elenco di provenienza): una sola adesione per persona per anno.
+- **Identità e doppioni** (specifica 006, `regole-famiglia.md` §2): per ogni riga, nell'ordine, codice fiscale in
+  archivio (prevale) → chiave cognome + nome + data → **possibile doppione** (`findCandidates`: stessa data e cognome
+  con nome entro 2 lettere o contenuto come parola intera; oppure stesso cognome e nome con data entro una cifra o
+  giorno/mese scambiati) da decidere con `decisions` ("Stessa persona" = ID, "Persona diversa" = `'new'`) → persona
+  nuova. Finché `pendingDuplicates > 0` non si importa. Le righe saltate portano cognome e nome solo in memoria.
+- **Avvisi** (`ageWarnings`, specifica 006): età sotto il minimo del listino o settore dell'export diverso dalla
+  fascia del listino; non bloccano. Età e fasce vengono da `@tesseramento/fees` (unica dipendenza, anch'essa pura).
 - **File rifiutato**: foglio mancante, colonne mancanti, nessuna riga, anno mancante o diverso tra le righe,
   elenco non riconoscibile (settore sconosciuto tra i più frequenti), tutte le righe saltate.
 

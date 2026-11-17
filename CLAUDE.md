@@ -29,7 +29,11 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
   Stessa schermata `/importa` per i tre elenchi (riconosciuti dal settore più frequente; in parità sceglie
   l'utente); segno di import `{anno}-{ACR|GIOVANI|ADULTI}`; una sola adesione per persona per anno (righe già
   importate da un altro elenco saltate). File finti: ACR 15, Giovani 8, Adulti 14 → 37 tesserati nel 2026.
-- Poi: **006 – Errori e duplicati nell'import** (roadmap in `docs/roadmap.md`).
+- **006 – Errori e duplicati nell'import**: implementata sul branch `006-errori-duplicati-import`, non ancora
+  rilasciata (solo hosting: regole invariate). Anteprima con possibili doppioni da decidere ("Stessa persona" /
+  "Persona diversa", regole in `regole-famiglia.md` §2), persone riconosciute dal codice fiscale, righe saltate con
+  nome (solo a schermo), avvisi età/settore dal listino. `@tesseramento/import` ora dipende da `@tesseramento/fees`.
+- Poi: **007 – Famiglie** (roadmap in `docs/roadmap.md`).
 
 ## Comandi
 

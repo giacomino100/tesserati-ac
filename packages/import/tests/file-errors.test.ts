@@ -99,8 +99,8 @@ describe('errori di file (P2, P4–P7, P10)', () => {
       error: {
         kind: 'allRowsSkipped',
         skipped: [
-          { rowNumber: 2, reason: 'missingFirstName' },
-          { rowNumber: 3, reason: 'invalidBirthDate' },
+          { rowNumber: 2, reason: 'missingFirstName', lastName: 'PROVA' },
+          { rowNumber: 3, reason: 'invalidBirthDate', lastName: 'PROVA', firstName: 'ALFA' },
         ],
       },
     });

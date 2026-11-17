@@ -38,6 +38,9 @@ export interface SkippedRow {
   readonly duplicateOf?: number;
   /** Per `alreadyInYear`: l'elenco dell'adesione già presente. */
   readonly fromList?: AdhesionList;
+  /** Cognome e nome puliti, se presenti nella riga: solo per mostrarli a schermo, mai salvati (006). */
+  readonly lastName?: string;
+  readonly firstName?: string;
 }
 
 export type ImportError =
@@ -67,6 +70,46 @@ export interface ParsedImportError {
 
 export type ParsedImport = ParsedImportOk | ParsedImportError;
 
+/** Persona già in archivio, come serve all'anteprima (specifica 006). */
+export interface ArchivedPerson {
+  readonly id: string;
+  readonly lastName: string;
+  readonly firstName: string;
+  /** "AAAA-MM-GG". */
+  readonly birthDate: string;
+  readonly identityKey: string;
+  readonly taxCode?: string;
+  /** Ultima adesione (anno più recente) e il suo elenco. */
+  readonly lastAdhesion?: { readonly year: number; readonly list: AdhesionList };
+}
+
+/** Scelta dell'utente su un possibile doppione: ID della persona (stessa persona) o persona nuova. */
+export type DuplicateDecision = string | 'new';
+
+/** Riga simile a una o più persone in archivio, da decidere a mano (regole-famiglia.md §2). */
+export interface PossibleDuplicate {
+  readonly row: ImportRow;
+  readonly candidates: readonly ArchivedPerson[];
+  readonly decision?: DuplicateDecision;
+}
+
+/** Riga attribuita a una persona in archivio dal codice fiscale. */
+export interface TaxCodeMatch {
+  readonly row: ImportRow;
+  readonly person: ArchivedPerson;
+  /** Vero se anche cognome, nome e data corrispondono: falso = da segnalare. */
+  readonly sameKey: boolean;
+}
+
+/** Avviso non bloccante su età e settore (specifica 006, FR-008). */
+export interface AgeWarning {
+  readonly row: ImportRow;
+  readonly age: number;
+  readonly kind: 'belowMinimumAge' | 'sectorMismatch';
+  /** Per `sectorMismatch`: il settore dell'export atteso secondo il listino. */
+  readonly expectedSector?: string;
+}
+
 export interface ImportPlan {
   readonly associationYear: number;
   readonly list: AdhesionList;
@@ -76,6 +119,13 @@ export interface ImportPlan {
   readonly reusedPersons: readonly { readonly row: ImportRow; readonly personId: string }[];
   readonly adhesions: number;
   readonly skipped: readonly SkippedRow[];
+  /** Possibili doppioni, con la scelta se c'è. */
+  readonly duplicates: readonly PossibleDuplicate[];
+  /** Doppioni ancora senza scelta: finché sono più di 0 non si importa. */
+  readonly pendingDuplicates: number;
+  readonly taxCodeMatches: readonly TaxCodeMatch[];
+  /** Doppioni decisi "Stessa persona". */
+  readonly confirmedSame: number;
 }
 
 /** Contenuto di un foglio Excel già estratto (prima riga = intestazioni). */

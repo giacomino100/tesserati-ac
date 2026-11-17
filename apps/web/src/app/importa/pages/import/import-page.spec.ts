@@ -77,7 +77,7 @@ describe('ImportPage – scelta e anteprima (US1)', () => {
     const { fixture, el } = await renderImport(reader);
     await chooseFile(fixture);
     expect(el.textContent).toContain('2 righe nel file, 1 da importare');
-    expect(el.textContent).toContain('Riga 3: manca la data di nascita');
+    expect(el.textContent).toContain('Riga 3 (PROVA02 ALFA): manca la data di nascita');
   });
 
   it('"Annulla" torna alla scelta del file', async () => {
@@ -202,7 +202,52 @@ describe('ImportPage – elenchi (005)', () => {
     const { fixture, el } = await renderImport(new FakeReader(sheetInput([adulti(1), adulti(2)])), backend);
     await chooseFile(fixture);
     expect(el.textContent).toContain('2 righe nel file, 1 da importare');
-    expect(el.textContent).toContain("Riga 3: già importata nell'elenco ACR del 2026/27");
+    expect(el.textContent).toContain("Riga 3 (PROVA02 ALFA): già importata nell'elenco ACR del 2026/27");
     expect(el.querySelectorAll('tbody tr')).toHaveLength(1);
+  });
+});
+
+describe('ImportPage – revisione dell’import (006)', () => {
+  it('possibili doppioni: sezione, candidato, Importa bloccato, scelta evidenziata', async () => {
+    const backend = new FakeImportBackend();
+    backend.addPerson('ROSSI', 'MARIA', '1965-03-12', { adhesion: { year: 2025, list: 'ACR' } });
+    const reader = new FakeReader(
+      sheetInput([fakeRow(1, { Cognome: 'ROSSI', Nome: 'MARIA GRAZIA', 'Data Nascita': '12/03/1965', Settore: 'ADULTI' })]),
+    );
+    const { fixture, el } = await renderImport(reader, backend);
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('Possibili doppioni (1 da decidere)');
+    expect(el.textContent).toContain('Riga 2: ROSSI MARIA GRAZIA, 12/03/1965');
+    expect(el.textContent).toContain('ROSSI MARIA, 12/03/1965 · ACR 2025/26');
+    expect(el.textContent).toContain('Decidi i possibili doppioni prima di importare.');
+    expect(button(el, 'Importa')!.disabled).toBe(true);
+    button(el, 'Stessa persona')!.click();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Possibili doppioni (0 da decidere)');
+    expect(button(el, 'Importa')!.disabled).toBe(false);
+    button(el, 'Importa')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('1 doppioni confermati');
+  });
+
+  it('codice fiscale, avvisi e righe saltate con nome', async () => {
+    const backend = new FakeImportBackend();
+    backend.addPerson('NERI', 'ANNA', '1982-11-05', { taxCode: 'NRENNA82S45G348X' });
+    const reader = new FakeReader(
+      sheetInput([
+        fakeRow(1, { Cognome: 'NERI', Nome: 'ANA', 'Data Nascita': '05/11/1982', 'Cod. Fiscale': 'NRENNA82S45G348X', Settore: 'ADULTI' }),
+        fakeRow(2, { Cognome: 'GATTI', Nome: 'MIA', 'Data Nascita': '09/09/2022' }),
+        fakeRow(3, { 'Data Nascita': null }),
+      ]),
+    );
+    const { fixture, el } = await renderImport(reader, backend);
+    await chooseFile(fixture);
+    expect(el.textContent).toContain('Riconosciute dal codice fiscale');
+    expect(el.textContent).toContain('Riga 2: NERI ANA → NERI ANNA, 05/11/1982 (stesso codice fiscale)');
+    expect(el.textContent).toContain('Avvisi');
+    expect(el.textContent).toContain("Riga 3 (GATTI MIA): 4 anni, sotto l'età minima di 6 anni del listino");
+    expect(el.textContent).toContain('Riga 4 (PROVA03 ALFA): manca la data di nascita');
+    expect(button(el, 'Importa')!.disabled).toBe(false);
   });
 });

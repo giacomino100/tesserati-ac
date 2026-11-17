@@ -9,7 +9,7 @@ Stati: ⬜ da fare · 📝 brief pronto · 🔍 spec in revisione · 🚧 in svi
 | 003 | Listino per anno | Imposto le quote ACR/Giovani/Adulti dell'anno | ✅ |
 | 004 | Import Excel ACR | Carico l'Excel ACR, vedo l'anteprima, salvo e vedo i tesserati | ✅ |
 | 005 | Import Giovani e Adulti | Come 004 per gli altri elenchi | ✅ |
-| 006 | Errori e duplicati nell'import | Righe errate e persone già presenti vengono segnalate | 📝 |
+| 006 | Errori e duplicati nell'import | Righe errate e persone già presenti vengono segnalate | 🚧 |
 | 007 | Famiglie | Raggruppo i tesserati in famiglie (suggerimento + conferma) | ⬜ |
 | 008 | Riconferma adesione | Vedo i tesserati dell'anno scorso e spunto chi rinnova | ⬜ |
 | 009 | Nuovo tesserato | Aggiungo chi non c'era l'anno scorso | ⬜ |

@@ -50,11 +50,11 @@ describe('ImportService – anteprima (US1)', () => {
     await service.chooseFile(fakeFile());
     expect(service.totals()).toEqual({ inFile: 6, toImport: 1 });
     expect(service.skippedMessages()).toEqual([
-      'Riga 3: manca la data di nascita',
-      'Riga 4: manca il nome',
-      'Riga 5: data di nascita non valida',
-      'Riga 6: stessa persona della riga 2',
-      'Riga 7: manca il cognome',
+      'Riga 3 (PROVA02 ALFA): manca la data di nascita',
+      'Riga 4 (PROVA03): manca il nome',
+      'Riga 5 (PROVA04 ALFA): data di nascita non valida',
+      'Riga 6 (PROVA01 ALFA): stessa persona della riga 2',
+      'Riga 7 (ALFA): manca il cognome',
     ]);
   });
 
@@ -84,6 +84,9 @@ describe('ImportService – salvataggio (US2)', () => {
       adhesions: 15,
       newPersons: 15,
       reusedPersons: 0,
+      byTaxCode: 0,
+      confirmedSame: 0,
+      warnings: 0,
     });
   });
 
@@ -183,7 +186,7 @@ describe('ImportService – rifiuti (US3)', () => {
   it('tutte le righe saltate: messaggio ed elenco', async () => {
     const { service, message } = await rejectedWith(new FakeReader(sheetInput([fakeRow(1, { Nome: null })])));
     expect(message).toBe('Nessuna riga valida da importare.');
-    expect(service.skippedMessages()).toEqual(['Riga 2: manca il nome']);
+    expect(service.skippedMessages()).toEqual(['Riga 2 (PROVA01): manca il nome']);
   });
 
   it('anno senza listino: messaggio con il collegamento ai Listini', async () => {
@@ -304,7 +307,7 @@ describe('ImportService – persone già nell’anno (005, US2)', () => {
     const { service } = setupImport(new FakeReader(sheetInput([adulti(1), adulti(2), adulti(3)])), backend);
     await service.chooseFile(fakeFile());
     expect(service.totals()).toEqual({ inFile: 3, toImport: 2 });
-    expect(service.skippedMessages()).toEqual(["Riga 3: già importata nell'elenco ACR del 2026/27"]);
+    expect(service.skippedMessages()).toEqual(["Riga 3 (PROVA02 ALFA): già importata nell'elenco ACR del 2026/27"]);
     expect(service.firstRows().map((r) => r.lastName)).toEqual(['PROVA01', 'PROVA03']);
     await service.confirm();
     expect(service.summary()).toMatchObject({ adhesions: 2, newPersons: 2, reusedPersons: 0 });
@@ -326,7 +329,7 @@ describe('ImportService – persone già nell’anno (005, US2)', () => {
     await service.chooseFile(fakeFile());
     const state = service.state();
     expect(state.kind === 'rejected' && state.message).toBe('Nessuna riga valida da importare.');
-    expect(service.skippedMessages()).toEqual(["Riga 2: già importata nell'elenco ACR del 2026/27"]);
+    expect(service.skippedMessages()).toEqual(["Riga 2 (PROVA01 ALFA): già importata nell'elenco ACR del 2026/27"]);
     expect(backend.commits).toEqual([]);
   });
 
@@ -342,5 +345,109 @@ describe('ImportService – persone già nell’anno (005, US2)', () => {
     expect(state.kind === 'rejected' && state.message).toBe(
       'Nel frattempo sono stati importati altri tesserati di questo anno. Ricarica il file e riprova.',
     );
+  });
+});
+
+/* ---- Specifica 006: doppioni, codice fiscale, righe saltate con nome, avvisi ---- */
+
+describe('ImportService – possibili doppioni (006, US1)', () => {
+  const rossiGrazia = (n = 1) =>
+    fakeRow(n, { Cognome: 'ROSSI', Nome: 'MARIA GRAZIA', 'Data Nascita': '12/03/1965', Settore: 'ADULTI', "Fasce d'età": 'AD' });
+
+  function withRossi() {
+    const backend = new FakeImportBackend();
+    const id = backend.addPerson('ROSSI', 'MARIA', '1965-03-12', { adhesion: { year: 2025, list: 'ADULTI' } });
+    return { backend, id };
+  }
+
+  it('mostra il doppione con il candidato e blocca "Importa" finché non si decide', async () => {
+    const { backend, id } = withRossi();
+    const { service } = setupImport(new FakeReader(sheetInput([rossiGrazia(), fakeRow(2, { Settore: 'ADULTI', 'Data Nascita': '01/01/1970' })])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.duplicates()).toHaveLength(1);
+    expect(service.duplicates()[0]?.candidates.map((c) => c.id)).toEqual([id]);
+    expect(service.pendingDuplicates()).toBe(1);
+    expect(service.canConfirm()).toBe(false);
+    expect(service.totals()).toEqual({ inFile: 2, toImport: 1 });
+  });
+
+  it('"Stessa persona": nessuna persona nuova, riepilogo con il doppione confermato', async () => {
+    const { backend, id } = withRossi();
+    const { service } = setupImport(new FakeReader(sheetInput([rossiGrazia()])), backend);
+    await service.chooseFile(fakeFile());
+    service.decide(2, id);
+    expect(service.canConfirm()).toBe(true);
+    await service.confirm();
+    expect(backend.commits[0]?.plan.reusedPersons.map((r) => r.personId)).toEqual([id]);
+    expect(backend.commits[0]?.plan.newPersons).toEqual([]);
+    expect(service.summary()).toMatchObject({ newPersons: 0, reusedPersons: 1, confirmedSame: 1 });
+  });
+
+  it('"Persona diversa": persona nuova; la scelta si può cambiare', async () => {
+    const { backend, id } = withRossi();
+    const { service } = setupImport(new FakeReader(sheetInput([rossiGrazia()])), backend);
+    await service.chooseFile(fakeFile());
+    service.decide(2, id);
+    service.decide(2, 'new');
+    expect(service.duplicates()[0]?.decision).toBe('new');
+    await service.confirm();
+    expect(service.summary()).toMatchObject({ newPersons: 1, reusedPersons: 0, confirmedSame: 0 });
+  });
+
+  it('candidato già importato quest’anno: scelto, la riga passa tra le saltate', async () => {
+    const backend = new FakeImportBackend();
+    const id = backend.addPerson('ROSSI', 'MARIA', '1965-03-12', { adhesion: { year: 2026, list: 'ACR' } });
+    backend.importedLists.add('2026-ACR');
+    const { service } = setupImport(new FakeReader(sheetInput([rossiGrazia(), fakeRow(2, { Settore: 'ADULTI', 'Data Nascita': '01/01/1970' })])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.duplicates()[0]?.candidates[0]?.lastAdhesion).toEqual({ year: 2026, list: 'ACR' });
+    service.decide(2, id);
+    expect(service.skippedMessages()).toEqual(["Riga 2 (ROSSI MARIA GRAZIA): già importata nell'elenco ACR del 2026/27"]);
+    expect(service.canConfirm()).toBe(true);
+  });
+});
+
+describe('ImportService – codice fiscale (006, US2)', () => {
+  it('attribuita alla persona del codice fiscale e contata nel riepilogo', async () => {
+    const backend = new FakeImportBackend();
+    const id = backend.addPerson('NERI', 'ANNA', '1982-11-05', { taxCode: 'NRENNA82S45G348X' });
+    const row = fakeRow(1, { Cognome: 'NERI', Nome: 'ANA', 'Data Nascita': '05/11/1982', 'Cod. Fiscale': 'NRENNA82S45G348X', Settore: 'ADULTI' });
+    const { service } = setupImport(new FakeReader(sheetInput([row])), backend);
+    await service.chooseFile(fakeFile());
+    expect(service.duplicates()).toEqual([]);
+    expect(service.taxCodeNotes()).toEqual(['Riga 2: NERI ANA → NERI ANNA, 05/11/1982 (stesso codice fiscale)']);
+    await service.confirm();
+    expect(backend.commits[0]?.plan.reusedPersons.map((r) => r.personId)).toEqual([id]);
+    expect(service.summary()).toMatchObject({ byTaxCode: 1 });
+  });
+});
+
+describe('ImportService – righe saltate con nome e avvisi (006, US3)', () => {
+  it('righe saltate con cognome e nome, senza nome se mancano entrambi', async () => {
+    const { service } = setupImport(
+      new FakeReader(sheetInput([fakeRow(1), fakeRow(2, { 'Data Nascita': null }), fakeRow(3, { Cognome: null, Nome: null })])),
+    );
+    await service.chooseFile(fakeFile());
+    expect(service.skippedMessages()).toEqual(['Riga 3 (PROVA02 ALFA): manca la data di nascita', 'Riga 4: manca il cognome']);
+  });
+
+  it('avvisi età/settore dal listino, non bloccanti, contati nel riepilogo', async () => {
+    const { service } = setupImport(
+      new FakeReader(
+        sheetInput([
+          fakeRow(1, { Cognome: 'GATTI', Nome: 'MIA', 'Data Nascita': '09/09/2022' }),
+          fakeRow(2, { Cognome: 'PROVA', Nome: 'ALFA', 'Data Nascita': '01/05/1996', Settore: 'GIOVANI' }),
+          fakeRow(3),
+        ]),
+      ),
+    );
+    await service.chooseFile(fakeFile());
+    expect(service.warningMessages()).toEqual([
+      "Riga 2 (GATTI MIA): 4 anni, sotto l'età minima di 6 anni del listino",
+      "Riga 3 (PROVA ALFA): 30 anni: per il listino è Adulti, nell'export è GIOVANI",
+    ]);
+    expect(service.canConfirm()).toBe(true);
+    await service.confirm();
+    expect(service.summary()).toMatchObject({ adhesions: 3, warnings: 2 });
   });
 });

@@ -1,8 +1,11 @@
+import { labelFor, SCHEDULE_2026_27 } from '@tesseramento/fees';
 import {
   ADHESION_LISTS,
+  identityKey,
   importId,
   REQUIRED_COLUMNS,
   type AdhesionList,
+  type ArchivedPerson,
   type ImportPlan,
   type SheetInput,
 } from '@tesseramento/import';
@@ -74,8 +77,10 @@ export class FakeImportBackend implements ImportBackend {
   feeScheduleYears = new Set<number>([2026]);
   /** Elenchi già importati, come ID del segno ("2026-ACR"). */
   importedLists = new Set<string>();
-  /** Persone in archivio: chiave di identità → ID. */
+  /** Persone in archivio: chiave di identità "COGNOME|NOME|AAAA-MM-GG" → ID. */
   persons = new Map<string, string>();
+  /** Codici fiscali delle persone in archivio: ID → codice. */
+  taxCodes = new Map<string, string>();
   /** Adesioni per anno: ID persona → elenco. */
   adhesions = new Map<number, Map<string, AdhesionList>>();
   commits: FakeCommit[] = [];
@@ -104,11 +109,37 @@ export class FakeImportBackend implements ImportBackend {
     return id;
   }
 
+  /** Una persona in archivio, con codice fiscale e adesione di un anno precedente facoltativi. */
+  addPerson(lastName: string, firstName: string, birthDate: string, over: { taxCode?: string; adhesion?: { year: number; list: AdhesionList } } = {}): string {
+    const id = `p${this.nextId++}`;
+    this.persons.set(identityKey(lastName, firstName, birthDate), id);
+    if (over.taxCode) this.taxCodes.set(id, over.taxCode);
+    if (over.adhesion) this.yearAdhesions(over.adhesion.year).set(id, over.adhesion.list);
+    return id;
+  }
+
   async yearContext(year: number): Promise<YearContext> {
+    const archive: ArchivedPerson[] = [...this.persons].map(([key, id]) => {
+      const [lastName = '', firstName = '', birthDate = ''] = key.split('|');
+      const years = [...this.adhesions].filter(([, m]) => m.has(id)).map(([y]) => y);
+      const lastYear = years.length > 0 ? Math.max(...years) : undefined;
+      const taxCode = this.taxCodes.get(id);
+      return {
+        id,
+        lastName,
+        firstName,
+        birthDate,
+        identityKey: key,
+        ...(taxCode ? { taxCode } : {}),
+        ...(lastYear === undefined ? {} : { lastAdhesion: { year: lastYear, list: this.adhesions.get(lastYear)!.get(id)! } }),
+      };
+    });
+    const hasFeeSchedule = this.feeScheduleYears.has(year);
     return {
-      hasFeeSchedule: this.feeScheduleYears.has(year),
+      hasFeeSchedule,
+      ...(hasFeeSchedule ? { feeSchedule: { ...SCHEDULE_2026_27, associationYear: year, label: labelFor(year) } } : {}),
       importedLists: ADHESION_LISTS.filter((l) => this.importedLists.has(importId(year, l))),
-      persons: new Map(this.persons),
+      archive,
       adhesions: new Map(this.yearAdhesions(year)),
     };
   }

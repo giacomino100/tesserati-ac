@@ -1,6 +1,13 @@
 import { collection, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
-import { listOfImportId, type AdhesionList, type ImportPlan, type ImportRow } from '@tesseramento/import';
+import {
+  listOfImportId,
+  type AdhesionList,
+  type ArchivedPerson,
+  type ImportPlan,
+  type ImportRow,
+} from '@tesseramento/import';
 import { db } from '../core/firebase';
+import { documentToStored } from '../listini/schedule-mapper';
 import {
   AlreadyImportedError,
   ImportContextChangedError,
@@ -38,31 +45,60 @@ function adhesionDocument(row: ImportRow, personId: string, plan: ImportPlan): R
   });
 }
 
-/** Import in Cloud Firestore (specifiche 004 e 005). Nessun dato delle righe nei log. */
+/** Import in Cloud Firestore (specifiche 004–006). Nessun dato delle righe nei log. */
 export class FirestoreImportBackend implements ImportBackend {
-  /** Listino, elenchi importati, persone e adesioni dell'anno, letti in parallelo (research R4 della 005). */
+  /**
+   * Listino, elenchi importati, archivio completo (con l'ultima adesione di ogni persona) e adesioni
+   * dell'anno, letti in parallelo (research R4 della 005, R8 della 006).
+   */
   async yearContext(year: number): Promise<YearContext> {
     const [schedule, batches, persons, adhesions] = await Promise.all([
       getDoc(doc(db, 'feeSchedules', String(year))),
       getDocs(query(collection(db, 'importBatches'), where('associationYear', '==', year))),
       getDocs(collection(db, 'persons')),
-      getDocs(query(collection(db, 'adhesions'), where('associationYear', '==', year))),
+      getDocs(collection(db, 'adhesions')),
     ]);
     const importedLists = batches.docs
       .map((b) => listOfImportId(b.id))
       .filter((l): l is AdhesionList => l !== undefined);
-    const personIndex = new Map<string, string>();
-    for (const person of persons.docs) {
-      const key = person.data()['identityKey'];
-      if (typeof key === 'string') personIndex.set(key, person.id);
-    }
-    const adhesionIndex = new Map<string, AdhesionList>();
+
+    const yearAdhesions = new Map<string, AdhesionList>();
+    const lastAdhesion = new Map<string, { year: number; list: AdhesionList }>();
     for (const adhesion of adhesions.docs) {
       const data = adhesion.data();
       const list = listOfImportId(String(data['importId']));
-      if (list) adhesionIndex.set(String(data['personId']), list);
+      const personId = String(data['personId']);
+      const adhesionYear = Number(data['associationYear']);
+      if (!list || !Number.isInteger(adhesionYear)) continue;
+      if (adhesionYear === year) yearAdhesions.set(personId, list);
+      const last = lastAdhesion.get(personId);
+      if (!last || adhesionYear > last.year) lastAdhesion.set(personId, { year: adhesionYear, list });
     }
-    return { hasFeeSchedule: schedule.exists(), importedLists, persons: personIndex, adhesions: adhesionIndex };
+
+    const archive: ArchivedPerson[] = [];
+    for (const person of persons.docs) {
+      const data = person.data();
+      if (typeof data['identityKey'] !== 'string') continue;
+      const taxCode = typeof data['taxCode'] === 'string' ? data['taxCode'] : undefined;
+      const last = lastAdhesion.get(person.id);
+      archive.push({
+        id: person.id,
+        lastName: String(data['lastName']),
+        firstName: String(data['firstName']),
+        birthDate: String(data['birthDate']),
+        identityKey: data['identityKey'],
+        ...(taxCode ? { taxCode } : {}),
+        ...(last ? { lastAdhesion: last } : {}),
+      });
+    }
+
+    return {
+      hasFeeSchedule: schedule.exists(),
+      ...(schedule.exists() ? { feeSchedule: documentToStored(schedule.data()).schedule } : {}),
+      importedLists,
+      archive,
+      adhesions: yearAdhesions,
+    };
   }
 
   /**

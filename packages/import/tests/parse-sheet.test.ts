@@ -121,10 +121,10 @@ describe('parseAdhesionSheet – righe saltate (P8, P9)', () => {
     expect(result.rows.map((r) => r.firstName)).toEqual(['UNO', 'SEI']);
     expect(result.totalRows).toBe(6);
     expect(result.skipped).toEqual([
-      { rowNumber: 3, reason: 'missingLastName' },
-      { rowNumber: 4, reason: 'missingFirstName' },
-      { rowNumber: 5, reason: 'missingBirthDate' },
-      { rowNumber: 6, reason: 'invalidBirthDate' },
+      { rowNumber: 3, reason: 'missingLastName', firstName: 'DUE' },
+      { rowNumber: 4, reason: 'missingFirstName', lastName: 'PROVA' },
+      { rowNumber: 5, reason: 'missingBirthDate', lastName: 'PROVA', firstName: 'QUATTRO' },
+      { rowNumber: 6, reason: 'invalidBirthDate', lastName: 'PROVA', firstName: 'CINQUE' },
     ]);
   });
 
@@ -137,7 +137,9 @@ describe('parseAdhesionSheet – righe saltate (P8, P9)', () => {
       ]),
     );
     expect(result.rows.map((r) => r.rowNumber)).toEqual([2, 3]);
-    expect(result.skipped).toEqual([{ rowNumber: 4, reason: 'duplicate', duplicateOf: 2 }]);
+    expect(result.skipped).toEqual([
+      { rowNumber: 4, reason: 'duplicate', duplicateOf: 2, lastName: 'rossi', firstName: 'mario' },
+    ]);
   });
 
   it('importa le righe di altri settori o fuori età ACR (FR-012)', () => {
@@ -145,5 +147,26 @@ describe('parseAdhesionSheet – righe saltate (P8, P9)', () => {
       parse([acrRow(), acrRow({ Nome: 'BETA', Settore: 'GIOVANI', "Fasce d'età": '15/18', 'Data Nascita': '01/01/2010' })]),
     );
     expect(result.rows.map((r) => r.sector)).toEqual(['RAGAZZI', 'GIOVANI']);
+  });
+});
+
+describe('parseAdhesionSheet – specifica 006 (D10, D13)', () => {
+  it('due righe con lo stesso codice fiscale valido: la seconda è un doppione della prima', () => {
+    const result = ok(
+      parse([
+        acrRow({ Cognome: 'NERI', Nome: 'ANNA', 'Cod. Fiscale': 'NRENNA82S45G348X' }),
+        acrRow({ Cognome: 'NERI', Nome: 'ANA', 'Cod. Fiscale': 'nrenna82s45g348x' }),
+        acrRow({ Cognome: 'ALTRA', Nome: 'PERSONA' }),
+      ]),
+    );
+    expect(result.rows.map((r) => r.rowNumber)).toEqual([2, 4]);
+    expect(result.skipped).toEqual([
+      { rowNumber: 3, reason: 'duplicate', duplicateOf: 2, lastName: 'NERI', firstName: 'ANA' },
+    ]);
+  });
+
+  it('riga saltata senza cognome né nome: nessun nome', () => {
+    const result = ok(parse([acrRow(), acrRow({ Cognome: null, Nome: "''" })]));
+    expect(result.skipped).toEqual([{ rowNumber: 3, reason: 'missingLastName' }]);
   });
 });

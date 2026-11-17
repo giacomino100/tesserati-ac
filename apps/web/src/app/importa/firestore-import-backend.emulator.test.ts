@@ -63,7 +63,7 @@ async function planFor(rows: FakeRow[]): Promise<ImportPlan> {
   const parsed = parseAdhesionSheet(sheetInput(rows));
   if (!parsed.ok || parsed.recognition.kind !== 'recognized') throw new Error('foglio di prova non valido');
   const context = await backend.yearContext(parsed.associationYear);
-  return planImport(parsed, parsed.recognition.list, context.persons, context.adhesions);
+  return planImport(parsed, parsed.recognition.list, context.archive, context.adhesions);
 }
 
 const SECTOR: Record<AdhesionList, FakeRow> = {
@@ -132,7 +132,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
     const context = await backend.yearContext(2026);
     expect(context.hasFeeSchedule).toBe(true);
     expect([...context.importedLists].sort()).toEqual(['ACR', 'ADULTI', 'GIOVANI']);
-    expect(context.persons.size).toBe(9);
+    expect(context.archive).toHaveLength(9);
     expect([...context.adhesions.values()].sort()).toEqual([
       'ACR', 'ACR', 'ACR', 'ADULTI', 'ADULTI', 'ADULTI', 'ADULTI', 'GIOVANI', 'GIOVANI',
     ]);
@@ -150,7 +150,7 @@ describe('FirestoreImportBackend sugli emulatori', () => {
   it('persona ACR anche nell’elenco Adulti: riga saltata, salvate solo le altre (005, US2)', async () => {
     await backend.commit(await planFor([rowOf('ACR', 1)]), LISTED);
     const plan = await planFor([rowOf('ADULTI', 1), rowOf('ACR', 1, { Settore: 'ADULTI' }), rowOf('ADULTI', 2)]);
-    expect(plan.skipped).toEqual([{ rowNumber: 3, reason: 'alreadyInYear', fromList: 'ACR' }]);
+    expect(plan.skipped).toEqual([{ rowNumber: 3, reason: 'alreadyInYear', fromList: 'ACR', lastName: 'ACR01', firstName: 'ALFA' }]);
     await backend.commit(plan, LISTED);
     expect(await size('persons')).toBe(3);
     expect(await size('adhesions')).toBe(3);
@@ -196,5 +196,31 @@ describe('FirestoreImportBackend sugli emulatori', () => {
     expect(await usage.isInUse(2026)).toBe(false);
     await backend.commit(await planFor([rowOf('ADULTI', 1)]), LISTED);
     expect(await usage.isInUse(2026)).toBe(true);
+  });
+
+  it('archivio con l’ultima adesione di ogni persona e listino dell’anno (006)', async () => {
+    await seedSchedule(2025);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025' })]), LISTED);
+    await backend.commit(await planFor([rowOf('ADULTI', 1)]), LISTED);
+    const context = await backend.yearContext(2026);
+    expect(context.feeSchedule?.associationYear).toBe(2026);
+    expect(context.archive).toHaveLength(1);
+    expect(context.archive[0]).toMatchObject({ lastName: 'ADULTI01', firstName: 'ALFA', lastAdhesion: { year: 2026, list: 'ADULTI' } });
+  });
+
+  it('possibile doppione deciso "Stessa persona": nessuna persona nuova, anagrafica invariata (006)', async () => {
+    await seedSchedule(2025);
+    await backend.commit(await planFor([rowOf('ADULTI', 1, { 'Anno Associativo': 'Anno 2025', Nome: 'MARIA' })]), LISTED);
+    const parsed = parseAdhesionSheet(sheetInput([rowOf('ADULTI', 1, { Nome: 'MARIA GRAZIA' })]));
+    if (!parsed.ok) throw new Error('foglio di prova non valido');
+    const context = await backend.yearContext(2026);
+    const pending = planImport(parsed, 'ADULTI', context.archive, context.adhesions);
+    expect(pending.pendingDuplicates).toBe(1);
+    const id = pending.duplicates[0]!.candidates[0]!.id;
+    const plan = planImport(parsed, 'ADULTI', context.archive, context.adhesions, new Map([[2, id]]));
+    await backend.commit(plan, LISTED);
+    expect(await size('persons')).toBe(1);
+    expect((await getDoc(doc(db, 'adhesions', `2026_${id}`))).exists()).toBe(true);
+    expect((await getDoc(doc(db, 'persons', id))).data()?.['firstName']).toBe('MARIA');
   });
 });

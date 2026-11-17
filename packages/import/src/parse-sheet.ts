@@ -22,13 +22,15 @@ function toImportRow(
   const text = (column: RequiredColumn): string | undefined => cleanText(cell(column));
 
   const lastName = text('Cognome');
-  if (!lastName) return { rowNumber, reason: 'missingLastName' };
   const firstName = text('Nome');
-  if (!firstName) return { rowNumber, reason: 'missingFirstName' };
+  // Cognome e nome accompagnano le righe saltate solo per mostrarle a schermo (specifica 006, FR-007).
+  const names = { ...(lastName ? { lastName } : {}), ...(firstName ? { firstName } : {}) };
+  if (!lastName) return { rowNumber, reason: 'missingLastName', ...names };
+  if (!firstName) return { rowNumber, reason: 'missingFirstName', ...names };
   const rawDate = cell('Data Nascita');
-  if (cleanText(rawDate) === undefined) return { rowNumber, reason: 'missingBirthDate' };
+  if (cleanText(rawDate) === undefined) return { rowNumber, reason: 'missingBirthDate', ...names };
   const birthDate = toIsoDate(typeof rawDate === 'string' ? rawDate.trim() : rawDate, date1904);
-  if (!birthDate) return { rowNumber, reason: 'invalidBirthDate' };
+  if (!birthDate) return { rowNumber, reason: 'invalidBirthDate', ...names };
 
   const sex = text('Sesso')?.toUpperCase();
   const taxCode = text('Cod. Fiscale')?.toUpperCase();
@@ -86,18 +88,28 @@ export function parseAdhesionSheet(input: SheetInput): ParsedImport {
   const rows: ImportRow[] = [];
   const skipped: SkippedRow[] = [];
   const firstRowOf = new Map<string, number>();
+  const firstRowOfTaxCode = new Map<string, number>();
   for (const { cells, rowNumber } of dataRows) {
     const result = toImportRow(cells, rowNumber, index, input.date1904);
     if (isSkipped(result)) {
       skipped.push(result);
       continue;
     }
-    const first = firstRowOf.get(result.identityKey);
+    // Stessa persona due volte nello stesso file: stessa chiave, o stesso codice fiscale (specifica 006).
+    const first =
+      firstRowOf.get(result.identityKey) ?? (result.taxCode ? firstRowOfTaxCode.get(result.taxCode) : undefined);
     if (first !== undefined) {
-      skipped.push({ rowNumber, reason: 'duplicate', duplicateOf: first });
+      skipped.push({
+        rowNumber,
+        reason: 'duplicate',
+        duplicateOf: first,
+        lastName: result.lastName,
+        firstName: result.firstName,
+      });
       continue;
     }
     firstRowOf.set(result.identityKey, rowNumber);
+    if (result.taxCode) firstRowOfTaxCode.set(result.taxCode, rowNumber);
     rows.push(result);
   }
 

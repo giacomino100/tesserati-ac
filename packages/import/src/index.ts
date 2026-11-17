@@ -1,4 +1,9 @@
 export type {
+  AgeWarning,
+  ArchivedPerson,
+  DuplicateDecision,
+  PossibleDuplicate,
+  TaxCodeMatch,
   ImportError,
   ImportPlan,
   ImportRow,
@@ -11,7 +16,9 @@ export type {
 } from './types';
 export { cleanText, parseAssociationYear } from './clean';
 export { toIsoDate } from './date';
-export { identityKey } from './identity';
+export { identityKey, normalize } from './identity';
+export { datesSimilar, editDistance, findCandidates, namesSimilar } from './similarity';
+export { ageWarnings } from './age-warnings';
 export { EXPECTED_SHEET, REQUIRED_COLUMNS, type RequiredColumn } from './columns';
 export { parseAdhesionSheet } from './parse-sheet';
 export { acrImportId, planImport } from './plan-import';

@@ -1,13 +1,16 @@
 import { InjectionToken } from '@angular/core';
-import { listLabel, type AdhesionList, type ImportPlan } from '@tesseramento/import';
+import type { FeeSchedule } from '@tesseramento/fees';
+import { listLabel, type AdhesionList, type ArchivedPerson, type ImportPlan } from '@tesseramento/import';
 
 /** Ciò che serve dall'archivio per l'anteprima di un anno (specifica 005, research R4). */
 export interface YearContext {
   readonly hasFeeSchedule: boolean;
+  /** Il listino dell'anno, per gli avvisi su età e settore (specifica 006). */
+  readonly feeSchedule?: FeeSchedule;
   /** Elenchi dell'anno già importati. */
   readonly importedLists: readonly AdhesionList[];
-  /** Tutte le persone in archivio: chiave di identità → ID. */
-  readonly persons: ReadonlyMap<string, string>;
+  /** Tutte le persone in archivio, con l'ultima adesione (specifica 006). */
+  readonly archive: readonly ArchivedPerson[];
   /** Adesioni dell'anno: ID persona → elenco da cui proviene. */
   readonly adhesions: ReadonlyMap<string, AdhesionList>;
 }
