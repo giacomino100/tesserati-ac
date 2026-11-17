@@ -143,7 +143,9 @@ importare un Excel ACR del 2027: le righe di quelle persone sono saltate come "g
 - **FR-004**: Senza listino dell'anno nuovo la pagina MUST dirlo e MUST NOT permettere riconferme.
 - **FR-005**: L'utente MUST poter spuntare una, alcune o tutte le persone da decidere e riconfermarle insieme; per
   ciascuna MUST nascere un'adesione dell'anno nuovo con origine "riconferma", elenco ricalcolato, `Legame` e `N. Legame`
-  copiati dall'anno precedente, data ed email di chi riconferma; tutto o niente.
+  copiati dall'anno precedente, data ed email di chi riconferma; tutto o niente per ogni gruppo di salvataggio (al
+  massimo 15 persone, per il limite delle regole di sicurezza): se un gruppo fallisce, i gruppi già salvati restano,
+  la pagina dice quante persone sono state riconfermate e le altre restano da decidere.
 - **FR-006**: Una persona MUST avere al massimo un'adesione per anno: una riconferma di chi è già iscritto nell'anno
   nuovo MUST essere rifiutata, anche se avviene in contemporanea da due utenti.
 - **FR-007**: La riconferma MUST NOT creare persone nuove né modificare anagrafiche o adesioni di altri anni.
