@@ -47,6 +47,9 @@
 
 - **Decision**: la regola `delete` della 008 vale per `origin in ['riconferma', 'nuovo']`; l'app riusa `undo` e
   `hasSavedFee` del backend delle riconferme. La persona resta.
+  Gli anni proposti da Riconferme diventano gli anni con tesserati **e** l'anno dopo ciascuno (prima solo l'anno dopo,
+  008 R9): così la sezione "Nuovi tesserati" è raggiungibile anche per un anno senza tesserati l'anno prima; in quel caso
+  la pagina dice "Nessun tesserato nel … da riconfermare." e mostra comunque modulo e sezione.
 - **Rationale**: FR-007; chiarimento (sezione in Riconferme).
 
 ## R7. Anni con tesserati, import, listini
