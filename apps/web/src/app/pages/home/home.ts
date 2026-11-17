@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-home',
-  imports: [MatButtonModule, MatToolbarModule],
+  imports: [MatButtonModule, MatToolbarModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-toolbar>
@@ -13,7 +14,9 @@ import { AuthService } from '../../core/auth.service';
       <span class="name">{{ auth.user()?.displayName }}</span>
       <button mat-stroked-button type="button" (click)="signOut()">Esci</button>
     </mat-toolbar>
-    <main class="content"></main>
+    <main class="content">
+      <a mat-flat-button routerLink="/listini">Listini</a>
+    </main>
   `,
   styles: `
     mat-toolbar {

@@ -35,6 +35,96 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
+    // ---- Listini per anno associativo (specifica 003, contracts/firestore-fee-schedules.md) ----
+
+    function isPositiveInt(v) {
+      return v is int && v > 0;
+    }
+
+    // Etichetta dell'anno: 2027 -> "2027/28".
+    function labelOf(year) {
+      return string(year) + '/' + ((year + 1) % 100 < 10 ? '0' : '') + string((year + 1) % 100);
+    }
+
+    // Una fascia: forma esatta, importi interi > 0, quota con sconto <= quota piena.
+    // `withMax` è vero per le fasce con età massima (tutte tranne `adulti`).
+    function validBand(b, name, withMax) {
+      return b is map
+        && (withMax
+          ? b.keys().hasOnly(['band', 'minAge', 'maxAge', 'fullCents', 'discountedCents'])
+            && b.keys().hasAll(['band', 'minAge', 'maxAge', 'fullCents', 'discountedCents'])
+            && b.maxAge is int
+          : b.keys().hasOnly(['band', 'minAge', 'fullCents', 'discountedCents'])
+            && b.keys().hasAll(['band', 'minAge', 'fullCents', 'discountedCents']))
+        && b.band == name
+        && b.minAge is int
+        && isPositiveInt(b.fullCents)
+        && isPositiveInt(b.discountedCents)
+        && b.discountedCents <= b.fullCents;
+    }
+
+    // Forma e valori del documento (senza i metadati updatedAt/updatedBy, controllati a parte).
+    function validSchedule(d) {
+      return d.keys().hasOnly(['associationYear', 'label', 'minAge', 'maxHouseholdSize',
+                               'acrPackageCents', 'bands', 'updatedAt', 'updatedBy'])
+        && d.keys().hasAll(['associationYear', 'label', 'minAge', 'maxHouseholdSize',
+                            'acrPackageCents', 'bands', 'updatedAt', 'updatedBy'])
+        && d.associationYear is int
+        && d.label is string
+        && d.minAge is int
+        && d.maxHouseholdSize is int
+        && isPositiveInt(d.acrPackageCents)
+        && d.bands is list
+        && d.bands.size() == 4
+        && validBand(d.bands[0], 'acr', true)
+        && validBand(d.bands[1], 'giovanissimi', true)
+        && validBand(d.bands[2], 'giovani', true)
+        && validBand(d.bands[3], 'adulti', false);
+    }
+
+    // Chi salva e quando: email dell'utente in minuscolo e ora della richiesta.
+    function stamped(d) {
+      return d.updatedBy == ownEmail() && d.updatedAt == request.time;
+    }
+
+    // Regole del PDF che non si cambiano da questa schermata: età minima, massimo del nucleo,
+    // età delle fasce. L'etichetta dipende dall'anno e si controlla a parte.
+    function sameFixedRules(n, o) {
+      return n.minAge == o.minAge
+        && n.maxHouseholdSize == o.maxHouseholdSize
+        && n.bands[0].minAge == o.bands[0].minAge && n.bands[0].maxAge == o.bands[0].maxAge
+        && n.bands[1].minAge == o.bands[1].minAge && n.bands[1].maxAge == o.bands[1].maxAge
+        && n.bands[2].minAge == o.bands[2].minAge && n.bands[2].maxAge == o.bands[2].maxAge
+        && n.bands[3].minAge == o.bands[3].minAge;
+    }
+
+    // ID del documento = anno di inizio ("2026" = 2026/27). Mai cancellabili.
+    match /feeSchedules/{yearId} {
+      allow get, list: if isAllowed();
+
+      // Si crea solo l'anno dopo uno già esistente (nessun anno saltato) e `create` scatta solo
+      // se il documento non esiste ancora: un anno si crea una volta sola.
+      allow create: if isAllowed()
+        && yearId.matches('[0-9]{4}')
+        && request.resource.data.associationYear == int(yearId)
+        && request.resource.data.label == labelOf(int(yearId))
+        && validSchedule(request.resource.data)
+        && stamped(request.resource.data)
+        && exists(/databases/$(database)/documents/feeSchedules/$(string(int(yearId) - 1)))
+        && sameFixedRules(request.resource.data,
+             get(/databases/$(database)/documents/feeSchedules/$(string(int(yearId) - 1))).data);
+
+      // Si modificano solo le quote: anno, etichetta e regole fisse restano quelle salvate.
+      allow update: if isAllowed()
+        && request.resource.data.associationYear == resource.data.associationYear
+        && request.resource.data.label == resource.data.label
+        && validSchedule(request.resource.data)
+        && stamped(request.resource.data)
+        && sameFixedRules(request.resource.data, resource.data);
+
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

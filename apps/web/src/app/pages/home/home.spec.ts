@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Home } from './home';
 
@@ -11,7 +12,7 @@ describe('Home', () => {
     };
     TestBed.configureTestingModule({
       imports: [Home],
-      providers: [{ provide: AuthService, useValue: fake }],
+      providers: [provideRouter([]), { provide: AuthService, useValue: fake }],
     });
     const fixture = TestBed.createComponent(Home);
     fixture.detectChanges();
@@ -20,6 +21,11 @@ describe('Home', () => {
 
   it('mostra il nome dell’utente', () => {
     expect(setup().el.textContent).toContain('Utente Prova');
+  });
+
+  it('ha il collegamento "Listini"', () => {
+    const link = setup().el.querySelector('a[href="/listini"]');
+    expect(link?.textContent).toContain('Listini');
   });
 
   it('il pulsante "Esci" chiama signOut()', () => {

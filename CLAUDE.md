@@ -17,14 +17,16 @@ App Angular + Firebase per il tesseramento annuale all'Azione Cattolica: import 
 - Fatte: **001 – Accesso riservato** (app Angular in `apps/web`, regole Firestore in `firebase/`) e
   **002 – Calcolo quota famiglia** (`packages/fees`). App online su https://tesseramento-ac.web.app
   (progetto Firebase `tesseramento-ac`).
-- Della 001 restano da eseguire i test delle regole e di integrazione sull'emulatore (serve un JDK,
-  non ancora installato): `npm run test:rules`, `npm run test:integration -w web`.
-- Prossima: **003 – Listino per anno** (roadmap in `docs/roadmap.md`).
+- **003 – Listino per anno**: rilasciata il 2026-11-17 (regole, hosting e seed del 2026/27 in produzione; seed già eseguito, non rilanciare).
+  Schermate `/listini`, listini in Firestore `feeSchedules`.
+- Test delle regole (`npm run test:rules`) e di integrazione (`npm run test:integration -w web`) ora girano: JDK 21 installato
+  (se `java` non è nel PATH, impostare `JAVA_HOME`).
+- Prossima: **004 – Import Excel ACR** (roadmap in `docs/roadmap.md`).
 
 ## Comandi
 
 - App in locale: `npm run emulators` (emulatori Auth/Firestore) e `npm start` (usa il progetto `demo-tesseramento`).
-- Test: `npm test` (tutti i workspace); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`.
+- Test: `npm test` (tutti i workspace; in `firebase` solo il test di seed, senza emulatore); app: `npm test -w web`; calcolo quote: `npm test -w @tesseramento/fees`.
 - Controllo tipi: `npm run typecheck`. Test regole: `npm run test:rules` (richiede JDK).
 - Rilascio: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac` solo dopo test verdi.
 - Elenco email autorizzate: collezione Firestore `allowedEmails`, ID documento = email in minuscolo.

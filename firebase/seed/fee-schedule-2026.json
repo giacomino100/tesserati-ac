@@ -1,0 +1,13 @@
+{
+  "associationYear": 2026,
+  "label": "2026/27",
+  "minAge": 6,
+  "maxHouseholdSize": 4,
+  "acrPackageCents": 2500,
+  "bands": [
+    { "band": "acr", "minAge": 6, "maxAge": 14, "fullCents": 1500, "discountedCents": 1200 },
+    { "band": "giovanissimi", "minAge": 15, "maxAge": 18, "fullCents": 1600, "discountedCents": 1300 },
+    { "band": "giovani", "minAge": 19, "maxAge": 29, "fullCents": 2200, "discountedCents": 1800 },
+    { "band": "adulti", "minAge": 30, "fullCents": 2600, "discountedCents": 2100 }
+  ]
+}
