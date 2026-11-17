@@ -107,7 +107,7 @@ in archivio) e III (nuova collezione: regole testate sull'emulatore).
 - [X] T023 Run full suite: `npm run typecheck`, `npm test`, `npm run test:rules`, `npm run test:integration -w web`, `npm run build -w web`
 - [X] T024 [P] Update `docs/roadmap.md` (010 ✅ when released) and `CLAUDE.md`
 - [ ] T025 Manual scenarios M1–M7 of `specs/010-quote-famiglia/quickstart.md` (M1: page under 3 s)
-- [ ] T026 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
+- [X] T026 Release only with all tests green and the user's OK: `npx firebase deploy --only firestore:rules,hosting --project tesseramento-ac`
 
 ---
 
