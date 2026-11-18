@@ -31,7 +31,7 @@ describe('Home', () => {
 
   it('ha il collegamento "Importa Excel"', () => {
     const link = setup(true).el.querySelector('a[href="/importa"]');
-    expect(link?.textContent).toContain('Importa Excel');
+    expect(link?.textContent).toContain('Importa dati');
   });
 
   it('ha il collegamento "Tesserati"', () => {
@@ -61,7 +61,7 @@ describe('Home', () => {
     expect(setup(false).el.querySelector('a[href="/importa"]')).toBeNull();
     TestBed.resetTestingModule();
     const el = setup(true).el;
-    expect(el.querySelector('a[href="/importa"]')?.textContent).toContain('Importa Excel');
+    expect(el.querySelector('a[href="/importa"]')?.textContent).toContain('Importa dati');
     expect(el.querySelector('a[href="/riconferme"]')).toBeNull();
   });
 });

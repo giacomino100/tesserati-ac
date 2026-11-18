@@ -229,7 +229,9 @@ service cloud.firestore {
     function validPayment(d) {
       return d.paidOn is string
         && d.paidOn.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
-        && timestamp.date(int(d.paidOn.split('-')[0]), int(d.paidOn.split('-')[1]), int(d.paidOn.split('-')[2])) <= request.time
+        // Il giorno è quello italiano (UTC+1, +2 con l'ora legale): 2 ore di margine sulla mezzanotte di Greenwich.
+        && timestamp.date(int(d.paidOn.split('-')[0]), int(d.paidOn.split('-')[1]), int(d.paidOn.split('-')[2]))
+             <= request.time + duration.value(2, 'h')
         && d.paidAt == request.time
         && d.paidBy == ownEmail();
     }

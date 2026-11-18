@@ -1647,3 +1647,16 @@ describe('O3/O4 – registra pagamento e familyOptOut', () => {
     }
   });
 });
+
+describe('O6 – data di pagamento nel giorno italiano (correzione 013)', () => {
+  beforeEach(() => seedRenewalBase('a', 'b'));
+  const utcDay = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString().slice(0, 10);
+
+  it('il giorno di "adesso + 90 minuti" (in Italia può già essere domani rispetto a Greenwich): consentito', async () => {
+    await assertSucceeds(setDoc(doc(user(LISTED), 'adhesions/2027_a'), { ...renewalFor('a'), ...paidBy(), paidOn: utcDay(90 * 60 * 1000) }));
+  });
+
+  it('dopodomani: negato', async () => {
+    await assertFails(setDoc(doc(user(LISTED), 'adhesions/2027_b'), { ...renewalFor('b'), ...paidBy(), paidOn: utcDay(2 * 24 * 60 * 60 * 1000) }));
+  });
+});

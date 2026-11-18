@@ -101,6 +101,9 @@ import { MEMBERS_MESSAGES, MembersService, type MemberFilter } from '../../membe
                 </select>
               </label>
             }
+            @if (service.canConfirmPanelFamily()) {
+              <button mat-flat-button type="button" [disabled]="service.busy()" (click)="run(service.confirmPanelFamily())">Conferma famiglia</button>
+            }
             <button mat-stroked-button type="button" (click)="service.closePanel()">Chiudi</button>
           </section>
         }

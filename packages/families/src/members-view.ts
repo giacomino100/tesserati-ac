@@ -98,7 +98,7 @@ export interface FamilyPanelInput {
 export function familyPanel(input: FamilyPanelInput): FamilyPanel {
   const currentById = new Map(input.current.map((m) => [m.personId, m]));
   const person = currentById.get(input.personId) ?? input.previous.find((m) => m.personId === input.personId);
-  if (!person) return { members: [], addable: [] };
+  if (!person) return { members: [], addable: [], joinable: [] };
   const ownFamilyId = input.memberships.get(person.personId);
   const family =
     (ownFamilyId ? input.families.find((f) => f.id === ownFamilyId) : undefined) ??
@@ -123,5 +123,8 @@ export function familyPanel(input: FamilyPanelInput): FamilyPanel {
   const addable = input.current
     .filter((m) => !ids.has(m.personId) && !input.memberships.has(m.personId))
     .sort(byName);
-  return { ...(family ? { familyId: family.id } : {}), ...(bondId ? { bondId } : {}), members, addable };
+  // Iscritti del pannello fuori da ogni famiglia: si riuniscono con "Conferma famiglia" (per chi era già iscritto senza
+  // famiglia, es. riconfermato prima della 013).
+  const joinable = members.filter((m) => m.status === 'enrolled' && !input.memberships.has(m.member.personId)).map((m) => m.member.personId);
+  return { ...(family ? { familyId: family.id } : {}), ...(bondId ? { bondId } : {}), members, addable, joinable };
 }

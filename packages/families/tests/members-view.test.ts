@@ -122,3 +122,30 @@ describe('familyPanel (P8–P10)', () => {
     expect(p.addable.map((m) => m.lastName)).toEqual(['BARBIERI']);
   });
 });
+
+describe('familyPanel – iscritti senza famiglia (correzione 013, P11)', () => {
+  it('tutti iscritti senza famiglia → tutti riuniscibili', () => {
+    const gallo = enrolled(byName('GALLO', 'LUCA'));
+    const conti = enrolled(byName('CONTI', 'MARTA'));
+    const tommaso = enrolled(byName('GALLO', 'TOMMASO'));
+    const p = familyPanel({ personId: gallo.personId, previous, current: [gallo, conti, tommaso], families: [], memberships: new Map() });
+    expect(p.joinable).toEqual([gallo.personId, conti.personId, tommaso.personId]);
+  });
+
+  it('famiglia di 2 e un iscritto fuori → solo lui; chi è in un’altra famiglia no', () => {
+    const gallo = enrolled(byName('GALLO', 'LUCA'));
+    const conti = enrolled(byName('CONTI', 'MARTA'));
+    const tommaso = enrolled(byName('GALLO', 'TOMMASO'));
+    const giulia = enrolled(byName('GALLO', 'GIULIA'));
+    const fam = family('F', [gallo.personId, conti.personId], { associationYear: 2027, bondId: '900003' });
+    const other = family('G', [giulia.personId, 'x'], { associationYear: 2027 });
+    const p = familyPanel({
+      personId: gallo.personId,
+      previous,
+      current: [gallo, conti, tommaso, giulia],
+      families: [fam, other],
+      memberships: membershipsOf(fam, other),
+    });
+    expect(p.joinable).toEqual([tommaso.personId]);
+  });
+});

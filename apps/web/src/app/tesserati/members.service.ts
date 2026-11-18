@@ -351,6 +351,41 @@ export class MembersService {
     this.panelPersonId.set(null);
   }
 
+  /** "Conferma famiglia": c'è chi va riunito (iscritti del pannello fuori da famiglie). */
+  readonly canConfirmPanelFamily = computed(() => {
+    const p = this.panel();
+    if (!p) return false;
+    return p.familyId ? p.joinable.length >= 1 : p.joinable.length >= 2;
+  });
+
+  /**
+   * Riunisce nella famiglia del pannello gli iscritti che non ne hanno una (correzione della 013: persone già iscritte
+   * prima della conferma = pagato non attivano l'aggiornamento automatico). Chi era stato tolto a mano rientra.
+   */
+  async confirmPanelFamily(): Promise<void> {
+    const panel = this.panel();
+    if (!panel || !this.canConfirmPanelFamily()) return;
+    const year = this.year();
+    const family = this.families().find((f) => f.id === panel.familyId);
+    const members = family
+      ? [...family.memberIds.filter((id) => this.memberships().get(id) === family.id), ...panel.joinable]
+      : [...panel.joinable];
+    const optedOut = this.current().filter((m) => panel.joinable.includes(m.personId) && m.familyOptOut);
+    await this.run(async () => {
+      await this.backend.confirmFamily(
+        {
+          ...(family ? { id: family.id } : {}),
+          associationYear: year,
+          memberIds: members,
+          origin: family?.origin ?? (panel.bondId ? 'legame' : 'manuale'),
+          ...((family?.bondId ?? panel.bondId) ? { bondId: (family?.bondId ?? panel.bondId)! } : {}),
+        },
+        this.email(),
+      );
+      for (const m of optedOut) await this.backend.setFamilyOptOut(year, m.personId, false);
+    }, `Famiglia aggiornata: ${members.length} componenti.`);
+  }
+
   /** Toglie una persona dalla sua famiglia (sciolta se resta 1) e la segna per non riaggiungerla da sola. */
   async removeFromFamily(personId: string): Promise<void> {
     const familyId = this.memberships().get(personId);

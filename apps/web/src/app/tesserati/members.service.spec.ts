@@ -164,5 +164,17 @@ describe('MembersService – famiglia (US2)', () => {
     expect(service.message()).toBe('Conferma salvata, ma la famiglia non è stata aggiornata: riprova dal pannello.');
     expect(service.countsText()).toBe('5 da confermare · 2 iscritti');
   });
-});
 
+  it('correzione: iscritti senza famiglia (riconfermati prima della 013) → "Conferma famiglia"', async () => {
+    const backend = yearFixture();
+    const old = (id: string) => ({ ...backend.members.get(2026)!.find((m) => m.personId === id)!, origin: 'riconferma' as const });
+    backend.members.set(2027, [old('gallo-l'), old('conti'), old('gallo-t')]);
+    const { service } = await setup(backend);
+    service.openPanel('gallo-l');
+    expect(service.canConfirmPanelFamily()).toBe(true);
+    await service.confirmPanelFamily();
+    expect(backend.families[0]).toMatchObject({ memberIds: ['gallo-l', 'conti', 'gallo-t'], bondId: '900003', origin: 'legame' });
+    expect(service.message()).toBe('Famiglia aggiornata: 3 componenti.');
+    expect(service.canConfirmPanelFamily()).toBe(false);
+  });
+});

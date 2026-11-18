@@ -279,4 +279,6 @@ export interface FamilyPanel {
   readonly members: readonly FamilyPanelMember[];
   /** Iscritti dell'anno fuori da famiglie, aggiungibili. */
   readonly addable: readonly YearMember[];
+  /** Iscritti del pannello fuori da ogni famiglia, da riunire con "Conferma famiglia". */
+  readonly joinable: readonly string[];
 }
